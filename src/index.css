@@ -1,0 +1,55 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --th-page:        #f3f4f6;
+  --th-card:        #ffffff;
+  --th-border:      #e5e7eb;
+  --th-border-soft: #f3f4f6;
+  --th-txt-1:       #111827;
+  --th-txt-2:       #374151;
+  --th-txt-3:       #6b7280;
+  --th-txt-4:       #6b7280;
+  --th-subtle:      #f3f4f6;
+  --th-hover:       #f9fafb;
+  --th-goal:        #d1d5db;
+  --th-meta-dot:    #d1d5db;
+  --th-fin-bg:      #111827;
+  --th-fin-txt:     #ffffff;
+  --th-fin-border:  #374151;
+}
+
+html.dark {
+  --th-page:        #0e0e0e;
+  --th-card:        #111111;
+  --th-border:      rgba(255,255,255,0.10);
+  --th-border-soft: rgba(255,255,255,0.05);
+  --th-txt-1:       #ffffff;
+  --th-txt-2:       #d4d4d8;
+  --th-txt-3:       #a1a1aa;
+  --th-txt-4:       #71717a;
+  --th-subtle:      rgba(255,255,255,0.05);
+  --th-hover:       rgba(255,255,255,0.05);
+  --th-goal:        rgba(255,255,255,0.10);
+  --th-meta-dot:    rgba(255,255,255,0.20);
+  --th-fin-bg:      #ffffff;
+  --th-fin-txt:     #000000;
+  --th-fin-border:  #ffffff;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  background-color: var(--th-page);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--th-border-soft); }
+::-webkit-scrollbar-thumb { background: var(--th-txt-4); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--th-txt-3); }
