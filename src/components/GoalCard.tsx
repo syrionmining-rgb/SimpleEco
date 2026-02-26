@@ -8,7 +8,7 @@ interface GoalCardProps {
   period?: string
 }
 
-export default function GoalCard({ title, goal, unit, progress, period }: GoalCardProps) {
+export default function GoalCard({ title, goal, unit, progress }: GoalCardProps) {
   const percentage = Math.min((progress / goal) * 100, 100)
 
   return (

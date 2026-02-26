@@ -19,8 +19,6 @@ export default function MetricCard({
   gradient = false,
 }: MetricCardProps) {
   const numericValue = parseFloat(value)
-  const colorAbove = '#34d399'
-  const colorBelow = '#bb3838'
 
   const valueClass = Icon === TriangleAlert ? 'text-red-400' : 'text-black dark:text-white'
   const valueStyle = {}
