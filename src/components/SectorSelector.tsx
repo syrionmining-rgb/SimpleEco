@@ -42,7 +42,7 @@ export default function SectorSelector({
             ].join(' ')}
             style={{ color: 'var(--th-txt-1)', backgroundColor: 'var(--th-card)' }}
           >
-            <option value="">Todos os Setores</option>
+            <option value="">Todos</option>
             {sectors.map(s => (
               <option key={s.cod} value={s.cod}>{s.nome}</option>
             ))}
@@ -74,7 +74,7 @@ export default function SectorSelector({
             ].join(' ')}
             style={{ color: 'var(--th-txt-1)', backgroundColor: 'var(--th-card)' }}
           >
-            <option value="">Todos os Setores</option>
+            <option value="">Todos</option>
             {sectors.map(s => (
               <option key={s.cod} value={s.cod}>{s.nome}</option>
             ))}
