@@ -130,7 +130,7 @@ export default function ScheduledOrdersTable({ orders, loading = false }: Props)
                         }
                       >
                         <CircleCheck className="w-3 h-3" aria-hidden="true" />
-                        {o.status}
+                        {o.status === 'Em Produção' ? 'Produção' : o.status}
                       </span>
                     </td>
                   </tr>
