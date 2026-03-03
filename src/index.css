@@ -1,0 +1,117 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --th-page:        #f3f4f6;
+  --th-card:        #ffffff;
+  --th-border:      #e5e7eb;
+  --th-border-soft: #f3f4f6;
+  --th-txt-1:       #111827;
+  --th-txt-2:       #374151;
+  --th-txt-3:       #6b7280;
+  --th-txt-4:       #6b7280;
+  --th-subtle:      #f3f4f6;
+  --th-hover:       #f9fafb;
+  --th-goal:        #d1d5db;
+  --th-meta-dot:    #d1d5db;
+  --th-fin-bg:      #111827;
+  --th-fin-txt:     #ffffff;
+  --th-fin-border:  #374151;
+}
+
+html.dark {
+  --th-page:        #0e0e0e;
+  --th-card:        #111111;
+  --th-border:      rgba(255,255,255,0.10);
+  --th-border-soft: rgba(255,255,255,0.05);
+  --th-txt-1:       #ffffff;
+  --th-txt-2:       #d4d4d8;
+  --th-txt-3:       #a1a1aa;
+  --th-txt-4:       #71717a;
+  --th-subtle:      rgba(255,255,255,0.05);
+  --th-hover:       rgba(255,255,255,0.05);
+  --th-goal:        rgba(255,255,255,0.10);
+  --th-meta-dot:    rgba(255,255,255,0.20);
+  --th-fin-bg:      #ffffff;
+  --th-fin-txt:     #000000;
+  --th-fin-border:  #ffffff;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  background-color: var(--th-page);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* ── Login page animations ── */
+.login-anim {
+  opacity: 0;
+  filter: blur(8px);
+  transform: translateY(30px);
+  animation: loginFadeIn .8s ease-out forwards;
+}
+.login-slide-right {
+  opacity: 0;
+  filter: blur(8px);
+  transform: translateX(-50px);
+  animation: loginSlideRight .8s ease-out forwards;
+}
+
+.delay-100  { animation-delay: .1s; }.delay-200  { animation-delay: .2s; }
+.delay-300  { animation-delay: .3s; }
+.delay-400  { animation-delay: .4s; }
+.delay-500  { animation-delay: .5s; }
+.delay-600  { animation-delay: .6s; }
+.delay-700  { animation-delay: .7s; }
+.delay-1000 { animation-delay: 1s; }
+.delay-1200 { animation-delay: 1.2s; }
+.delay-1400 { animation-delay: 1.4s; }
+
+@keyframes loginFadeIn {
+  to { opacity: 1; filter: blur(0); transform: translateY(0); }
+}
+@keyframes loginSlideRight {
+  to { opacity: 1; filter: blur(0); transform: translateX(0); }
+}
+@keyframes testimonialIn {
+  to { opacity: 1; filter: blur(0); transform: translateY(0) scale(1); }
+}
+
+/* Custom checkbox for login */
+.login-checkbox {
+  cursor: pointer;
+  appearance: none;
+  border: 1px solid var(--th-border);
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  position: relative;
+  background-color: var(--th-subtle);
+  transition: background-color .15s, border-color .15s;
+  flex-shrink: 0;
+}
+.login-checkbox:checked {
+  background-color: #FF8C00;
+  border-color: #FF8C00;
+}
+.login-checkbox:checked::after {
+  content: '✓';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 11px;
+  font-weight: 700;
+  color: white;
+}
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--th-border-soft); }
+::-webkit-scrollbar-thumb { background: var(--th-txt-4); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--th-txt-3); }
