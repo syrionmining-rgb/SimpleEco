@@ -3,61 +3,10 @@ import { Eye, EyeOff } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
 
-// Avatares embutidos via URL pública
-const testimonials = [
-  {
-    avatarSrc: 'https://randomuser.me/api/portraits/women/57.jpg',
-    name: 'Sarah Chen',
-    handle: '@sarahdigital',
-    text: 'Plataforma incrível! A experiência do usuário é perfeita e as funcionalidades são exatamente o que eu precisava.',
-  },
-  {
-    avatarSrc: 'https://randomuser.me/api/portraits/men/64.jpg',
-    name: 'Marcus Johnson',
-    handle: '@marcustech',
-    text: 'Este sistema transformou nossa linha de produção. Design limpo, recursos poderosos e excelente suporte.',
-  },
-  {
-    avatarSrc: 'https://randomuser.me/api/portraits/men/32.jpg',
-    name: 'David Martinez',
-    handle: '@davidcreates',
-    text: 'Já usei muitas plataformas, mas esta se destaca. Intuitiva, confiável e genuinamente útil para a produtividade.',
-  },
-]
-
-const HERO_IMG =
-  'https://images.unsplash.com/photo-1642615835477-d303d7dc9ee9?w=2160&q=80'
-
 function GlassInput({ children }: { children: React.ReactNode }) {
   return (
     <div className="rounded-2xl border border-[var(--th-border)] bg-[var(--th-subtle)] backdrop-blur-sm transition-colors focus-within:border-[#FF8C00]/70 focus-within:bg-[#FF8C00]/5">
       {children}
-    </div>
-  )
-}
-
-function TestimonialCard({
-  t,
-  delay,
-}: {
-  t: (typeof testimonials)[0]
-  delay: string
-}) {
-  return (
-    <div
-      className={`${delay} flex items-start gap-3 rounded-3xl bg-black/40 backdrop-blur-xl border border-white/10 p-5 w-64`}
-      style={{ animation: '.8s ease-out forwards testimonialIn' }}
-    >
-      <img
-        src={t.avatarSrc}
-        className="h-10 w-10 object-cover rounded-2xl shrink-0"
-        alt={t.name}
-      />
-      <div className="text-sm leading-snug text-white">
-        <p className="font-medium">{t.name}</p>
-        <p className="text-white/50">{t.handle}</p>
-        <p className="mt-1 text-white/80">{t.text}</p>
-      </div>
     </div>
   )
 }

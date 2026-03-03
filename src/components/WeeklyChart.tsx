@@ -7,11 +7,6 @@ interface WeeklyChartProps {
 
 const CHART_HEIGHT = 160
 
-function fmtVal(n: number): string {
-  if (n >= 1000) return `${(n / 1000).toFixed(1)}k`
-  return String(n)
-}
-
 export default function WeeklyChart({ data }: WeeklyChartProps) {
   const maxVal = Math.max(...data.flatMap(d => [d.produced, d.goal]), 1)
 
