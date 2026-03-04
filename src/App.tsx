@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import Header from './components/Header'
 import MetricCard from './components/MetricCard'
 import ProductionCard from './components/ProductionCard'
@@ -6,9 +6,11 @@ import DelayedOrdersTable from './components/DelayedOrdersTable'
 import ScheduledOrdersTable from './components/ScheduledOrdersTable'
 import WeeklyChart from './components/WeeklyChart'
 import GoalCard from './components/GoalCard'
-import { fetchDashboard, type DashboardData } from './api'
+import { fetchDashboard } from './services/api'
+import type { DashboardData } from './types'
 import SectorSelector from './components/SectorSelector'
 import ControlsCard from './components/ControlsCard'
+import { supabase } from './lib/supabase'
 import {
   TriangleAlert,
   Package,
@@ -24,6 +26,7 @@ export default function App() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedSector, setSelectedSector] = useState('')
+  const [lastSync, setLastSync] = useState<string | null>(null)
 
   function toggleTheme() {
     setIsDark((prev) => {
@@ -54,17 +57,59 @@ export default function App() {
       .finally(() => setLoading(false))
   }, [])
 
+  useEffect(() => {
+    async function fetchLastSync() {
+      try {
+        const { data } = await supabase
+          .from('sync_log')
+          .select('ultima_sync')
+          .eq('id', 1)
+          .single()
+        if (data?.ultima_sync) {
+          const d = new Date(data.ultima_sync)
+          setLastSync(
+            d.toLocaleString('pt-BR', {
+              day: '2-digit', month: '2-digit', year: 'numeric',
+              hour: '2-digit', minute: '2-digit', second: '2-digit',
+            })
+          )
+        }
+      } catch {
+        // sem sync_log ainda
+      }
+    }
+    fetchLastSync()
+    const id = setInterval(fetchLastSync, 60_000)
+    return () => clearInterval(id)
+  }, [])
+
   const allDelayed = data?.delayed_orders ?? []
   const allToday   = data?.today_orders   ?? []
-  const filteredDelayed = selectedSector ? allDelayed.filter(o => o.allSetorCods.includes(selectedSector)) : allDelayed
-  const filteredToday   = selectedSector ? allToday.filter(o => o.allSetorCods.includes(selectedSector))   : allToday
+  const filteredDelayed = useMemo(
+    () => selectedSector ? allDelayed.filter(o => o.allSetorCods.includes(selectedSector)) : allDelayed,
+    [allDelayed, selectedSector],
+  )
+  const filteredToday = useMemo(
+    () => selectedSector ? allToday.filter(o => o.allSetorCods.includes(selectedSector)) : allToday,
+    [allToday, selectedSector],
+  )
 
-  const filteredDelayedCount    = data ? filteredDelayed.length : null
-  const filteredProductionCount = data ? filteredToday.length : null
-  const filteredFinished        = filteredToday.filter(o => o.status === 'Finalizado').length
-  const filteredEfficiency      = data
-    ? (filteredToday.length > 0 ? Math.round((filteredFinished / filteredToday.length) * 100) : 0)
-    : null
+  const filteredDelayedCount = useMemo(
+    () => (data ? filteredDelayed.length : null),
+    [data, filteredDelayed],
+  )
+  const filteredProductionCount = useMemo(
+    () => (data ? filteredToday.length : null),
+    [data, filteredToday],
+  )
+  const filteredFinished = useMemo(
+    () => filteredToday.filter(o => o.status === 'Finalizado').length,
+    [filteredToday],
+  )
+  const filteredEfficiency = useMemo(() => {
+    if (!data) return null
+    return filteredToday.length > 0 ? Math.round((filteredFinished / filteredToday.length) * 100) : 0
+  }, [data, filteredToday.length, filteredFinished])
 
   const metrics = [
     {
@@ -107,13 +152,12 @@ export default function App() {
           <Header
             toggleTheme={toggleTheme}
             isDark={isDark}
+            lastSync={lastSync}
           />
 
           {error && (
             <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-6 py-4 text-red-400 text-sm">
-              ⚠ Não foi possível conectar ao servidor de dados: {error}
-              <br />
-              <span className="opacity-70">Inicie o backend com: <code className="font-mono">uvicorn server.main:app --reload</code></span>
+              Nao foi possivel carregar dados do Supabase: {error}
             </div>
           )}
 
@@ -128,7 +172,7 @@ export default function App() {
                 todayCount={filteredToday.length}
               />
             </div>
-            <ControlsCard />
+            <ControlsCard lastSync={lastSync} />
           </div>
 
           {/* Metric Cards */}

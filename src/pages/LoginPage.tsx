@@ -12,13 +12,12 @@ function GlassInput({ children }: { children: React.ReactNode }) {
 }
 
 export default function LoginPage() {
-  const { login } = useAuth()
+  const { login, isAuthenticated, isLoadingAuth } = useAuth()
   const navigate = useNavigate()
   const [showPass, setShowPass] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  // Força dark mode enquanto a página de login está visível
   useEffect(() => {
     const html = document.documentElement
     const wasDark = html.classList.contains('dark')
@@ -28,19 +27,32 @@ export default function LoginPage() {
     }
   }, [])
 
+  useEffect(() => {
+    if (!isLoadingAuth && isAuthenticated) {
+      navigate('/', { replace: true })
+    }
+  }, [isAuthenticated, isLoadingAuth, navigate])
+
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     const fd = new FormData(e.currentTarget)
     const user = (fd.get('email') as string).trim()
     const pass = fd.get('password') as string
+    const rememberMe = fd.get('rememberMe') === 'on'
+
     setLoading(true)
     setError('')
-    const ok = await login(user, pass)
-    setLoading(false)
-    if (ok) {
-      navigate('/', { replace: true })
-    } else {
-      setError('Usuário ou senha incorretos.')
+    try {
+      const ok = await login(user, pass, rememberMe)
+      if (ok) {
+        navigate('/', { replace: true })
+      } else {
+        setError('Usuario ou senha incorretos.')
+      }
+    } catch {
+      setError('Nao foi possivel entrar. Tente novamente.')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -49,124 +61,99 @@ export default function LoginPage() {
       className="h-[100dvh] flex flex-col w-[100dvw] overflow-hidden"
       style={{ background: 'var(--th-page)', color: 'var(--th-txt-1)' }}
     >
-      {/* ── Conteúdo: form + hero ── */}
       <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
-      {/* ── LEFT: form ── */}
-      <section className="flex-1 flex items-center justify-center px-10 py-5 md:p-8">
-        <div className="w-full max-w-md">
-          <div className="flex flex-col gap-4 md:gap-6">
-
-            {/* Logo — acima do título */}
-            <div className="login-anim delay-50">
-              <span className="text-xl md:text-2xl font-bold">
-                <span className="text-[var(--th-txt-1)]">Simple&amp;Eco</span>{' '}
-                <span className="bg-gradient-to-r from-[#FF8C00] to-[#D81B60] bg-clip-text text-transparent">Produção</span>
-              </span>
-            </div>
-
-            {/* Title */}
-            <h1
-              className="login-anim delay-100 text-3xl md:text-5xl font-semibold leading-tight"
-            >
-              <span className="font-light tracking-tighter text-[var(--th-txt-1)]">
-                Bem-vindo
-              </span>
-            </h1>
-
-            <p className="login-anim delay-200 text-[var(--th-txt-4)]">
-              Acesse sua conta para continuar monitorando a produção.
-            </p>
-
-            {/* Form */}
-            <form className="space-y-3 md:space-y-5" onSubmit={handleSubmit}>
-
-              {/* User */}
-              <div className="login-anim delay-300">
-                <label className="text-sm font-medium text-[var(--th-txt-4)]">
-                  Usuário
-                </label>
-                <GlassInput>
-                  <input
-                    name="email"
-                    type="text"
-                    placeholder="Digite seu usuário"
-                    autoComplete="username"
-                    required
-                    className="w-full bg-transparent text-base p-3 md:p-4 rounded-2xl focus:outline-none text-[var(--th-txt-1)] placeholder:text-[var(--th-txt-4)]"
-                  />
-                </GlassInput>
+        <section className="flex-1 flex items-center justify-center px-10 py-5 md:p-8">
+          <div className="w-full max-w-md">
+            <div className="flex flex-col gap-4 md:gap-6">
+              <div className="login-anim delay-50">
+                <span className="text-xl md:text-2xl font-bold">
+                  <span className="text-[var(--th-txt-1)]">Simple&amp;Eco</span>{' '}
+                  <span className="bg-gradient-to-r from-[#FF8C00] to-[#D81B60] bg-clip-text text-transparent">Producao</span>
+                </span>
               </div>
 
-              {/* Password */}
-              <div className="login-anim delay-400">
-                <label className="text-sm font-medium text-[var(--th-txt-4)]">
-                  Senha
-                </label>
-                <GlassInput>
-                  <div className="relative">
+              <h1 className="login-anim delay-100 text-3xl md:text-5xl font-semibold leading-tight">
+                <span className="font-light tracking-tighter text-[var(--th-txt-1)]">Bem-vindo</span>
+              </h1>
+
+              <p className="login-anim delay-200 text-[var(--th-txt-4)]">
+                Acesse sua conta para continuar monitorando a producao.
+              </p>
+
+              <form className="space-y-3 md:space-y-5" onSubmit={handleSubmit}>
+                <div className="login-anim delay-300">
+                  <label className="text-sm font-medium text-[var(--th-txt-4)]">Usuario</label>
+                  <GlassInput>
                     <input
-                      name="password"
-                      type={showPass ? 'text' : 'password'}
-                      placeholder="Digite sua senha"
-                      autoComplete="current-password"
+                      name="email"
+                      type="text"
+                      placeholder="Digite seu usuario"
+                      autoComplete="username"
                       required
-                      className="w-full bg-transparent text-base p-3 md:p-4 pr-12 rounded-2xl focus:outline-none text-[var(--th-txt-1)] placeholder:text-[var(--th-txt-4)]"
+                      className="w-full bg-transparent text-base p-3 md:p-4 rounded-2xl focus:outline-none text-[var(--th-txt-1)] placeholder:text-[var(--th-txt-4)]"
                     />
-                    <button
-                      type="button"
-                      onClick={() => setShowPass(v => !v)}
-                      className="absolute inset-y-0 right-3 flex items-center"
-                      tabIndex={-1}
-                    >
-                      {showPass
-                        ? <EyeOff className="w-5 h-5 text-[var(--th-txt-4)] hover:text-[var(--th-txt-1)] transition-colors" />
-                        : <Eye className="w-5 h-5 text-[var(--th-txt-4)] hover:text-[var(--th-txt-1)] transition-colors" />}
-                    </button>
-                  </div>
-                </GlassInput>
-              </div>
+                  </GlassInput>
+                </div>
 
-              {/* Remember + error */}
-              <div className="login-anim delay-500 flex items-center justify-between text-sm">
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    name="rememberMe"
-                    className="login-checkbox"
-                  />
-                  <span className="text-[var(--th-txt-1)]/90">
-                    Manter conectado
-                  </span>
-                </label>
-                {error && (
-                  <span className="text-red-400 text-xs">{error}</span>
-                )}
-              </div>
+                <div className="login-anim delay-400">
+                  <label className="text-sm font-medium text-[var(--th-txt-4)]">Senha</label>
+                  <GlassInput>
+                    <div className="relative">
+                      <input
+                        name="password"
+                        type={showPass ? 'text' : 'password'}
+                        placeholder="Digite sua senha"
+                        autoComplete="current-password"
+                        required
+                        className="w-full bg-transparent text-base p-3 md:p-4 pr-12 rounded-2xl focus:outline-none text-[var(--th-txt-1)] placeholder:text-[var(--th-txt-4)]"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPass(v => !v)}
+                        className="absolute inset-y-0 right-3 flex items-center"
+                        aria-label={showPass ? 'Ocultar senha' : 'Mostrar senha'}
+                        aria-pressed={showPass}
+                      >
+                        {showPass ? (
+                          <EyeOff className="w-5 h-5 text-[var(--th-txt-4)] hover:text-[var(--th-txt-1)] transition-colors" />
+                        ) : (
+                          <Eye className="w-5 h-5 text-[var(--th-txt-4)] hover:text-[var(--th-txt-1)] transition-colors" />
+                        )}
+                      </button>
+                    </div>
+                  </GlassInput>
+                </div>
 
-              {/* Submit */}
-              <button
-                type="submit"
-                disabled={loading}
-                className="login-anim delay-600 w-full rounded-2xl py-3 md:py-4 font-medium transition-colors bg-white text-black hover:bg-white/90 disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                {loading ? 'Verificando...' : 'Entrar'}
-              </button>
-            </form>
+                <div className="login-anim delay-500 flex items-center justify-between text-sm">
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input type="checkbox" name="rememberMe" className="login-checkbox" />
+                    <span className="text-[var(--th-txt-1)]/90">Manter conectado</span>
+                  </label>
+                  {error && <span className="text-red-400 text-xs">{error}</span>}
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="login-anim delay-600 w-full rounded-2xl py-3 md:py-4 font-medium transition-colors bg-white text-black hover:bg-white/90 disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {loading ? 'Verificando...' : 'Entrar'}
+                </button>
+              </form>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* ── RIGHT: hero (desktop only) ── */}
-      <section className="hidden md:block flex-1 relative p-4">
-        <div
-          className="login-slide-right delay-300 absolute inset-4 rounded-3xl"
-          style={{
-            backgroundImage: 'url(/unnamed.jpg)',
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-          }}
-        />
-      </section>
+        <section className="hidden md:block flex-1 relative p-4">
+          <div
+            className="login-slide-right delay-300 absolute inset-4 rounded-3xl"
+            style={{
+              backgroundImage: 'url(/unnamed.png)',
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+            }}
+          />
+        </section>
       </div>
     </div>
   )

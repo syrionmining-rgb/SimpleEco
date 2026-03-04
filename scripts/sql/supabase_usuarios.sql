@@ -1,5 +1,5 @@
 -- ============================================================
--- Execute este SQL no Supabase: SQL Editor -> New query -> Run
+-- Execute este script no SQL Editor do Supabase
 -- ============================================================
 
 create extension if not exists pgcrypto;
@@ -8,13 +8,13 @@ create extension if not exists pgcrypto;
 create table if not exists public.usuarios (
   id            uuid primary key default gen_random_uuid(),
   username      text not null unique,
-  nome          text not null,
   password_hash text not null,
+  nome          text,
   ativo         boolean not null default true,
   created_at    timestamptz not null default now()
 );
 
--- 2) Tabela de sessoes de login
+-- 2) Tabela de sessoes de login (token hash no banco)
 create table if not exists public.login_sessions (
   id         uuid primary key default gen_random_uuid(),
   user_id    uuid not null references public.usuarios(id) on delete cascade,
@@ -27,7 +27,17 @@ create table if not exists public.login_sessions (
 create index if not exists idx_login_sessions_user_id on public.login_sessions(user_id);
 create index if not exists idx_login_sessions_expires_at on public.login_sessions(expires_at);
 
--- 3) Sessao de login por usuario/senha
+-- 3) Seguranca de tabelas (acesso apenas por funcoes security definer)
+alter table public.usuarios enable row level security;
+alter table public.login_sessions enable row level security;
+
+drop policy if exists "sem_acesso_anonimo_usuarios" on public.usuarios;
+create policy "sem_acesso_anonimo_usuarios" on public.usuarios for all using (false);
+
+drop policy if exists "sem_acesso_anonimo_sessoes" on public.login_sessions;
+create policy "sem_acesso_anonimo_sessoes" on public.login_sessions for all using (false);
+
+-- 4) Cria sessao a partir de usuario/senha validos
 create or replace function public.criar_sessao_login(
   p_username text,
   p_password text
@@ -69,7 +79,7 @@ begin
 end;
 $$;
 
--- 4) Validacao da sessao
+-- 5) Valida token de sessao
 create or replace function public.validar_sessao_login(
   p_token text
 )
@@ -93,7 +103,7 @@ as $$
   limit 1;
 $$;
 
--- 5) Revogacao da sessao
+-- 6) Revoga sessao
 create or replace function public.revogar_sessao_login(
   p_token text
 )
@@ -107,22 +117,16 @@ as $$
     and token_hash = crypt(p_token, token_hash);
 $$;
 
--- 6) Seguranca: bloquear acesso direto por anon
-alter table public.usuarios enable row level security;
-alter table public.login_sessions enable row level security;
-
-drop policy if exists "nao_acesso_anonimo" on public.usuarios;
-create policy "nao_acesso_anonimo" on public.usuarios for all using (false);
-
-drop policy if exists "nao_acesso_anonimo_sessoes" on public.login_sessions;
-create policy "nao_acesso_anonimo_sessoes" on public.login_sessions for all using (false);
+-- 7) Permissoes RPC para anon
+revoke all on table public.usuarios from anon;
+revoke all on table public.login_sessions from anon;
 
 grant execute on function public.criar_sessao_login(text, text) to anon;
 grant execute on function public.validar_sessao_login(text) to anon;
 grant execute on function public.revogar_sessao_login(text) to anon;
 
--- 7) Usuarios iniciais
-insert into public.usuarios (username, nome, password_hash) values
-  ('admin', 'Administrador', crypt('simpleeco', gen_salt('bf'))),
-  ('adm',   'ADM',           crypt('adm',       gen_salt('bf')))
+-- 8) Usuarios iniciais (troque as senhas antes de rodar)
+insert into public.usuarios (username, password_hash, nome) values
+  ('admin', crypt('simpleeco', gen_salt('bf')), 'Administrador'),
+  ('adm',   crypt('adm',       gen_salt('bf')), 'Usuario ADM')
 on conflict (username) do nothing;
