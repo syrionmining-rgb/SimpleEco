@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Simple&amp;Eco Link</title>
+  <style>
+    /* ── Variaveis identicas ao projeto web ─────────────────────────── */
+    :root {
+      --page:    #0e0e0e;
+      --card:    #111111;
+      --border:  rgba(255,255,255,0.10);
+      --subtle:  rgba(255,255,255,0.05);
+      --hover:   rgba(255,255,255,0.08);
+      --txt1:    #ffffff;
+      --txt3:    #a1a1aa;
+      --txt4:    #71717a;
+      --orange:  #FF8C00;
+      --pink:    #D81B60;
+      --green:   #22c55e;
+      --green-d: #16a34a;
+      --red:     #ef4444;
+      --log-bg:  #0a0a0a;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--page);
+      color: var(--txt1);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    /* ── Header ─────────────────────────────────────────────────────── */
+    .header {
+      padding: 32px 36px 0;
+    }
+    .header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      line-height: 1;
+    }
+    .header h1 span.brand  { color: var(--txt1); }
+    .header h1 span.accent {
+      background: linear-gradient(to right, var(--orange), var(--pink));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .header p {
+      font-size: 0.85rem;
+      color: var(--txt4);
+      margin-top: 7px;
+    }
+
+    /* ── Barra gradiente (assinatura do projeto) ─────────────────────── */
+    .grad-bar {
+      height: 3px;
+      margin: 16px 28px;
+      background: linear-gradient(to right, var(--orange), var(--pink));
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+
+    /* ── Cards ───────────────────────────────────────────────────────── */
+    .cards {
+      padding: 28px 36px 0;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      flex-shrink: 0;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 24px;
+    }
+    .card-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: var(--txt4);
+      text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+
+    /* ── Pasta ───────────────────────────────────────────────────────── */
+    .folder-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .folder-path {
+      flex: 1;
+      background: var(--subtle);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-family: 'Consolas', monospace;
+      font-size: 0.85rem;
+      color: var(--txt3);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .btn-alterar {
+      padding: 10px 20px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #000;
+      background: #ffffff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background .15s;
+      flex-shrink: 0;
+    }
+    .btn-alterar:hover { background: #e5e5e5; }
+
+    /* ── Status row ──────────────────────────────────────────────────── */
+    .status-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .dot {
+      width: 13px;
+      height: 13px;
+      border-radius: 50%;
+      background: var(--txt4);
+      flex-shrink: 0;
+      transition: background .3s;
+    }
+    .dot.active { background: var(--green); }
+    .status-text {
+      flex: 1;
+      font-size: 0.95rem;
+      color: var(--txt4);
+    }
+    .status-text.active { color: var(--txt1); }
+
+    .btn-iniciar {
+      padding: 10px 22px;
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: #000;
+      background: #ffffff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background .15s;
+    }
+    .btn-iniciar:hover:not(:disabled) { background: #e5e5e5; }
+    .btn-iniciar:disabled {
+      background: var(--subtle);
+      color: var(--txt4);
+      cursor: default;
+    }
+
+    .btn-parar {
+      padding: 10px 22px;
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: var(--txt4);
+      background: var(--subtle);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      cursor: default;
+      transition: background .15s, color .15s;
+    }
+    .btn-parar.active {
+      color: #fca5a5;
+      background: rgba(239,68,68,.12);
+      border-color: rgba(239,68,68,.25);
+      cursor: pointer;
+    }
+    .btn-parar.active:hover { background: rgba(239,68,68,.22); }
+
+    /* ── Sync time badge ──────────────────────────────────────────── */
+    .sync-badge {
+      display: none;
+      align-items: center;
+      gap: 7px;
+      margin-top: 14px;
+      width: fit-content;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 5px 13px 5px 10px;
+    }
+    .sync-badge.visible { display: flex; }
+    .sync-badge-label {
+      font-size: 0.72rem;
+      color: var(--txt4);
+      font-weight: 500;
+      white-space: nowrap;
+    }
+    .sync-badge-value {
+      font-size: 0.72rem;
+      color: var(--txt3);
+      font-weight: 600;
+      white-space: nowrap;
+      font-family: 'Consolas', monospace;
+    }
+
+    /* ── Log ─────────────────────────────────────────────────────────── */
+    .log-wrap {
+      flex: 1;
+      margin: 20px 36px 28px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--log-bg);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+    .log-header {
+      padding: 8px 14px 6px;
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      color: var(--txt4);
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .btn-copy-log {
+      font-size: 0.65rem;
+      font-weight: 600;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      color: var(--txt4);
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 2px 8px;
+      cursor: pointer;
+      transition: color .15s, border-color .15s;
+    }
+    .btn-copy-log:hover { color: var(--txt1); border-color: rgba(255,255,255,.3); }
+    #log {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px 14px;
+      font-family: 'Consolas', monospace;
+      font-size: 0.78rem;
+      line-height: 1.65;
+      color: #d1d5db;
+    }
+    #log::-webkit-scrollbar        { width: 6px; }
+    #log::-webkit-scrollbar-track  { background: transparent; }
+    #log::-webkit-scrollbar-thumb  { background: rgba(255,255,255,.12); border-radius: 3px; }
+
+    .log-info    { color: #86efac; }
+    .log-error   { color: #fca5a5; }
+    .log-warning { color: #fde68a; }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="header">
+    <h1>
+      <span class="brand">Simple&amp;Eco</span>
+      <span class="accent"> Link</span>
+    </h1>
+    <p>Sincronizador de dados DBF → Supabase</p>
+  </div>
+
+  <!-- Cards -->
+  <div class="cards">
+
+    <!-- Card: pasta -->
+    <div class="card">
+      <div class="card-label">Pasta dos DBFs</div>
+      <div class="folder-row">
+        <div class="folder-path" id="folderPath">Carregando...</div>
+        <button class="btn-alterar" onclick="alterarPasta()">Alterar pasta</button>
+      </div>
+    </div>
+
+    <!-- Card: status -->
+    <div class="card">
+      <div class="card-label">Status</div>
+      <div class="status-row">
+        <div class="dot" id="dot"></div>
+        <span class="status-text" id="statusText">Aguardando inicialização...</span>
+        <button class="btn-iniciar" id="btnIniciar" onclick="iniciar()">INICIAR</button>
+        <button class="btn-parar"   id="btnParar"   onclick="parar()">PARAR</button>
+      </div>
+      <div class="sync-badge" id="syncTime">
+          <span class="sync-badge-label">Update:</span>
+          <span class="sync-badge-value" id="syncTimeValue">—</span>
+        </div>
+    </div>
+
+  </div><!-- /cards -->
+
+  <!-- Log -->
+  <div class="log-wrap">
+    <div class="log-header">
+      <span>Log</span>
+      <button class="btn-copy-log" id="btnCopyLog" onclick="copyLog()">Copiar</button>
+    </div>
+    <div id="log"></div>
+  </div>
+
+  <script>
+    // ── Estados visuais ────────────────────────────────────────────────
+    // syncing    → laranja pulsando rápido
+    // synced     → verde sólido
+    // monitoring → gradiente laranja→rosa pulsando devagar
+    // stopped    → cinza
+    // error      → vermelho
+
+    let _blinkTimer = null;
+
+    function _clearBlink() {
+      if (_blinkTimer) { clearInterval(_blinkTimer); _blinkTimer = null; }
+    }
+
+    function copyLog() {
+      const lines = document.querySelectorAll('#log div');
+      const text = Array.from(lines).map(l => l.textContent).join('\n');
+      navigator.clipboard.writeText(text).then(() => {
+        const btn = document.getElementById('btnCopyLog');
+        btn.textContent = 'Copiado!';
+        setTimeout(() => { btn.textContent = 'Copiar'; }, 2000);
+      });
+    }
+
+    window.setState = function(state) {
+      _clearBlink();
+      const dot = document.getElementById('dot');
+      dot.style.transition = 'background .2s';
+
+      if (state === 'syncing') {
+        let on = true;
+        dot.style.background = 'var(--orange)';
+        _blinkTimer = setInterval(() => {
+          on = !on;
+          dot.style.background = on ? 'var(--orange)' : 'rgba(255,140,0,0.12)';
+        }, 400);
+
+      } else if (state === 'synced') {
+        dot.style.background = 'var(--green)';
+
+      } else if (state === 'monitoring') {
+        let on = true;
+        dot.style.background = '#ffffff';
+        _blinkTimer = setInterval(() => {
+          on = !on;
+          dot.style.background = on ? '#ffffff' : 'rgba(255,255,255,0.15)';
+        }, 900);
+
+      } else if (state === 'error') {
+        dot.style.background = 'var(--red)';
+
+      } else { // stopped
+        dot.style.background = 'var(--txt4)';
+      }
+    };
+
+    // ── setSyncTime ───────────────────────────────────────────────────
+    window.setSyncTime = function(ts) {
+      const badge = document.getElementById('syncTime');
+      const val   = document.getElementById('syncTimeValue');
+      if (ts) {
+        val.textContent = ts;
+        badge.classList.add('visible');
+      } else {
+        badge.classList.remove('visible');
+      }
+    };
+
+    // ── Status (texto + botões) — chamado pelo Python ──────────────────
+    window.setStatus = function({ text, running }) {
+      const st  = document.getElementById('statusText');
+      const btn = document.getElementById('btnIniciar');
+      const par = document.getElementById('btnParar');
+
+      st.textContent = text;
+      st.className   = 'status-text' + (running ? ' active' : '');
+
+      if (running) {
+        btn.disabled = true;
+        par.classList.add('active');
+      } else {
+        btn.disabled = false;
+        par.classList.remove('active');
+        _clearBlink();
+        document.getElementById('dot').style.background = 'var(--txt4)';
+      }
+    };
+
+    // ── Log ─────────────────────────────────────────────────────────────
+    // Chamado pelo Python via evaluate_js
+    window.appendLog = function({ level, msg }) {
+      const box  = document.getElementById('log');
+      const line = document.createElement('div');
+      const lvl  = (level || '').toUpperCase();
+      if      (lvl === 'INFO')    line.className = 'log-info';
+      else if (lvl === 'ERROR')   line.className = 'log-error';
+      else if (lvl === 'WARNING') line.className = 'log-warning';
+      line.textContent = msg;
+      box.appendChild(line);
+      box.scrollTop = box.scrollHeight;
+    };
+
+    // ── Acoes ────────────────────────────────────────────────────────────
+    async function alterarPasta() {
+      const result = await window.pywebview.api.escolher_pasta();
+      if (result) document.getElementById('folderPath').textContent = result;
+    }
+
+    function iniciar() {
+      window.pywebview.api.iniciar();
+    }
+
+    function parar() {
+      const par = document.getElementById('btnParar');
+      if (!par.classList.contains('active')) return;
+      window.pywebview.api.parar();
+    }
+
+    // ── Init ─────────────────────────────────────────────────────────────
+    window.addEventListener('pywebviewready', async () => {
+      const dir = await window.pywebview.api.get_dbf_dir();
+      document.getElementById('folderPath').textContent = dir;      const ts = await window.pywebview.api.get_last_sync();
+      if (ts) window.setSyncTime(ts);    });
+  </script>
+</body>
+</html>

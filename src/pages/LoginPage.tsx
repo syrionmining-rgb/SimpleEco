@@ -16,6 +16,7 @@ export default function LoginPage() {
   const navigate = useNavigate()
   const [showPass, setShowPass] = useState(false)
   const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
 
   // Força dark mode enquanto a página de login está visível
   useEffect(() => {
@@ -27,12 +28,15 @@ export default function LoginPage() {
     }
   }, [])
 
-  function handleSubmit(e: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     const fd = new FormData(e.currentTarget)
     const user = (fd.get('email') as string).trim()
     const pass = fd.get('password') as string
-    const ok = login(user, pass)
+    setLoading(true)
+    setError('')
+    const ok = await login(user, pass)
+    setLoading(false)
     if (ok) {
       navigate('/', { replace: true })
     } else {
@@ -88,7 +92,7 @@ export default function LoginPage() {
                     placeholder="Digite seu usuário"
                     autoComplete="username"
                     required
-                    className="w-full bg-transparent text-sm p-3 md:p-4 rounded-2xl focus:outline-none text-[var(--th-txt-1)] placeholder:text-[var(--th-txt-4)]"
+                    className="w-full bg-transparent text-base p-3 md:p-4 rounded-2xl focus:outline-none text-[var(--th-txt-1)] placeholder:text-[var(--th-txt-4)]"
                   />
                 </GlassInput>
               </div>
@@ -106,7 +110,7 @@ export default function LoginPage() {
                       placeholder="Digite sua senha"
                       autoComplete="current-password"
                       required
-                      className="w-full bg-transparent text-sm p-3 md:p-4 pr-12 rounded-2xl focus:outline-none text-[var(--th-txt-1)] placeholder:text-[var(--th-txt-4)]"
+                      className="w-full bg-transparent text-base p-3 md:p-4 pr-12 rounded-2xl focus:outline-none text-[var(--th-txt-1)] placeholder:text-[var(--th-txt-4)]"
                     />
                     <button
                       type="button"
@@ -142,9 +146,10 @@ export default function LoginPage() {
               {/* Submit */}
               <button
                 type="submit"
-                className="login-anim delay-600 w-full rounded-2xl py-3 md:py-4 font-medium transition-colors bg-white text-black hover:bg-white/90"
+                disabled={loading}
+                className="login-anim delay-600 w-full rounded-2xl py-3 md:py-4 font-medium transition-colors bg-white text-black hover:bg-white/90 disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                Entrar
+                {loading ? 'Verificando...' : 'Entrar'}
               </button>
             </form>
           </div>

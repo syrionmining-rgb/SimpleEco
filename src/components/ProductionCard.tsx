@@ -26,8 +26,8 @@ export default function ProductionCard({ goal, produced }: ProductionCardProps) 
           </div>
           {/* Valor alinhado à direita */}
           <div className="flex items-baseline gap-0.5 shrink-0">
-            <span className="text-2xl font-bold leading-none text-[var(--th-txt-4)]">{produced}/</span>
-            <span className="text-2xl font-bold leading-none bg-gradient-to-r from-[#FF8C00] to-[#D81B60] bg-clip-text text-transparent">{goal}</span>
+            <span className="text-sm font-bold leading-none text-[var(--th-txt-4)]">{produced}/</span>
+            <span className="text-sm font-bold leading-none bg-gradient-to-r from-[#FF8C00] to-[#D81B60] bg-clip-text text-transparent">{goal}</span>
             <span className="text-xs text-[var(--th-txt-4)]"> und.</span>
           </div>
         </div>

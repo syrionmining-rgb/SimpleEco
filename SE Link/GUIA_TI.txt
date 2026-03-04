@@ -1,0 +1,102 @@
+GUIA PARA O TI — Sincronização DBF → Supabase
+==============================================
+Projeto: SimpleEco Dashboard
+Data: 03/03/2026
+
+RESUMO RÁPIDO
+-------------
+  1. Instale o Python
+  2. Cole a service_role key no script
+  3. Ajuste o caminho dos DBFs
+  4. Clique duas vezes em RODAR_SYNC.bat
+  Pronto — os dados vão para o banco automaticamente.
+
+
+═══════════════════════════════════════════════
+ DADOS DO BANCO (já configurados no script)
+═══════════════════════════════════════════════
+
+  Banco:       Supabase
+  URL:         https://whwwcgyqpaspzymhdwox.supabase.co
+  Tabelas:     clientes, pedidos, fichas, setores,
+               taloes, peditens, talsetor
+
+  service_role key (preenchida):
+  eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indod3djZ3lxcGFzcHp5bWhkd294Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjM0MDg5NCwiZXhwIjoyMDg3OTE2ODk0fQ.1LWlu70R7DQbjAuDrWlbVqn2oXumPG-keu5wgBFdQhc
+
+
+═══════════════════════════════════════════════
+ PASSO 1 — INSTALAR O PYTHON (uma única vez)
+═══════════════════════════════════════════════
+
+  1. Acesse: https://www.python.org/downloads/
+  2. Baixe e instale (Python 3.10 ou superior)
+  3. ✅ Marque "Add Python to PATH" na instalação
+
+
+═══════════════════════════════════════════════
+ PASSO 2 — COLOCAR A CHAVE DE ACESSO
+═══════════════════════════════════════════════
+
+  Opção A (mais simples) — arquivo .env:
+    Crie um arquivo chamado ".env" na pasta scripts\ com:
+
+      SUPABASE_KEY=cole_a_service_role_key_aqui
+
+  Opção B — direto no script:
+    Abra sync_supabase.py em qualquer editor de texto.
+    Procure a linha:
+      SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
+    Substitua "" pela chave entre aspas:
+      SUPABASE_KEY = os.getenv("SUPABASE_KEY", "eyJhbGci...")
+
+
+═══════════════════════════════════════════════
+ PASSO 3 — AJUSTAR O CAMINHO DOS DBFs
+═══════════════════════════════════════════════
+
+  Abra sync_supabase.py e encontre a linha:
+    BASE_DIR = Path(__file__).parent.parent / "DBF"
+
+  Troque pelo caminho real dos arquivos na máquina:
+    BASE_DIR = Path(r"C:\SistemaClipper\DADOS")
+    BASE_DIR = Path(r"C:\Clipper\DBF")
+    BASE_DIR = Path(r"\\servidor\compartilhado\dados")
+
+  Arquivos necessários nessa pasta:
+    clientes.dbf  pedidos.dbf   fichas.dbf
+    setores.dbf   taloes.dbf    peditens.dbf
+    talsetor.dbf
+
+
+═══════════════════════════════════════════════
+ PASSO 4 — RODAR
+═══════════════════════════════════════════════
+
+  Clique DUAS VEZES em: RODAR_SYNC.bat
+
+  O que acontece:
+    ✔ Instala dependências automaticamente (primeira vez)
+    ✔ Faz carga inicial de todos os DBFs
+    ✔ Fica monitorando alterações em segundo plano
+    ✔ Cada mudança nos DBFs é enviada ao banco em segundos
+
+  Deixe a janela aberta enquanto o sistema estiver em uso.
+
+
+═══════════════════════════════════════════════
+ PASSO 5 — INICIAR JUNTO COM O WINDOWS (opcional)
+═══════════════════════════════════════════════
+
+  Win+R → shell:startup → Enter
+  Copie o arquivo RODAR_SYNC.bat para essa pasta.
+  Pronto — inicia automaticamente ao ligar o computador.
+
+
+═══════════════════════════════════════════════
+ SEGURANÇA
+═══════════════════════════════════════════════
+
+  ⚠ Não compartilhar a service_role key por e-mail ou WhatsApp.
+  ✅ O script NUNCA altera os arquivos DBF originais.
+  ✅ Encoding: latin-1 (padrão Clipper/FoxPro brasileiro).
