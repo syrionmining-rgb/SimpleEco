@@ -1,5 +1,5 @@
 import { TrendingUp, TrendingDown } from 'lucide-react'
-import type { MonthDayData } from '../api'
+import type { MonthDayData } from '../types'
 
 interface MonthlyChartProps {
   data: MonthDayData[]

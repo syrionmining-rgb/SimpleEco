@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { TriangleAlert, CircleX, ArrowUpDown } from 'lucide-react'
-import type { DelayedOrder } from '../api'
+import type { DelayedOrder } from '../types'
 
 interface Props {
   orders: DelayedOrder[]

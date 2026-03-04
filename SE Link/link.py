@@ -254,7 +254,12 @@ def main():
         easy_drag        = False,
     )
 
-    webview.start(debug=False)
+    # No Windows Server 2016 o WebView2 pode não estar disponível.
+    # Tenta EdgeChromium primeiro; se falhar, cai no mshtml (IE/Trident).
+    try:
+        webview.start(debug=False)
+    except Exception:
+        webview.start(debug=False, gui='mshtml')
 
 
 if __name__ == "__main__":

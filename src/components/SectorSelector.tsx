@@ -1,5 +1,5 @@
 import { ChevronDown, Factory, X } from 'lucide-react'
-import type { Sector } from '../api'
+import type { Sector } from '../types'
 
 interface SectorSelectorProps {
   sectors: Sector[]
