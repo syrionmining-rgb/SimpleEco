@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { Calendar, Clock, Sun, Moon, LogOut, Database, Menu, X, LayoutDashboard, TriangleAlert, ClipboardList, BarChart2 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
-import { supabase } from '../supabase'
 
 function formatDate(date: Date): string {
   return date.toLocaleDateString('pt-BR', {
@@ -32,17 +31,17 @@ const navItems = [
 interface HeaderProps {
   toggleTheme: () => void
   isDark: boolean
+  lastSync: string | null
 }
 
-export default function Header({ toggleTheme, isDark }: HeaderProps) {
+export default function Header({ toggleTheme, isDark, lastSync }: HeaderProps) {
   const [now, setNow] = useState(new Date())
-  const [lastSync, setLastSync] = useState<string | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const { logout } = useAuth()
   const navigate = useNavigate()
 
-  function handleLogout() {
-    logout()
+  async function handleLogout() {
+    await logout()
     navigate('/login', { replace: true })
   }
 
@@ -52,35 +51,8 @@ export default function Header({ toggleTheme, isDark }: HeaderProps) {
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
-  async function fetchLastSync() {
-    try {
-      const { data } = await supabase
-        .from('sync_log')
-        .select('ultima_sync')
-        .eq('id', 1)
-        .single()
-      if (data?.ultima_sync) {
-        const d = new Date(data.ultima_sync)
-        setLastSync(
-          d.toLocaleString('pt-BR', {
-            day: '2-digit', month: '2-digit', year: 'numeric',
-            hour: '2-digit', minute: '2-digit', second: '2-digit',
-          })
-        )
-      }
-    } catch {
-      // sem sync_log ainda
-    }
-  }
-
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000)
-    return () => clearInterval(id)
-  }, [])
-
-  useEffect(() => {
-    fetchLastSync()
-    const id = setInterval(fetchLastSync, 60_000)
     return () => clearInterval(id)
   }, [])
 
@@ -146,7 +118,7 @@ export default function Header({ toggleTheme, isDark }: HeaderProps) {
                 </button>
                 {/* Logout */}
                 <button
-                  onClick={() => { handleLogout(); setMenuOpen(false) }}
+                  onClick={() => { void handleLogout(); setMenuOpen(false) }}
                   className="p-2 rounded-lg flex items-center gap-3 text-[var(--th-txt-3)] hover:bg-[var(--th-hover)] transition-colors"
                 >
                   <LogOut className="w-4 h-4" />
@@ -184,7 +156,7 @@ export default function Header({ toggleTheme, isDark }: HeaderProps) {
               {isDark ? <Sun className="w-5 h-5 text-[var(--th-txt-4)]" /> : <Moon className="w-5 h-5 text-[var(--th-txt-4)]" />}
             </button>
             <button
-              onClick={handleLogout}
+              onClick={() => { void handleLogout() }}
               className="w-11 h-11 rounded-lg bg-[var(--th-card)] border border-[var(--th-border)] flex items-center justify-center transition-colors hover:bg-red-500/10 hover:border-red-500/30"
               aria-label="Sair"
             >

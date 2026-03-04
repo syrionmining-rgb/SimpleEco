@@ -190,3 +190,104 @@ language sql security definer as $$
     and usuarios.username = p_username
     and password_hash = crypt(p_password, password_hash);
 $$;
+
+-- ============================================================
+-- BLOCO DE SESSAO DE LOGIN (modelo atual)
+-- ============================================================
+
+create table if not exists public.login_sessions (
+  id         uuid primary key default gen_random_uuid(),
+  user_id    uuid not null references public.usuarios(id) on delete cascade,
+  token_hash text not null,
+  expires_at timestamptz not null,
+  revoked_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists idx_login_sessions_user_id on public.login_sessions(user_id);
+create index if not exists idx_login_sessions_expires_at on public.login_sessions(expires_at);
+
+alter table public.login_sessions enable row level security;
+drop policy if exists "sem_acesso_anonimo_sessoes" on public.login_sessions;
+create policy "sem_acesso_anonimo_sessoes" on public.login_sessions for all using (false);
+
+create or replace function public.criar_sessao_login(
+  p_username text,
+  p_password text
+)
+returns table (
+  token text,
+  username text,
+  nome text,
+  expires_at timestamptz
+)
+language plpgsql
+security definer
+as $$
+declare
+  v_user public.usuarios%rowtype;
+  v_token text;
+  v_expires_at timestamptz;
+begin
+  select *
+  into v_user
+  from public.usuarios
+  where usuarios.username = p_username
+    and usuarios.ativo = true
+    and usuarios.password_hash = crypt(p_password, usuarios.password_hash)
+  limit 1;
+
+  if not found then
+    return;
+  end if;
+
+  v_token := encode(gen_random_bytes(32), 'hex');
+  v_expires_at := now() + interval '7 days';
+
+  insert into public.login_sessions (user_id, token_hash, expires_at)
+  values (v_user.id, crypt(v_token, gen_salt('bf')), v_expires_at);
+
+  return query
+  select v_token, v_user.username, v_user.nome, v_expires_at;
+end;
+$$;
+
+create or replace function public.validar_sessao_login(
+  p_token text
+)
+returns table (
+  user_id uuid,
+  username text,
+  nome text,
+  expires_at timestamptz
+)
+language sql
+security definer
+as $$
+  select u.id, u.username, u.nome, ls.expires_at
+  from public.login_sessions ls
+  join public.usuarios u on u.id = ls.user_id
+  where ls.revoked_at is null
+    and ls.expires_at > now()
+    and u.ativo = true
+    and ls.token_hash = crypt(p_token, ls.token_hash)
+  order by ls.created_at desc
+  limit 1;
+$$;
+
+create or replace function public.revogar_sessao_login(
+  p_token text
+)
+returns void
+language sql
+security definer
+as $$
+  update public.login_sessions
+  set revoked_at = now()
+  where revoked_at is null
+    and token_hash = crypt(p_token, token_hash);
+$$;
+
+grant execute on function public.criar_sessao_login(text, text) to anon;
+grant execute on function public.validar_sessao_login(text) to anon;
+grant execute on function public.revogar_sessao_login(text) to anon;
