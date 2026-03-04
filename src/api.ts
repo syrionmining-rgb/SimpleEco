@@ -278,8 +278,6 @@ async function fetchDashboardFromSupabase(): Promise<DashboardData> {
   const weekStart    = new Date(todayObj.getTime() - weekDay * 86400000)
   const refEnd       = new Date(weekStart.getTime() - 86400000)
   const refStart     = new Date(refEnd.getTime() - 30 * 86400000)
-  const weekStartStr = weekStart.toISOString().slice(0, 10)
-  const weekEndStr   = new Date(weekStart.getTime() + 6 * 86400000).toISOString().slice(0, 10)
   const refEndStr    = refEnd.toISOString().slice(0, 10)
   const refStartStr  = refStart.toISOString().slice(0, 10)
 
