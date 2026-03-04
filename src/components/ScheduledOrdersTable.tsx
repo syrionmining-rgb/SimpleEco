@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Package, CircleCheck, ArrowUpDown } from 'lucide-react'
-import type { TodayOrder } from '../api'
+import type { TodayOrder } from '../types'
 
 interface Props {
   orders: TodayOrder[]

@@ -1,5 +1,5 @@
 import { TrendingUp, TrendingDown } from 'lucide-react'
-import type { DayData } from '../api'
+import type { DayData } from '../types'
 
 interface WeeklyChartProps {
   data: DayData[]

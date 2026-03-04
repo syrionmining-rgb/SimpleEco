@@ -1,0 +1,22 @@
+{
+  "name": "Simple&Eco",
+  "short_name": "Simple&Eco",
+  "description": "Painel de Produção Simple&Eco",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0e0e0e",
+  "theme_color": "#0e0e0e",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/ICONSE.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/ICONSE.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
