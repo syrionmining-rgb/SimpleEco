@@ -8,6 +8,7 @@ interface MetricCardProps {
   unit: string
   icon: ElementType
   gradient?: boolean
+  loading?: boolean
 }
 
 export default function MetricCard({
@@ -17,11 +18,13 @@ export default function MetricCard({
   unit,
   icon: Icon,
   gradient = false,
+  loading = false,
 }: MetricCardProps) {
   const numericValue = parseFloat(value)
 
-  const valueClass = Icon === TriangleAlert ? 'text-red-400' : 'text-black dark:text-white'
-  const valueStyle = {}
+  const isAlert = Icon === TriangleAlert && numericValue > 0
+
+  const valueClass = isAlert ? 'text-red-400' : 'text-black dark:text-white'
 
   return (
     <div className="rounded-xl border border-[var(--th-border)] bg-[var(--th-card)]">
@@ -30,7 +33,7 @@ export default function MetricCard({
       <div className="flex sm:hidden items-center gap-3 px-4 py-3">
         {/* Ícone */}
         <div className={`w-9 h-9 rounded-lg border flex items-center justify-center shrink-0 ${
-          Icon === TriangleAlert
+          isAlert
             ? 'bg-red-500/10 border-red-500/20'
             : 'bg-[var(--th-subtle)] border-[var(--th-border)]'
         }`}>
@@ -38,7 +41,7 @@ export default function MetricCard({
             ? numericValue >= 100
               ? <TrendingUp className="w-4 h-4 text-[var(--th-txt-4)]" aria-hidden="true" />
               : <TrendingDown className="w-4 h-4 text-[var(--th-txt-4)]" aria-hidden="true" />
-            : <Icon className={`w-4 h-4 ${Icon === TriangleAlert ? 'text-red-400' : 'text-[var(--th-txt-4)]'}`} aria-hidden="true" />
+            : <Icon className={`w-4 h-4 ${isAlert ? 'text-red-400' : 'text-[var(--th-txt-4)]'}`} aria-hidden="true" />
           }
         </div>
         {/* Título */}
@@ -48,8 +51,11 @@ export default function MetricCard({
         </div>
         {/* Valor: número em cima, unidade embaixo — alinhados à direita */}
         <div className="flex flex-col items-end shrink-0">
-          <span className={`text-2xl font-bold leading-none ${valueClass}`}>{value}</span>
-          {unit && <span className="text-xs text-[var(--th-txt-3)] mt-0.5">{unit}</span>}
+          {loading
+            ? <div className="h-7 w-14 rounded-lg bg-[var(--th-subtle)] animate-pulse" />
+            : <span className={`text-2xl font-bold leading-none ${valueClass}`}>{value}</span>
+          }
+          {unit && !loading && <span className="text-xs text-[var(--th-txt-3)] mt-0.5">{unit}</span>}
         </div>
       </div>
 
@@ -61,7 +67,7 @@ export default function MetricCard({
             {subtitle && <p className="text-sm text-[var(--th-txt-4)] uppercase tracking-widest font-medium mt-0.5 truncate">{subtitle}</p>}
           </div>
           <div className={`w-12 h-12 rounded-lg border flex items-center justify-center shrink-0 ml-1 ${
-            Icon === TriangleAlert
+            isAlert
               ? 'bg-red-500/10 border-red-500/20'
               : 'bg-[var(--th-subtle)] border-[var(--th-border)]'
           }`}>
@@ -69,13 +75,18 @@ export default function MetricCard({
               ? numericValue >= 100
                 ? <TrendingUp className="w-6 h-6 text-[var(--th-txt-4)]" aria-hidden="true" />
                 : <TrendingDown className="w-6 h-6 text-[var(--th-txt-4)]" aria-hidden="true" />
-              : <Icon className={`w-6 h-6 ${Icon === TriangleAlert ? 'text-red-400' : 'text-[var(--th-txt-4)]'}`} aria-hidden="true" />
+              : <Icon className={`w-6 h-6 ${isAlert ? 'text-red-400' : 'text-[var(--th-txt-4)]'}`} aria-hidden="true" />
             }
           </div>
         </div>
         <div className="flex items-baseline gap-1.5">
-          <span className={`text-4xl font-bold leading-none ${valueClass}`} style={valueStyle}>{value}</span>
-          <span className="text-lg text-[var(--th-txt-3)]">{unit}</span>
+          {loading
+            ? <div className="h-10 w-24 rounded-lg bg-[var(--th-subtle)] animate-pulse" />
+            : <>
+                <span className={`text-4xl font-bold leading-none ${valueClass}`}>{value}</span>
+                <span className="text-lg text-[var(--th-txt-3)]">{unit}</span>
+              </>
+          }
         </div>
       </div>
 

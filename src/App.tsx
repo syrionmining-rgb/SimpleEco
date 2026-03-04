@@ -8,6 +8,7 @@ import WeeklyChart from './components/WeeklyChart'
 import GoalCard from './components/GoalCard'
 import { fetchDashboard, type DashboardData } from './api'
 import SectorSelector from './components/SectorSelector'
+import ControlsCard from './components/ControlsCard'
 import {
   TriangleAlert,
   Package,
@@ -18,7 +19,7 @@ const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Jul
 const currentMonth = months[new Date().getMonth()]
 
 export default function App() {
-  const [isDark, setIsDark] = useState(true)
+  const [isDark, setIsDark] = useState(() => localStorage.getItem('se_theme') !== 'light')
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -29,16 +30,19 @@ export default function App() {
       const next = !prev
       if (next) {
         document.documentElement.classList.add('dark')
+        localStorage.setItem('se_theme', 'dark')
       } else {
         document.documentElement.classList.remove('dark')
+        localStorage.setItem('se_theme', 'light')
       }
       return next
     })
   }
 
-  // Apply dark class on first render
+  // Apply dark class on first render if not already set by inline script
   useEffect(() => {
-    document.documentElement.classList.add('dark')
+    if (isDark) document.documentElement.classList.add('dark')
+    else document.documentElement.classList.remove('dark')
   }, [])
 
   // Fetch dashboard data
@@ -98,12 +102,11 @@ export default function App() {
   ]
 
   return (
-    <div className="min-h-screen bg-[var(--th-page)] text-[var(--th-txt-1)] p-3 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-[var(--th-page)] text-[var(--th-txt-1)] p-3 pt-[52px] sm:pt-6 sm:p-6 lg:p-8 pb-6">
       <div className="max-w-[1920px] mx-auto space-y-5">
           <Header
             toggleTheme={toggleTheme}
             isDark={isDark}
-            selectedSectorName={selectedSector ? (data?.sectors ?? []).find(s => s.cod === selectedSector)?.nome : ''}
           />
 
           {error && (
@@ -115,23 +118,28 @@ export default function App() {
           )}
 
           {/* Sector Selector — sempre estático, sectores ficam vazios enquanto carrega */}
-          <SectorSelector
-            sectors={data?.sectors ?? []}
-            selected={selectedSector}
-            onChange={setSelectedSector}
-            delayedCount={filteredDelayed.length}
-            todayCount={filteredToday.length}
-          />
+          <div className="flex items-stretch gap-3 sm:gap-4">
+            <div className="flex-1 min-w-0">
+              <SectorSelector
+                sectors={data?.sectors ?? []}
+                selected={selectedSector}
+                onChange={setSelectedSector}
+                delayedCount={filteredDelayed.length}
+                todayCount={filteredToday.length}
+              />
+            </div>
+            <ControlsCard />
+          </div>
 
           {/* Metric Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-5">
+          <div id="overview" className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-5">
             {/* Pedido em Atraso */}
-            <MetricCard {...metrics[0]} />
+            <MetricCard {...metrics[0]} loading={loading} />
             {/* Pedidos em Produção */}
-            <MetricCard {...metrics[1]} />
+            <MetricCard {...metrics[1]} loading={loading} />
             {/* Eficiência */}
             <div className="sm:col-span-1">
-              <MetricCard {...metrics[2]} />
+              <MetricCard {...metrics[2]} loading={loading} />
             </div>
             <div className="sm:col-span-3 lg:col-span-2">
               <ProductionCard
@@ -143,12 +151,16 @@ export default function App() {
 
           {/* Tables */}
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-3 sm:gap-5">
-            <DelayedOrdersTable orders={filteredDelayed} loading={loading} />
-            <ScheduledOrdersTable orders={filteredToday} loading={loading} />
+            <div id="atrasados">
+              <DelayedOrdersTable orders={filteredDelayed} loading={loading} />
+            </div>
+            <div id="programados">
+              <ScheduledOrdersTable orders={filteredToday} loading={loading} />
+            </div>
           </div>
 
           {/* Weekly Chart and Goals */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-5">
+          <div id="graficos" className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-5">
             <div className="order-last lg:order-first lg:col-span-2 flex">
               <WeeklyChart data={weeklyData} />
             </div>
@@ -169,6 +181,6 @@ export default function App() {
             </div>
           </div>
         </div>
-      </div>
+    </div>
   )
 }

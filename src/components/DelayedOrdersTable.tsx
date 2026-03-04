@@ -84,8 +84,12 @@ export default function DelayedOrdersTable({ orders, loading = false }: Props) {
       {/* Header */}
       <div className="rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
         <div className="flex items-center gap-3 sm:gap-4">
-          <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center justify-center">
-            <TriangleAlert className="w-4 h-4 sm:w-6 sm:h-6 text-red-400" aria-hidden="true" />
+          <div className={`w-9 h-9 sm:w-12 sm:h-12 rounded-lg border flex items-center justify-center ${
+            orders.length > 0
+              ? 'bg-red-500/10 border-red-500/20'
+              : 'bg-[var(--th-subtle)] border-[var(--th-border)]'
+          }`}>
+            <TriangleAlert className={`w-4 h-4 sm:w-6 sm:h-6 ${orders.length > 0 ? 'text-red-400' : 'text-[var(--th-txt-4)]'}`} aria-hidden="true" />
           </div>
           <div>
             <p className="text-[10px] sm:text-sm text-[var(--th-txt-4)] uppercase tracking-widest font-medium">Monitoramento de Prazo</p>
@@ -93,14 +97,13 @@ export default function DelayedOrdersTable({ orders, loading = false }: Props) {
           </div>
         </div>
         <div className="flex flex-col items-center">
-          <span className="text-2xl sm:text-4xl font-bold text-red-400 leading-none">{orders.length}</span>
+          <span className={`text-2xl sm:text-4xl font-bold leading-none ${orders.length > 0 ? 'text-red-400' : 'text-[var(--th-txt-1)]'}`}>{orders.length}</span>
           <span className="text-[10px] sm:text-sm text-[var(--th-txt-3)] mt-1">pedidos</span>
         </div>
       </div>
 
       {/* Table */}
-      <div className="rounded-xl overflow-hidden border border-[var(--th-border)] bg-[var(--th-card)]">
-        <div className="overflow-x-auto">
+      <div className="rounded-xl overflow-x-auto border border-[var(--th-border)] bg-[var(--th-card)]">
           <table className="w-full">
             <thead>
               <tr className="border-b border-[var(--th-border-soft)]">
@@ -118,7 +121,7 @@ export default function DelayedOrdersTable({ orders, loading = false }: Props) {
                 </th>
                 <th
                   onClick={() => toggleSort('colorModel')}
-                  className="hidden sm:table-cell px-3 sm:px-5 py-3 sm:py-3.5 text-left text-[10px] sm:text-sm font-medium text-[var(--th-txt-4)] uppercase tracking-widest"
+                  className="px-3 sm:px-5 py-3 sm:py-3.5 text-left text-[10px] sm:text-sm font-medium text-[var(--th-txt-4)] uppercase tracking-widest"
                 >
                   {sortLabel('Cor / Modelo')}
                 </th>
@@ -130,7 +133,7 @@ export default function DelayedOrdersTable({ orders, loading = false }: Props) {
                 </th>
                 <th
                   onClick={() => toggleSort('expDate')}
-                  className="hidden md:table-cell px-3 sm:px-5 py-3 sm:py-3.5 text-left text-[10px] sm:text-sm font-medium text-[var(--th-txt-4)] uppercase tracking-widest whitespace-nowrap"
+                  className="px-3 sm:px-5 py-3 sm:py-3.5 text-left text-[10px] sm:text-sm font-medium text-[var(--th-txt-4)] uppercase tracking-widest whitespace-nowrap"
                 >
                   {sortLabel('Data Exp.')}
                 </th>
@@ -148,9 +151,9 @@ export default function DelayedOrdersTable({ orders, loading = false }: Props) {
                   <tr key={`skeleton-delayed-${idx}`} className={`border-b border-[var(--th-border-soft)]${idx >= 2 ? ' hidden sm:table-row' : ''}`}>
                     <td className="px-3 sm:px-5 py-2.5 sm:py-3.5"><div className="h-4 w-12 sm:w-16 rounded bg-[var(--th-subtle)] animate-pulse" /></td>
                     <td className="px-3 sm:px-5 py-2.5 sm:py-3.5"><div className="h-4 w-24 sm:w-32 rounded bg-[var(--th-subtle)] animate-pulse" /></td>
-                    <td className="hidden sm:table-cell px-3 sm:px-5 py-2.5 sm:py-3.5"><div className="h-4 w-28 sm:w-36 rounded bg-[var(--th-subtle)] animate-pulse" /></td>
+                    <td className="px-3 sm:px-5 py-2.5 sm:py-3.5"><div className="h-4 w-28 sm:w-36 rounded bg-[var(--th-subtle)] animate-pulse" /></td>
                     <td className="px-3 sm:px-5 py-2.5 sm:py-3.5"><div className="h-4 w-10 sm:w-12 rounded bg-[var(--th-subtle)] animate-pulse" /></td>
-                    <td className="hidden md:table-cell px-3 sm:px-5 py-2.5 sm:py-3.5"><div className="h-4 w-16 sm:w-20 rounded bg-[var(--th-subtle)] animate-pulse" /></td>
+                    <td className="px-3 sm:px-5 py-2.5 sm:py-3.5"><div className="h-4 w-16 sm:w-20 rounded bg-[var(--th-subtle)] animate-pulse" /></td>
                     <td className="px-3 sm:px-5 py-2.5 sm:py-3.5"><div className="h-6 w-20 sm:w-24 rounded bg-[var(--th-subtle)] animate-pulse" /></td>
                   </tr>
                 ))
@@ -166,9 +169,9 @@ export default function DelayedOrdersTable({ orders, loading = false }: Props) {
                       </div>
                     </td>
                     <td className="px-3 sm:px-5 py-2.5 sm:py-3.5 text-xs sm:text-sm text-[var(--th-txt-3)]">{o.client}</td>
-                    <td className="hidden sm:table-cell px-3 sm:px-5 py-2.5 sm:py-3.5 text-xs sm:text-sm text-[var(--th-txt-3)]">{o.colorModel}</td>
+                    <td className="px-3 sm:px-5 py-2.5 sm:py-3.5 text-xs sm:text-sm text-[var(--th-txt-3)]">{o.colorModel}</td>
                     <td className="px-3 sm:px-5 py-2.5 sm:py-3.5 text-xs sm:text-sm font-semibold text-[var(--th-txt-1)]">{o.qty}</td>
-                    <td className="hidden md:table-cell px-3 sm:px-5 py-2.5 sm:py-3.5 text-xs sm:text-sm text-[var(--th-txt-3)] whitespace-nowrap">{o.expDate}</td>
+                    <td className="px-3 sm:px-5 py-2.5 sm:py-3.5 text-xs sm:text-sm text-[var(--th-txt-3)] whitespace-nowrap">{o.expDate}</td>
                     <td className="px-3 sm:px-5 py-2.5 sm:py-3.5">
                       <span className="inline-flex items-center justify-center gap-1 px-2.5 py-0.5 rounded-md text-xs sm:text-sm font-medium bg-red-500/10 text-red-400 border border-red-500/20 w-24">
                         <CircleX className="w-3 h-3 shrink-0" aria-hidden="true" />
@@ -179,7 +182,6 @@ export default function DelayedOrdersTable({ orders, loading = false }: Props) {
                 ))}
             </tbody>
           </table>
-        </div>
       </div>
     </div>
   )

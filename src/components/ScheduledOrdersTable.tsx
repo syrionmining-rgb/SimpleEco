@@ -81,16 +81,15 @@ export default function ScheduledOrdersTable({ orders, loading = false }: Props)
       </div>
 
       {/* Table */}
-      <div className="rounded-xl overflow-hidden border border-[var(--th-border)] bg-[var(--th-card)]">
-        <div className="overflow-x-auto">
+      <div className="rounded-xl overflow-x-auto border border-[var(--th-border)] bg-[var(--th-card)]">
           <table className="w-full">
             <thead>
               <tr className="border-b border-[var(--th-border-soft)]">
                 <th onClick={() => toggleSort('id')} className="px-3 sm:px-5 py-3 sm:py-3.5 text-left text-[10px] sm:text-sm font-medium text-[var(--th-txt-4)] uppercase tracking-widest">{sortLabel('Pedido')}</th>
                 <th onClick={() => toggleSort('client')} className="px-3 sm:px-5 py-3 sm:py-3.5 text-left text-[10px] sm:text-sm font-medium text-[var(--th-txt-4)] uppercase tracking-widest">{sortLabel('Cliente')}</th>
-                <th onClick={() => toggleSort('colorModel')} className="hidden sm:table-cell px-3 sm:px-5 py-3 sm:py-3.5 text-left text-[10px] sm:text-sm font-medium text-[var(--th-txt-4)] uppercase tracking-widest">{sortLabel('Cor / Modelo')}</th>
+                <th onClick={() => toggleSort('colorModel')} className="px-3 sm:px-5 py-3 sm:py-3.5 text-left text-[10px] sm:text-sm font-medium text-[var(--th-txt-4)] uppercase tracking-widest">{sortLabel('Cor / Modelo')}</th>
                 <th onClick={() => toggleSort('qty')} className="px-3 sm:px-5 py-3 sm:py-3.5 text-left text-[10px] sm:text-sm font-medium text-[var(--th-txt-4)] uppercase tracking-widest">{sortLabel('Und')}</th>
-                <th onClick={() => toggleSort('expDate')} className="hidden md:table-cell px-3 sm:px-5 py-3 sm:py-3.5 text-left text-[10px] sm:text-sm font-medium text-[var(--th-txt-4)] uppercase tracking-widest whitespace-nowrap">{sortLabel('Data Exp.')}</th>
+                <th onClick={() => toggleSort('expDate')} className="px-3 sm:px-5 py-3 sm:py-3.5 text-left text-[10px] sm:text-sm font-medium text-[var(--th-txt-4)] uppercase tracking-widest whitespace-nowrap">{sortLabel('Data Exp.')}</th>
                 <th onClick={() => toggleSort('status')} className="px-3 sm:px-5 py-3 sm:py-3.5 text-left text-[10px] sm:text-sm font-medium text-[var(--th-txt-4)] uppercase tracking-widest">{sortLabel('Status')}</th>
               </tr>
             </thead>
@@ -100,9 +99,9 @@ export default function ScheduledOrdersTable({ orders, loading = false }: Props)
                   <tr key={`skeleton-${idx}`} className={`border-b border-[var(--th-border-soft)]${idx >= 2 ? ' hidden sm:table-row' : ''}`}>
                     <td className="px-3 sm:px-5 py-2.5 sm:py-3.5"><div className="h-4 w-12 sm:w-16 rounded bg-[var(--th-subtle)] animate-pulse" /></td>
                     <td className="px-3 sm:px-5 py-2.5 sm:py-3.5"><div className="h-4 w-24 sm:w-32 rounded bg-[var(--th-subtle)] animate-pulse" /></td>
-                    <td className="hidden sm:table-cell px-3 sm:px-5 py-2.5 sm:py-3.5"><div className="h-4 w-28 sm:w-36 rounded bg-[var(--th-subtle)] animate-pulse" /></td>
+                    <td className="px-3 sm:px-5 py-2.5 sm:py-3.5"><div className="h-4 w-28 sm:w-36 rounded bg-[var(--th-subtle)] animate-pulse" /></td>
                     <td className="px-3 sm:px-5 py-2.5 sm:py-3.5"><div className="h-4 w-10 sm:w-12 rounded bg-[var(--th-subtle)] animate-pulse" /></td>
-                    <td className="hidden md:table-cell px-3 sm:px-5 py-2.5 sm:py-3.5"><div className="h-4 w-16 sm:w-20 rounded bg-[var(--th-subtle)] animate-pulse" /></td>
+                    <td className="px-3 sm:px-5 py-2.5 sm:py-3.5"><div className="h-4 w-16 sm:w-20 rounded bg-[var(--th-subtle)] animate-pulse" /></td>
                     <td className="px-3 sm:px-5 py-2.5 sm:py-3.5"><div className="h-6 w-20 sm:w-24 rounded bg-[var(--th-subtle)] animate-pulse" /></td>
                   </tr>
                 ))
@@ -118,9 +117,9 @@ export default function ScheduledOrdersTable({ orders, loading = false }: Props)
                       </div>
                     </td>
                     <td className="px-3 sm:px-5 py-2.5 sm:py-3.5 text-xs sm:text-sm text-[var(--th-txt-3)]">{o.client}</td>
-                    <td className="hidden sm:table-cell px-3 sm:px-5 py-2.5 sm:py-3.5 text-xs sm:text-sm text-[var(--th-txt-3)]">{o.colorModel}</td>
+                    <td className="px-3 sm:px-5 py-2.5 sm:py-3.5 text-xs sm:text-sm text-[var(--th-txt-3)]">{o.colorModel}</td>
                     <td className="px-3 sm:px-5 py-2.5 sm:py-3.5 text-xs sm:text-sm font-semibold text-[var(--th-txt-1)]">{o.qty}</td>
-                    <td className="hidden md:table-cell px-3 sm:px-5 py-2.5 sm:py-3.5 text-xs sm:text-sm text-[var(--th-txt-3)] whitespace-nowrap">{o.expDate}</td>
+                    <td className="px-3 sm:px-5 py-2.5 sm:py-3.5 text-xs sm:text-sm text-[var(--th-txt-3)] whitespace-nowrap">{o.expDate}</td>
                     <td className="px-3 sm:px-5 py-2.5 sm:py-3.5">
                       <span
                         className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs sm:text-sm font-medium border"
@@ -137,7 +136,6 @@ export default function ScheduledOrdersTable({ orders, loading = false }: Props)
                 ))}
             </tbody>
           </table>
-        </div>
       </div>
     </div>
   )

@@ -1,35 +1,40 @@
-import { createContext, useContext, useState, ReactNode } from 'react'
+import { createContext, useContext, useState, ReactNode, useCallback } from 'react'
+import { supabase } from '../supabase'
 
 interface AuthContextType {
   isAuthenticated: boolean
-  login: (user: string, pass: string) => boolean
+  login: (user: string, pass: string) => Promise<boolean>
   logout: () => void
 }
 
 const AuthContext = createContext<AuthContextType | null>(null)
-
-// Credenciais — adicione ou altere entradas aqui
-const CREDENTIALS: Record<string, string> = {
-  admin: 'simpleeco',
-  adm:   'adm',
-}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
     return localStorage.getItem('se_auth') === '1'
   })
 
-  function login(user: string, pass: string): boolean {
-    if (CREDENTIALS[user] && CREDENTIALS[user] === pass) {
+  const login = useCallback(async (user: string, pass: string): Promise<boolean> => {
+    const { data, error } = await supabase.rpc('verificar_login', {
+      p_username: user,
+      p_password: pass,
+    })
+    if (error) {
+      console.error('Erro ao validar login:', error.message)
+      return false
+    }
+    if (data && data.length > 0) {
       localStorage.setItem('se_auth', '1')
+      localStorage.setItem('se_user', data[0].nome ?? user)
       setIsAuthenticated(true)
       return true
     }
     return false
-  }
+  }, [])
 
   function logout() {
     localStorage.removeItem('se_auth')
+    localStorage.removeItem('se_user')
     setIsAuthenticated(false)
   }
 
