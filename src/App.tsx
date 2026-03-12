@@ -19,13 +19,14 @@ import {
 
 const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']
 const currentMonth = months[new Date().getMonth()]
+const ALL_SECTORS = '__ALL__'
 
 export default function App() {
   const [isDark, setIsDark] = useState(() => localStorage.getItem('se_theme') !== 'light')
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [selectedSector, setSelectedSector] = useState('')
+  const [selectedSector, setSelectedSector] = useState(ALL_SECTORS)
   const [lastSync, setLastSync] = useState<string | null>(null)
 
   function toggleTheme() {
@@ -86,11 +87,15 @@ export default function App() {
   const allDelayed = data?.delayed_orders ?? []
   const allToday   = data?.today_orders   ?? []
   const filteredDelayed = useMemo(
-    () => selectedSector ? allDelayed.filter(o => o.allSetorCods.includes(selectedSector)) : allDelayed,
+    () => selectedSector !== ALL_SECTORS
+      ? allDelayed.filter(o => o.allSetorCods.includes(selectedSector))
+      : allDelayed,
     [allDelayed, selectedSector],
   )
   const filteredToday = useMemo(
-    () => selectedSector ? allToday.filter(o => o.allSetorCods.includes(selectedSector)) : allToday,
+    () => selectedSector !== ALL_SECTORS
+      ? allToday.filter(o => o.allSetorCods.includes(selectedSector))
+      : allToday,
     [allToday, selectedSector],
   )
 
@@ -168,6 +173,7 @@ export default function App() {
                 sectors={data?.sectors ?? []}
                 selected={selectedSector}
                 onChange={setSelectedSector}
+                allValue={ALL_SECTORS}
                 delayedCount={filteredDelayed.length}
                 todayCount={filteredToday.length}
               />

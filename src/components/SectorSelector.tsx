@@ -3,8 +3,9 @@ import type { Sector } from '../types'
 
 interface SectorSelectorProps {
   sectors: Sector[]
-  selected: string        // '' = todos
+  selected: string
   onChange: (cod: string) => void
+  allValue: string
   delayedCount: number
   todayCount: number
 }
@@ -13,6 +14,7 @@ export default function SectorSelector({
   sectors = [],
   selected,
   onChange,
+  allValue,
   delayedCount,
   todayCount,
 }: SectorSelectorProps) {
@@ -35,14 +37,14 @@ export default function SectorSelector({
             className={[
               'w-full appearance-none pl-4 pr-10 py-2.5 rounded-xl border text-sm font-semibold cursor-pointer transition-all',
               'bg-[var(--th-card)] text-[var(--th-txt-1)]',
-              selected
+              selected !== allValue
                 ? 'border-[#FF8C00]/60 shadow-[0_0_0_3px_rgba(255,140,0,0.12)]'
                 : 'border-[var(--th-border)]',
               'focus:outline-none focus:border-[#FF8C00]/80 focus:shadow-[0_0_0_3px_rgba(255,140,0,0.2)]',
             ].join(' ')}
             style={{ color: 'var(--th-txt-1)', backgroundColor: 'var(--th-card)' }}
           >
-            <option value="">Todos</option>
+            <option value={allValue}>Todos</option>
             {sectors.map(s => (
               <option key={s.cod} value={s.cod}>{s.nome}</option>
             ))}
@@ -67,14 +69,14 @@ export default function SectorSelector({
             className={[
               'appearance-none pl-4 pr-10 py-2.5 rounded-xl border text-sm font-semibold cursor-pointer transition-all shadow-sm',
               'bg-[var(--th-card)] text-[var(--th-txt-1)] hover:border-[var(--th-border-soft)] hover:bg-[var(--th-hover)]',
-              selected
+              selected !== allValue
                 ? 'border-[#FF8C00]/60 shadow-[0_0_0_3px_rgba(255,140,0,0.12)]'
                 : 'border-[var(--th-border)]',
               'focus:outline-none focus:border-[#FF8C00]/80 focus:shadow-[0_0_0_3px_rgba(255,140,0,0.2)]',
             ].join(' ')}
             style={{ color: 'var(--th-txt-1)', backgroundColor: 'var(--th-card)' }}
           >
-            <option value="">Todos</option>
+            <option value={allValue}>Todos</option>
             {sectors.map(s => (
               <option key={s.cod} value={s.cod}>{s.nome}</option>
             ))}
@@ -82,12 +84,12 @@ export default function SectorSelector({
           <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--th-txt-4)]" />
         </div>
         <button
-          onClick={() => onChange('')}
+          onClick={() => onChange(allValue)}
           aria-label="Limpar filtro"
-          disabled={!selected}
+          disabled={selected === allValue}
           className={[
             'shrink-0 w-8 h-8 rounded-lg flex items-center justify-center border transition-colors',
-            selected
+            selected !== allValue
               ? 'border-[var(--th-border)] bg-[var(--th-subtle)] text-[var(--th-txt-4)] hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-400 cursor-pointer'
               : 'border-transparent bg-transparent text-transparent pointer-events-none',
           ].join(' ')}
