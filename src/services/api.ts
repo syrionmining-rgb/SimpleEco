@@ -12,7 +12,27 @@ import type {
 
 function toDateStr(d: unknown): string | null {
   if (!d) return null
-  if (typeof d === 'string') return d.slice(0, 10)
+  if (d instanceof Date) {
+    return d.toISOString().slice(0, 10)
+  }
+  if (typeof d === 'string') {
+    const s = d.trim()
+    if (!s) return null
+
+    // YYYY-MM-DD / YYYY-MM-DDTHH:mm:ss
+    if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10)
+
+    // DD/MM/YYYY
+    const br = s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/)
+    if (br) return `${br[3]}-${br[2]}-${br[1]}`
+
+    // YYYYMMDD
+    const compact = s.match(/^(\d{4})(\d{2})(\d{2})$/)
+    if (compact) return `${compact[1]}-${compact[2]}-${compact[3]}`
+
+    const parsed = new Date(s)
+    if (!Number.isNaN(parsed.getTime())) return parsed.toISOString().slice(0, 10)
+  }
   return null
 }
 
@@ -31,6 +51,15 @@ function fmtDate(iso: string | null): string | null {
   if (!iso) return null
   const [y, m, d] = iso.split('-')
   return `${d}/${m}/${y}`
+}
+
+function normKey(v: unknown): string {
+  return String(v ?? '').trim()
+}
+
+function isMarked(value: unknown): boolean {
+  const v = String(value ?? '').trim().toUpperCase()
+  return v === '1' || v === 'S' || v === 'SIM' || v === 'Y' || v === 'YES' || v === 'TRUE' || v === 'T'
 }
 
 // Busca paginada para tabelas grandes (Supabase limita 1000 linhas por request)
@@ -63,13 +92,12 @@ async function fetchDashboardFromSupabase(): Promise<DashboardData> {
   const todayStr   = todayObj.toISOString().slice(0, 10)   // "2026-03-03"
   const monthStr   = todayStr.slice(0, 7)                   // "2026-03"
   const monthStart = `${monthStr}-01`
-  const cutoff     = new Date(todayObj.getTime() - 120 * 86400000).toISOString().slice(0, 10)
 
   // 1. Busca paralela de todas as tabelas
   const [taloes, talsetor, pedidos, clientes, peditens, fichas, setoresRaw] =
     await Promise.all([
       fetchAll<any>('taloes',   'CODIGO,PEDIDO,ITEM,CANCELADO,FATURADO'),
-      fetchAll<any>('talsetor', 'TALAO,SETOR,NOMESET,DATA,REMESSA,QTDE', q => q.gte('DATA', cutoff)),
+      fetchAll<any>('talsetor', 'TALAO,SETOR,NOMESET,DATA,REMESSA,QTDE'),
       fetchAll<any>('pedidos',  'CODIGO,CLIENTE,PREVISAO,SALDO,PRIORIDADE'),
       fetchAll<any>('clientes', 'CODIGO,FANTASIA,NOME'),
       fetchAll<any>('peditens', 'CODIGO,ITEM,REFERENCIA'),
@@ -78,24 +106,29 @@ async function fetchDashboardFromSupabase(): Promise<DashboardData> {
     ])
 
   // 2. Lookup maps
-  const talMap = new Map<string, any>(taloes.map((r: any) => [r.CODIGO, r]))
-  const pedMap = new Map<string, any>(pedidos.map((r: any) => [r.CODIGO, r]))
-  const cliMap = new Map<string, any>(clientes.map((r: any) => [r.CODIGO, r]))
-  const ficMap = new Map<string, any>(fichas.map((r: any) => [r.CODIGO, r]))
-  const piMap  = new Map<string, any>(peditens.map((r: any) => [`${r.CODIGO}|${r.ITEM}`, r]))
+  const talMap = new Map<string, any>(taloes.map((r: any) => [normKey(r.CODIGO), r]))
+  const pedMap = new Map<string, any>(pedidos.map((r: any) => [normKey(r.CODIGO), r]))
+  const cliMap = new Map<string, any>(clientes.map((r: any) => [normKey(r.CODIGO), r]))
+  const ficMap = new Map<string, any>(fichas.map((r: any) => [normKey(r.CODIGO), r]))
+  const piMap  = new Map<string, any>(peditens.map((r: any) => [`${normKey(r.CODIGO)}|${normKey(r.ITEM)}`, r]))
 
   const activeSet = new Set<string>(
-    taloes.filter((r: any) => !r.CANCELADO && !r.FATURADO).map((r: any) => r.CODIGO as string)
+    taloes
+      .filter((r: any) => !isMarked(r.CANCELADO) && !isMarked(r.FATURADO))
+      .map((r: any) => normKey(r.CODIGO))
+      .filter(Boolean)
   )
 
   // Todos os setores por talão
   const talaoSectors = new Map<string, Map<string, string>>()
   for (const ts of talsetor) {
-    const cod  = (ts.SETOR   || '').trim()
-    const nome = (ts.NOMESET || '').trim()
+    const talao = normKey(ts.TALAO)
+    const cod  = normKey(ts.SETOR)
+    const nome = normKey(ts.NOMESET)
     if (!cod) continue
-    if (!talaoSectors.has(ts.TALAO)) talaoSectors.set(ts.TALAO, new Map())
-    talaoSectors.get(ts.TALAO)!.set(cod, nome)
+    if (!talao) continue
+    if (!talaoSectors.has(talao)) talaoSectors.set(talao, new Map())
+    talaoSectors.get(talao)!.set(cod, nome)
   }
 
   // 3. Pedidos de HOJE
@@ -103,17 +136,18 @@ async function fetchDashboardFromSupabase(): Promise<DashboardData> {
   const todayTalaoSet = new Set<string>()
 
   for (const ts of talsetor) {
+    const talao = normKey(ts.TALAO)
     if (toDateStr(ts.DATA) !== todayStr) continue
-    if (!activeSet.has(ts.TALAO)) continue
-    todayTalaoSet.add(ts.TALAO)
+    if (!activeSet.has(talao)) continue
+    todayTalaoSet.add(talao)
 
-    const tal      = talMap.get(ts.TALAO)    ?? {}
-    const pedCode  = tal.PEDIDO  ?? ''
+    const tal      = talMap.get(talao)       ?? {}
+    const pedCode  = normKey(tal.PEDIDO)
     const ped      = pedMap.get(pedCode)     ?? {}
-    const pi       = piMap.get(`${pedCode}|${tal.ITEM ?? ''}`) ?? {}
+    const pi       = piMap.get(`${pedCode}|${normKey(tal.ITEM)}`) ?? {}
     const fic      = ficMap.get(String(pi.REFERENCIA ?? '').trim()) ?? {}
-    const cli      = cliMap.get(ped.CLIENTE ?? '') ?? {}
-    const allCods  = [...(talaoSectors.get(ts.TALAO)?.keys() ?? [])]
+    const cli      = cliMap.get(normKey(ped.CLIENTE)) ?? {}
+    const allCods  = [...(talaoSectors.get(talao)?.keys() ?? [])]
     const prio     = (allCods.includes('001') || Number(ped.PRIORIDADE ?? 0) > 0) ? 1 : 0
     const qtde     = Number(ts.QTDE) || 0
 
@@ -136,22 +170,23 @@ async function fetchDashboardFromSupabase(): Promise<DashboardData> {
   // 4. Pedidos em ATRASO (último talsetor por talão, DATA < hoje, saldo > 0)
   const latest = new Map<string, any>()
   for (const ts of talsetor) {
+    const talao = normKey(ts.TALAO)
     const d = toDateStr(ts.DATA)
     if (!d || d >= todayStr) continue
-    if (!activeSet.has(ts.TALAO) || todayTalaoSet.has(ts.TALAO)) continue
-    if (!latest.has(ts.TALAO) || d > toDateStr(latest.get(ts.TALAO)!.DATA)!) latest.set(ts.TALAO, ts)
+    if (!activeSet.has(talao) || todayTalaoSet.has(talao)) continue
+    if (!latest.has(talao) || d > toDateStr(latest.get(talao)!.DATA)!) latest.set(talao, ts)
   }
 
   const remLate = new Map<string, any>()
   for (const [tCode, ts] of latest) {
     const tal     = talMap.get(tCode)   ?? {}
-    const pedCode = tal.PEDIDO ?? ''
+    const pedCode = normKey(tal.PEDIDO)
     const ped     = pedMap.get(pedCode) ?? {}
     if (Number(ped.SALDO ?? 0) === 0) continue
 
-    const pi      = piMap.get(`${pedCode}|${tal.ITEM ?? ''}`) ?? {}
+    const pi      = piMap.get(`${pedCode}|${normKey(tal.ITEM)}`) ?? {}
     const fic     = ficMap.get(String(pi.REFERENCIA ?? '').trim()) ?? {}
-    const cli     = cliMap.get(ped.CLIENTE ?? '') ?? {}
+    const cli     = cliMap.get(normKey(ped.CLIENTE)) ?? {}
     const allCods = [...(talaoSectors.get(tCode)?.keys() ?? [])]
     const prio    = (allCods.includes('001') || Number(ped.PRIORIDADE ?? 0) > 0) ? 1 : 0
     const minDate = toDateStr(ts.DATA)!
@@ -173,20 +208,14 @@ async function fetchDashboardFromSupabase(): Promise<DashboardData> {
     }
   }
 
-  // 5. Setores fixos
-  const FIXED_SECTORS = [
-    'Prioridade', 'Almoxarifado', 'Dublagem', 'Corte Serra',
-    'Conformação 1', 'Conformação 2', 'Corte Palm Plana', 'Distribuição',
-    'Recorte', 'Tampografia', 'Revisão Palm', 'Conformação 3',
-    'Transfer', 'Atelier', 'Aplicação de Transfer',
-  ]
-  const nameToCod = new Map<string, string>(
-    setoresRaw.map((r: any) => [(r.NOME || '').toUpperCase(), r.CODIGO as string])
-  )
-  const sectors: Sector[] = FIXED_SECTORS.map((nome, i) => ({
-    cod : nameToCod.get(nome.toUpperCase()) ?? `_F${i}`,
-    nome,
-  }))
+  // 5. Setores do banco (dropdown deve refletir exatamente a tabela `setores`)
+  const sectors: Sector[] = setoresRaw
+    .map((r: any) => ({
+      cod: String(r.CODIGO ?? '').trim(),
+      nome: String(r.NOME ?? '').trim(),
+    }))
+    .filter((s: Sector) => s.cod !== '' && s.nome !== '')
+    .sort((a: Sector, b: Sector) => a.nome.localeCompare(b.nome, 'pt-BR'))
 
   // 6. Listas finais
   const delayed_orders: DelayedOrder[] = [...remLate.values()]
@@ -209,11 +238,62 @@ async function fetchDashboardFromSupabase(): Promise<DashboardData> {
       allSetorCods: e._allSetorCods, priority: e.priority,
     }))
 
+  // Fallback: sempre adiciona TODOS os pedidos da tabela `pedidos`.
+  // Isso garante que "Todos" sempre mostra todos os pedidos.
+  const firstPiByPedido = new Map<string, any>()
+  for (const pi of peditens) {
+    const pKey = normKey(pi.CODIGO)
+    if (!pKey || firstPiByPedido.has(pKey)) continue
+    firstPiByPedido.set(pKey, pi)
+  }
+
+  const existingIds = new Set([
+    ...today_orders.map(o => o.id),
+    ...delayed_orders.map(o => o.id)
+  ])
+
+  for (const ped of pedidos) {
+    const pedCode = normKey(ped.CODIGO)
+    if (!pedCode || existingIds.has(pedCode)) continue
+
+    const previsao = toDateStr(ped.PREVISAO)
+    const cli = cliMap.get(normKey(ped.CLIENTE)) ?? {}
+    const pi = firstPiByPedido.get(pedCode) ?? {}
+    const ref = normKey(pi.REFERENCIA)
+    const fic = ficMap.get(ref) ?? {}
+    const saldo = Number(ped.SALDO ?? 0)
+    
+    const common = {
+      id: pedCode,
+      client: ((cli.FANTASIA || cli.NOME || '—') as string).trim(),
+      colorModel: ((fic.NOME || ref || '—') as string).trim(),
+      qty: saldo > 0 ? saldo : 1, // Se saldo for 0, mostra pelo menos 1
+      expDate: fmtDate(previsao),
+      setor: 'Sem Setor',
+      setorCod: '',
+      allSetorCods: [],
+      priority: Number(ped.PRIORIDADE ?? 0) > 0 ? 1 : 0,
+    }
+
+    // Se tem previsão válida, classifica por data, senão vai para hoje
+    if (previsao && previsao < todayStr) {
+      delayed_orders.push({
+        ...common,
+        daysLate: daysDiff(previsao, todayStr),
+      })
+    } else {
+      today_orders.push({
+        ...common,
+        status: saldo === 0 ? 'Finalizado' : 'Aguardando',
+      })
+    }
+  }
+
   // 7. Métricas
-  const delayed_count       = remLate.size
-  const in_production_count = new Set(
-    [...latest.keys()].map(t => talMap.get(t)?.PEDIDO ?? '').filter(Boolean)
-  ).size
+  const delayed_count       = delayed_orders.length
+  const in_production_count = today_orders.length > 0
+    ? new Set(today_orders.map(o => o.id)).size
+    : new Set([...latest.keys()].map(t => talMap.get(t)?.PEDIDO ?? '').filter(Boolean)).size
 
   // 8. Dados semanais
   const DAY_ABBR = ['SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SAB', 'DOM']
@@ -293,7 +373,7 @@ async function fetchDashboardFromSupabase(): Promise<DashboardData> {
 
 // ── Cache ─────────────────────────────────────────────────────────────────────
 
-const CACHE_KEY = 'se_dashboard_v2'
+const CACHE_KEY = 'se_dashboard_v8'
 const CACHE_TTL = 5 * 60 * 1000 // 5 minutos
 
 interface CacheEntry { data: DashboardData; ts: number }
