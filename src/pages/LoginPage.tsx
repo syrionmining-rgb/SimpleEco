@@ -68,7 +68,7 @@ export default function LoginPage() {
               <div className="login-anim delay-50">
                 <span className="text-xl md:text-2xl font-bold">
                   <span className="text-[var(--th-txt-1)]">Simple&amp;Eco</span>{' '}
-                  <span className="bg-gradient-to-r from-[#FF8C00] to-[#D81B60] bg-clip-text text-transparent">Producao</span>
+                  <span className="bg-gradient-to-r from-[#FF8C00] to-[#D81B60] bg-clip-text text-transparent">Produção</span>
                 </span>
               </div>
 
@@ -77,12 +77,12 @@ export default function LoginPage() {
               </h1>
 
               <p className="login-anim delay-200 text-[var(--th-txt-4)]">
-                Acesse sua conta para continuar monitorando a producao.
+                Acesse sua conta para continuar monitorando a produção.
               </p>
 
               <form className="space-y-3 md:space-y-5" onSubmit={handleSubmit}>
                 <div className="login-anim delay-300">
-                  <label className="text-sm font-medium text-[var(--th-txt-4)]">Usuario</label>
+                  <label className="text-sm font-medium text-[var(--th-txt-4)] block mb-2">Usuario</label>
                   <GlassInput>
                     <input
                       name="email"
@@ -96,7 +96,7 @@ export default function LoginPage() {
                 </div>
 
                 <div className="login-anim delay-400">
-                  <label className="text-sm font-medium text-[var(--th-txt-4)]">Senha</label>
+                  <label className="text-sm font-medium text-[var(--th-txt-4)] block mb-2">Senha</label>
                   <GlassInput>
                     <div className="relative">
                       <input
