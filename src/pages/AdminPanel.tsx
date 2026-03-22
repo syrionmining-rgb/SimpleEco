@@ -434,19 +434,6 @@ export default function AdminPanel() {
   useEffect(() => {
     if (selectedModule !== 'logs') return
     void fetchLogs()
-    const id = setInterval(() => { void fetchLogs() }, 10_000)
-
-    const channel = supabase
-      .channel('login_sessions_realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'login_sessions' }, () => {
-        void fetchLogs()
-      })
-      .subscribe()
-
-    return () => {
-      clearInterval(id)
-      void supabase.removeChannel(channel)
-    }
   }, [selectedModule])
 
   // ── Sector operations ─────────────────────────────────────────────────────
