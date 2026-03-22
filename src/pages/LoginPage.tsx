@@ -89,6 +89,9 @@ export default function LoginPage() {
                       type="text"
                       placeholder="Digite seu usuario"
                       autoComplete="username"
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      spellCheck={false}
                       required
                       className="w-full bg-transparent text-base p-3 md:p-4 rounded-2xl focus:outline-none text-[var(--th-txt-1)] placeholder:text-[var(--th-txt-4)]"
                     />
