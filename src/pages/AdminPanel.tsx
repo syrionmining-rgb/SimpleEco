@@ -382,7 +382,7 @@ export default function AdminPanel() {
   async function clearLogs() {
     setClearLogsLoading(true)
     try {
-      const { error } = await supabase.from('login_sessions').delete().gte('id', '00000000-0000-0000-0000-000000000000')
+      const { error } = await supabase.rpc('limpar_historico_sessoes')
       if (error) throw new Error(error.message)
       setLogs([])
       setSelectedLog(null)
