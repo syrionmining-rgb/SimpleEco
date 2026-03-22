@@ -2172,29 +2172,23 @@ export default function AdminPanel() {
                   <p className="text-sm text-[var(--th-txt-3)] mb-6">Sincronização ERP → Supabase via SE Link</p>
                 </div>
 
-                {/* Status card */}
-                <div className="rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] p-5">
-                  <p className="text-xs font-semibold uppercase tracking-widest text-[var(--th-txt-4)] mb-3">Status da Sincronização</p>
-                  <div className="flex items-center justify-between gap-4">
+                {/* Sync card (status + force) */}
+                <div className="rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] overflow-hidden">
+                  {/* Status row */}
+                  <div className="px-5 py-4 flex items-center justify-between gap-4 border-b border-[var(--th-border)]">
                     <div>
-                      <p className="text-xs text-[var(--th-txt-4)] mb-0.5">Última sincronização</p>
-                      <p className="text-sm font-mono text-[var(--th-txt-1)]">
-                        {lastSyncTime ?? '—'}
-                      </p>
+                      <p className="text-xs font-semibold uppercase tracking-widest text-[var(--th-txt-4)] mb-1">Última Sincronização</p>
+                      <p className="text-sm font-mono text-[var(--th-txt-1)]">{lastSyncTime ?? '—'}</p>
                     </div>
                     <button type="button" onClick={() => void fetchLastSync()}
-                      className="p-1.5 rounded hover:bg-[var(--th-hover)] text-[var(--th-txt-4)]">
+                      className="p-1.5 rounded hover:bg-[var(--th-hover)] text-[var(--th-txt-4)] shrink-0">
                       <RefreshCw strokeWidth={1.5} className="w-4 h-4" />
                     </button>
                   </div>
-                </div>
-
-                {/* Force sync card */}
-                <div className="rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] p-5">
-                  <p className="text-xs font-semibold uppercase tracking-widest text-[var(--th-txt-4)] mb-3">Sincronização Manual</p>
-                  <div className="space-y-3">
+                  {/* Force sync row */}
+                  <div className="px-5 py-4 space-y-3">
                     <p className="text-sm text-[var(--th-txt-3)]">
-                      Solicita ao SE Link (servidor da empresa) que execute uma sincronização completa dos arquivos DBF agora. O SE Link irá detectar a solicitação em até 15 segundos.
+                      Solicita ao SE Link que execute uma sincronização completa dos arquivos DBF agora. O SE Link irá detectar a solicitação em até 15 segundos.
                     </p>
                     <div className="flex items-center gap-3">
                       <button type="button" onClick={() => void requestForceSync()}
@@ -2212,9 +2206,7 @@ export default function AdminPanel() {
                         <span className="text-sm text-red-400">{forceSyncError}</span>
                       )}
                     </div>
-                    <p className="text-[11px] text-[var(--th-txt-4)]">
-                      O SE Link precisa estar rodando no servidor para que a sincronização ocorra.
-                    </p>
+                    <p className="text-[11px] text-[var(--th-txt-4)]">O SE Link precisa estar rodando no servidor.</p>
                   </div>
                 </div>
 
