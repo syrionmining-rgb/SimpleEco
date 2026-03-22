@@ -116,7 +116,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = useCallback(async (user: string, pass: string, rememberMe: boolean): Promise<boolean> => {
     try {
       const { data, error } = await supabase.rpc('criar_sessao_login', {
-        p_username: user,
+        p_username: user.trim().toLowerCase(),
         p_password: pass,
       })
       if (error || !Array.isArray(data) || data.length === 0) {
