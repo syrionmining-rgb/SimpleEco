@@ -394,7 +394,7 @@ export default function AdminPanel() {
   async function fetchLogs() {
     setLogsLoading(true); setLogsError(null)
     try {
-      const { data, error } = await supabase.from('login_activity').select('*').order('created_at', { ascending: false }).limit(200)
+      const { data, error } = await supabase.rpc('get_login_activity')
       if (error) throw new Error(error.message)
       setLogs((data ?? []) as DeviceLogRow[])
       setLogsLastSync(new Date())
