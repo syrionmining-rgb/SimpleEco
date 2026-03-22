@@ -1,0 +1,5881 @@
+{
+  "base": "https://whwwcgyqpaspzymhdwox.supabase.co",
+  "tables": {
+    "clientes": {
+      "row_count": 46,
+      "column_count": 137,
+      "columns": [
+        "ACRESCIMO",
+        "AGRUP_REF",
+        "ATUALIZADO",
+        "BAIRRO",
+        "BANCO",
+        "BASECOMISS",
+        "BLOQ_BORDE",
+        "CAIXA",
+        "CARISOLANO",
+        "CARISOLASN",
+        "CCUSTOS",
+        "CCUSTOSN",
+        "CEP",
+        "CHAVE",
+        "CI",
+        "CIC",
+        "CIDADE",
+        "CLIE_WEB",
+        "CNPJ",
+        "COB_BAIRRO",
+        "COB_CEP",
+        "COB_CIDADE",
+        "COB_CNPJ",
+        "COB_CONTAT",
+        "COB_EMAIL",
+        "COB_ENDERE",
+        "COB_ESTADO",
+        "COB_FONE",
+        "COB_INSCR",
+        "COB_NOME",
+        "CODIGO",
+        "CODREDE",
+        "COMISSAO",
+        "COMIS_DP",
+        "COMIS_NF",
+        "COMPL",
+        "CONCEITO",
+        "COND_PGTO",
+        "CONS_FINAL",
+        "CONTATO",
+        "CONTSOCIAL",
+        "COR_M_PALM",
+        "CST_ICMS",
+        "CVSOFT",
+        "DESCONTONF",
+        "DESCPEDIDO",
+        "DESNF_ICMS",
+        "DIASAGENDA",
+        "EMAIL",
+        "EMAIL_NFE",
+        "ENDERECO",
+        "ENT_BAIRRO",
+        "ENT_CEP",
+        "ENT_CIDADE",
+        "ENT_CNPJ",
+        "ENT_COMPL",
+        "ENT_CPF",
+        "ENT_EMAIL",
+        "ENT_ENDERE",
+        "ENT_ESTADO",
+        "ENT_FONE",
+        "ENT_INSCR",
+        "ENT_NOME",
+        "ENT_NUMERO",
+        "ESTADO",
+        "EXCL_2432",
+        "EXIG_XPED",
+        "E_DAFITI",
+        "E_LEPOSTIC",
+        "FABRICA",
+        "FANTASIA",
+        "FAX",
+        "FICHA3VLRS",
+        "FONE_CHAVE",
+        "FONE_OK",
+        "HOMEPAGE",
+        "HORA_ATU",
+        "HORA_INC",
+        "ID",
+        "ID_ESTRANG",
+        "INCLUIDO",
+        "INDIEDEST",
+        "INSCRICAO",
+        "INSC_MUNIC",
+        "LANCAR_GRD",
+        "LANCAR_OC",
+        "LB_DATA",
+        "LB_MOTIV",
+        "LB_OPER",
+        "LIB_BLOQ",
+        "LISTAPRECO",
+        "LOGO_ETIQ",
+        "LOJA",
+        "MALADIRETA",
+        "MARCA",
+        "MARCPALM",
+        "METAL_PC",
+        "NASCIMENTO",
+        "NATOP",
+        "NFSE",
+        "NFSE_BOLET",
+        "NFSE_VALOR",
+        "NFSE_VCTO",
+        "NF_END_CAD",
+        "NOME",
+        "NUMERO",
+        "OBS_FAT",
+        "OBS_PADRAO",
+        "OBS_PED",
+        "OPER_ALT",
+        "OPER_INC",
+        "PAIS",
+        "PALMILHA",
+        "PASTAFOTOS",
+        "PDESCOMISS",
+        "PDESCONTO",
+        "PERC_PRECO",
+        "PESQ_SIMPL",
+        "PLACON",
+        "RAMO_ATIV",
+        "REDE",
+        "REDESPACHO",
+        "REDUCAO",
+        "SDO_ANTECI",
+        "SHOPPING",
+        "SIMPLES",
+        "SUFRAMA",
+        "TAB_PRECO",
+        "TELEFONE",
+        "TIPO",
+        "TIPOFRET",
+        "TIPO_EMP",
+        "TIPO_SHOP",
+        "TRANSPOR",
+        "UF_ISENTO",
+        "VENDEDOR",
+        "VIATRANS"
+      ],
+      "fill_rate": {
+        "ACRESCIMO": 0.0,
+        "AGRUP_REF": 0.0,
+        "ATUALIZADO": 1.0,
+        "BAIRRO": 1.0,
+        "BANCO": 1.0,
+        "BASECOMISS": 0.0,
+        "BLOQ_BORDE": 0.0,
+        "CAIXA": 1.0,
+        "CARISOLANO": 1.0,
+        "CARISOLASN": 1.0,
+        "CCUSTOS": 1.0,
+        "CCUSTOSN": 1.0,
+        "CEP": 1.0,
+        "CHAVE": 1.0,
+        "CI": 1.0,
+        "CIC": 1.0,
+        "CIDADE": 1.0,
+        "CLIE_WEB": 1.0,
+        "CNPJ": 1.0,
+        "COB_BAIRRO": 1.0,
+        "COB_CEP": 1.0,
+        "COB_CIDADE": 1.0,
+        "COB_CNPJ": 1.0,
+        "COB_CONTAT": 1.0,
+        "COB_EMAIL": 1.0,
+        "COB_ENDERE": 1.0,
+        "COB_ESTADO": 1.0,
+        "COB_FONE": 1.0,
+        "COB_INSCR": 1.0,
+        "COB_NOME": 1.0,
+        "CODIGO": 1.0,
+        "CODREDE": 1.0,
+        "COMISSAO": 0.0217,
+        "COMIS_DP": 0.0,
+        "COMIS_NF": 0.0,
+        "COMPL": 1.0,
+        "CONCEITO": 0.0217,
+        "COND_PGTO": 1.0,
+        "CONS_FINAL": 1.0,
+        "CONTATO": 1.0,
+        "CONTSOCIAL": 0.0,
+        "COR_M_PALM": 1.0,
+        "CST_ICMS": 1.0,
+        "CVSOFT": 1.0,
+        "DESCONTONF": 0.0,
+        "DESCPEDIDO": 0.0,
+        "DESNF_ICMS": 0.0,
+        "DIASAGENDA": 0.0,
+        "EMAIL": 1.0,
+        "EMAIL_NFE": 1.0,
+        "ENDERECO": 1.0,
+        "ENT_BAIRRO": 1.0,
+        "ENT_CEP": 1.0,
+        "ENT_CIDADE": 1.0,
+        "ENT_CNPJ": 1.0,
+        "ENT_COMPL": 1.0,
+        "ENT_CPF": 1.0,
+        "ENT_EMAIL": 1.0,
+        "ENT_ENDERE": 1.0,
+        "ENT_ESTADO": 1.0,
+        "ENT_FONE": 1.0,
+        "ENT_INSCR": 1.0,
+        "ENT_NOME": 1.0,
+        "ENT_NUMERO": 1.0,
+        "ESTADO": 1.0,
+        "EXCL_2432": 0.0,
+        "EXIG_XPED": 0.0,
+        "E_DAFITI": 0.0,
+        "E_LEPOSTIC": 0.0,
+        "FABRICA": 1.0,
+        "FANTASIA": 1.0,
+        "FAX": 1.0,
+        "FICHA3VLRS": 1.0,
+        "FONE_CHAVE": 1.0,
+        "FONE_OK": 0.0,
+        "HOMEPAGE": 1.0,
+        "HORA_ATU": 1.0,
+        "HORA_INC": 1.0,
+        "ID": 0.0,
+        "ID_ESTRANG": 1.0,
+        "INCLUIDO": 1.0,
+        "INDIEDEST": 1.0,
+        "INSCRICAO": 1.0,
+        "INSC_MUNIC": 1.0,
+        "LANCAR_GRD": 0.0,
+        "LANCAR_OC": 0.0,
+        "LB_DATA": 0.0,
+        "LB_MOTIV": 1.0,
+        "LB_OPER": 1.0,
+        "LIB_BLOQ": 1.0,
+        "LISTAPRECO": 1.0,
+        "LOGO_ETIQ": 1.0,
+        "LOJA": 1.0,
+        "MALADIRETA": 1.0,
+        "MARCA": 1.0,
+        "MARCPALM": 1.0,
+        "METAL_PC": 0.0,
+        "NASCIMENTO": 0.0,
+        "NATOP": 1.0,
+        "NFSE": 0.0,
+        "NFSE_BOLET": 0.0,
+        "NFSE_VALOR": 0.0,
+        "NFSE_VCTO": 0.0,
+        "NF_END_CAD": 0.0,
+        "NOME": 1.0,
+        "NUMERO": 1.0,
+        "OBS_FAT": 1.0,
+        "OBS_PADRAO": 1.0,
+        "OBS_PED": 1.0,
+        "OPER_ALT": 1.0,
+        "OPER_INC": 1.0,
+        "PAIS": 1.0,
+        "PALMILHA": 1.0,
+        "PASTAFOTOS": 1.0,
+        "PDESCOMISS": 0.0,
+        "PDESCONTO": 0.0,
+        "PERC_PRECO": 0.0,
+        "PESQ_SIMPL": 0.0,
+        "PLACON": 1.0,
+        "RAMO_ATIV": 0.0,
+        "REDE": 1.0,
+        "REDESPACHO": 1.0,
+        "REDUCAO": 0.0,
+        "SDO_ANTECI": 0.0,
+        "SHOPPING": 1.0,
+        "SIMPLES": 0.0,
+        "SUFRAMA": 1.0,
+        "TAB_PRECO": 1.0,
+        "TELEFONE": 1.0,
+        "TIPO": 1.0,
+        "TIPOFRET": 1.0,
+        "TIPO_EMP": 0.0,
+        "TIPO_SHOP": 0.0,
+        "TRANSPOR": 1.0,
+        "UF_ISENTO": 1.0,
+        "VENDEDOR": 1.0,
+        "VIATRANS": 1.0
+      },
+      "numeric_ranges": {
+        "CARISOLASN": {
+          "min": 1,
+          "max": 1
+        },
+        "COMISSAO": {
+          "min": 3.0,
+          "max": 3.0
+        },
+        "CONCEITO": {
+          "min": 1,
+          "max": 1
+        },
+        "CONS_FINAL": {
+          "min": 0,
+          "max": 2
+        },
+        "FICHA3VLRS": {
+          "min": 0,
+          "max": 0
+        },
+        "INDIEDEST": {
+          "min": 0,
+          "max": 9
+        },
+        "LIB_BLOQ": {
+          "min": 1,
+          "max": 1
+        },
+        "PALMILHA": {
+          "min": 1,
+          "max": 1
+        },
+        "TIPO": {
+          "min": 1,
+          "max": 1
+        }
+      },
+      "date_ranges": {
+        "ATUALIZADO": {
+          "min": "2024-09-10T00:00:00",
+          "max": "2026-03-16T00:00:00"
+        },
+        "INCLUIDO": {
+          "min": "2024-06-05T00:00:00",
+          "max": "2026-03-16T00:00:00"
+        }
+      },
+      "top_values": {
+        "TIPO": [
+          [
+            "1",
+            46
+          ]
+        ],
+        "COMPL": [
+          [
+            "",
+            36
+          ],
+          [
+            "SALA 01 E 02",
+            1
+          ],
+          [
+            "0",
+            1
+          ],
+          [
+            "PARQUE INDUSTRI",
+            1
+          ],
+          [
+            "PREDIO 02",
+            1
+          ],
+          [
+            "FUNDOS",
+            1
+          ],
+          [
+            "GALPAO01",
+            1
+          ],
+          [
+            "CASA 1",
+            1
+          ]
+        ],
+        "SHOPPING": [
+          [
+            "",
+            46
+          ]
+        ],
+        "CIDADE": [
+          [
+            "NOVO HAMBURGO",
+            12
+          ],
+          [
+            "NOVA SERRANA",
+            4
+          ],
+          [
+            "CAMPO BOM",
+            3
+          ],
+          [
+            "SAPIRANGA",
+            3
+          ],
+          [
+            "PICADA CAFe",
+            2
+          ],
+          [
+            "IGREJINHA",
+            2
+          ],
+          [
+            "PELOTAS",
+            2
+          ],
+          [
+            "PAROBE",
+            1
+          ]
+        ],
+        "ESTADO": [
+          [
+            "RS",
+            31
+          ],
+          [
+            "MG",
+            6
+          ],
+          [
+            "SP",
+            2
+          ],
+          [
+            "SC",
+            2
+          ],
+          [
+            "MA",
+            1
+          ],
+          [
+            "CE",
+            1
+          ],
+          [
+            "GO",
+            1
+          ],
+          [
+            "BA",
+            1
+          ]
+        ],
+        "PAIS": [
+          [
+            "",
+            46
+          ]
+        ],
+        "UF_ISENTO": [
+          [
+            "",
+            46
+          ]
+        ],
+        "CIC": [
+          [
+            "",
+            42
+          ],
+          [
+            "056.477.679-31",
+            1
+          ],
+          [
+            "290.716.778-26",
+            1
+          ],
+          [
+            "700.014.611-76",
+            1
+          ],
+          [
+            "020.586.076-19",
+            1
+          ]
+        ],
+        "CI": [
+          [
+            "",
+            46
+          ]
+        ],
+        "INSC_MUNIC": [
+          [
+            "",
+            46
+          ]
+        ],
+        "ID_ESTRANG": [
+          [
+            "",
+            46
+          ]
+        ],
+        "SUFRAMA": [
+          [
+            "",
+            46
+          ]
+        ],
+        "NATOP": [
+          [
+            "",
+            41
+          ],
+          [
+            "5101",
+            4
+          ],
+          [
+            "6101",
+            1
+          ]
+        ],
+        "TELEFONE": [
+          [
+            "",
+            18
+          ],
+          [
+            " 51 25002030",
+            2
+          ],
+          [
+            " 51 30979500",
+            1
+          ],
+          [
+            " 51 32738930",
+            1
+          ],
+          [
+            " 51 21295000",
+            1
+          ],
+          [
+            " 51 35648000",
+            1
+          ],
+          [
+            " 51 99628997",
+            1
+          ],
+          [
+            " 98991622900",
+            1
+          ]
+        ],
+        "FONE_CHAVE": [
+          [
+            "",
+            18
+          ],
+          [
+            "25002030",
+            2
+          ],
+          [
+            "30979500",
+            1
+          ],
+          [
+            "32738930",
+            1
+          ],
+          [
+            "21295000",
+            1
+          ],
+          [
+            "35648000",
+            1
+          ],
+          [
+            "99628997",
+            1
+          ],
+          [
+            "91622900",
+            1
+          ]
+        ],
+        "FAX": [
+          [
+            "",
+            43
+          ],
+          [
+            " 51996297864",
+            1
+          ],
+          [
+            " 54 99270303",
+            1
+          ],
+          [
+            " 51 36632353",
+            1
+          ]
+        ],
+        "EMAIL": [
+          [
+            "",
+            41
+          ],
+          [
+            "nf.comprasprodutivas@arezzo.com.br",
+            1
+          ],
+          [
+            "anderson.canuto@sugarshoes.com.br",
+            1
+          ],
+          [
+            "compras@calcadosgraziela.com.br;",
+            1
+          ],
+          [
+            "fernando25ferreira22@gmail.com",
+            1
+          ],
+          [
+            "rosanasilvaindustriaecomercio@gmail.com",
+            1
+          ]
+        ],
+        "EMAIL_NFE": [
+          [
+            "",
+            17
+          ],
+          [
+            "sergio@zenglein.com.br;nfe@zenglein.com.br",
+            1
+          ],
+          [
+            "compras@fasciniocalcados.com;financeiro@fasciniocalcados.com",
+            1
+          ],
+          [
+            "marcio.cremonese@arezzo.com.br; nf.comprasprodutivas@arezzo.com.br",
+            1
+          ],
+          [
+            "nfs@wirth.com.br",
+            1
+          ],
+          [
+            "vanessa.isabelly17@hotmail.com",
+            1
+          ],
+          [
+            "mariana.mercadopublico@gmail.com",
+            1
+          ],
+          [
+            "marcelli.jung@sugarshoes.com.br; fiscal@sugarshoes.com.br",
+            1
+          ]
+        ],
+        "HOMEPAGE": [
+          [
+            "",
+            46
+          ]
+        ],
+        "CONTATO": [
+          [
+            "",
+            46
+          ]
+        ],
+        "COB_NOME": [
+          [
+            "",
+            46
+          ]
+        ],
+        "COB_ENDERE": [
+          [
+            "",
+            46
+          ]
+        ],
+        "COB_BAIRRO": [
+          [
+            "",
+            46
+          ]
+        ],
+        "COB_CIDADE": [
+          [
+            "",
+            46
+          ]
+        ],
+        "COB_ESTADO": [
+          [
+            "",
+            46
+          ]
+        ],
+        "COB_CEP": [
+          [
+            "",
+            46
+          ]
+        ],
+        "COB_CNPJ": [
+          [
+            "",
+            46
+          ]
+        ],
+        "COB_INSCR": [
+          [
+            "",
+            46
+          ]
+        ],
+        "COB_FONE": [
+          [
+            "",
+            44
+          ],
+          [
+            " 51 93902477",
+            1
+          ],
+          [
+            " 51995276708",
+            1
+          ]
+        ],
+        "COB_EMAIL": [
+          [
+            "",
+            46
+          ]
+        ],
+        "COB_CONTAT": [
+          [
+            "",
+            44
+          ],
+          [
+            "SERGIO-COMPRADOR",
+            1
+          ],
+          [
+            "MARCELLY- COMPRADORA",
+            1
+          ]
+        ],
+        "ENT_NOME": [
+          [
+            "",
+            46
+          ]
+        ],
+        "ENT_ENDERE": [
+          [
+            "",
+            46
+          ]
+        ],
+        "ENT_NUMERO": [
+          [
+            "",
+            46
+          ]
+        ],
+        "ENT_COMPL": [
+          [
+            "",
+            46
+          ]
+        ],
+        "ENT_BAIRRO": [
+          [
+            "",
+            46
+          ]
+        ],
+        "ENT_CIDADE": [
+          [
+            "",
+            46
+          ]
+        ],
+        "ENT_ESTADO": [
+          [
+            "",
+            45
+          ],
+          [
+            "MG",
+            1
+          ]
+        ],
+        "ENT_CEP": [
+          [
+            "",
+            45
+          ],
+          [
+            "     -",
+            1
+          ]
+        ],
+        "ENT_CNPJ": [
+          [
+            "",
+            45
+          ],
+          [
+            "  .   .   /    -",
+            1
+          ]
+        ],
+        "ENT_INSCR": [
+          [
+            "",
+            46
+          ]
+        ],
+        "ENT_CPF": [
+          [
+            "",
+            45
+          ],
+          [
+            "   .   .   -",
+            1
+          ]
+        ],
+        "ENT_FONE": [
+          [
+            "",
+            46
+          ]
+        ],
+        "ENT_EMAIL": [
+          [
+            "",
+            46
+          ]
+        ],
+        "TRANSPOR": [
+          [
+            "000003",
+            18
+          ],
+          [
+            "000002",
+            9
+          ],
+          [
+            "000001",
+            7
+          ],
+          [
+            "000004",
+            4
+          ],
+          [
+            "000007",
+            2
+          ],
+          [
+            "",
+            2
+          ],
+          [
+            "000006",
+            2
+          ],
+          [
+            "000005",
+            1
+          ]
+        ],
+        "VENDEDOR": [
+          [
+            "",
+            31
+          ],
+          [
+            "000002",
+            11
+          ],
+          [
+            "000001",
+            3
+          ],
+          [
+            "000003",
+            1
+          ]
+        ],
+        "BANCO": [
+          [
+            "",
+            46
+          ]
+        ],
+        "TIPOFRET": [
+          [
+            "000001",
+            25
+          ],
+          [
+            "000002",
+            16
+          ],
+          [
+            "",
+            4
+          ],
+          [
+            "000010",
+            1
+          ]
+        ],
+        "VIATRANS": [
+          [
+            "",
+            26
+          ],
+          [
+            "01",
+            18
+          ],
+          [
+            "02",
+            2
+          ]
+        ],
+        "REDESPACHO": [
+          [
+            "",
+            46
+          ]
+        ],
+        "MARCA": [
+          [
+            "BRASIL",
+            46
+          ]
+        ],
+        "CAIXA": [
+          [
+            "BRASIL",
+            46
+          ]
+        ],
+        "CARISOLASN": [
+          [
+            "1",
+            46
+          ]
+        ],
+        "CARISOLANO": [
+          [
+            "BRASIL",
+            46
+          ]
+        ],
+        "PALMILHA": [
+          [
+            "1",
+            46
+          ]
+        ],
+        "MARCPALM": [
+          [
+            "BRASIL",
+            46
+          ]
+        ],
+        "COR_M_PALM": [
+          [
+            "",
+            46
+          ]
+        ],
+        "LIB_BLOQ": [
+          [
+            "1",
+            46
+          ]
+        ],
+        "LB_OPER": [
+          [
+            "",
+            46
+          ]
+        ],
+        "LB_MOTIV": [
+          [
+            "",
+            46
+          ]
+        ],
+        "TAB_PRECO": [
+          [
+            "",
+            46
+          ]
+        ],
+        "COND_PGTO": [
+          [
+            "",
+            28
+          ],
+          [
+            "000",
+            5
+          ],
+          [
+            "028",
+            4
+          ],
+          [
+            "028035042",
+            2
+          ],
+          [
+            "090",
+            2
+          ],
+          [
+            "021",
+            2
+          ],
+          [
+            "021028",
+            1
+          ],
+          [
+            "014",
+            1
+          ]
+        ],
+        "OBS_FAT": [
+          [
+            "",
+            45
+          ],
+          [
+            "CHEQUE",
+            1
+          ]
+        ],
+        "OBS_PED": [
+          [
+            "",
+            46
+          ]
+        ],
+        "FANTASIA": [
+          [
+            "",
+            43
+          ],
+          [
+            "RAQUEL GOMES DA SILVA",
+            1
+          ],
+          [
+            "LUIS ALBERTO RIBEIRO",
+            1
+          ],
+          [
+            "AGESTA REPRESENTACOES LTD",
+            1
+          ]
+        ],
+        "CODREDE": [
+          [
+            "",
+            46
+          ]
+        ],
+        "REDE": [
+          [
+            "",
+            46
+          ]
+        ],
+        "LOJA": [
+          [
+            "",
+            46
+          ]
+        ],
+        "CVSOFT": [
+          [
+            "",
+            46
+          ]
+        ],
+        "CCUSTOS": [
+          [
+            "",
+            46
+          ]
+        ],
+        "CCUSTOSN": [
+          [
+            "",
+            46
+          ]
+        ],
+        "MALADIRETA": [
+          [
+            "",
+            46
+          ]
+        ],
+        "OPER_INC": [
+          [
+            "GISELE",
+            38
+          ],
+          [
+            "JANDIR",
+            6
+          ],
+          [
+            "ANDRE",
+            2
+          ]
+        ],
+        "OPER_ALT": [
+          [
+            "GISELE",
+            39
+          ],
+          [
+            "JANDIR",
+            5
+          ],
+          [
+            "ANDRE",
+            2
+          ]
+        ],
+        "CLIE_WEB": [
+          [
+            "False",
+            46
+          ]
+        ],
+        "LISTAPRECO": [
+          [
+            "",
+            46
+          ]
+        ],
+        "FICHA3VLRS": [
+          [
+            "0",
+            46
+          ]
+        ],
+        "PASTAFOTOS": [
+          [
+            "",
+            46
+          ]
+        ],
+        "CONS_FINAL": [
+          [
+            "0",
+            29
+          ],
+          [
+            "1",
+            16
+          ],
+          [
+            "2",
+            1
+          ]
+        ],
+        "CST_ICMS": [
+          [
+            "",
+            46
+          ]
+        ],
+        "INDIEDEST": [
+          [
+            "0",
+            25
+          ],
+          [
+            "1",
+            16
+          ],
+          [
+            "2",
+            4
+          ],
+          [
+            "9",
+            1
+          ]
+        ],
+        "FABRICA": [
+          [
+            "",
+            46
+          ]
+        ],
+        "LOGO_ETIQ": [
+          [
+            "",
+            46
+          ]
+        ],
+        "OBS_PADRAO": [
+          [
+            "",
+            46
+          ]
+        ],
+        "PLACON": [
+          [
+            "",
+            46
+          ]
+        ],
+        "CONCEITO": [
+          [
+            "1",
+            1
+          ]
+        ],
+        "COMISSAO": [
+          [
+            "3.0",
+            1
+          ]
+        ]
+      },
+      "sample_rows": [
+        {
+          "CODIGO": "000365",
+          "ID": null,
+          "NOME": "COOPERSHOES COOP DE TRABALHO E IND DE CALCADO",
+          "CHAVE": "02.675.611/0001-65",
+          "TIPO": 1,
+          "ENDERECO": "RUA VICENTE PRIETO",
+          "NUMERO": "3581",
+          "COMPL": "",
+          "TIPO_SHOP": null,
+          "SHOPPING": "",
+          "BAIRRO": "JOANETA",
+          "CIDADE": "PICADA CAFe",
+          "ESTADO": "RS",
+          "PAIS": "",
+          "CEP": "95166-000",
+          "CNPJ": "02.675.611/0001-65",
+          "INSCRICAO": "3880002446",
+          "UF_ISENTO": "",
+          "CIC": "",
+          "CI": "",
+          "INSC_MUNIC": "",
+          "ID_ESTRANG": "",
+          "SUFRAMA": "",
+          "NATOP": "",
+          "TELEFONE": "",
+          "FONE_CHAVE": "",
+          "FAX": "",
+          "EMAIL": "",
+          "EMAIL_NFE": "",
+          "HOMEPAGE": "",
+          "CONTATO": "",
+          "COB_NOME": "",
+          "COB_ENDERE": "",
+          "COB_BAIRRO": "",
+          "COB_CIDADE": "",
+          "COB_ESTADO": "",
+          "COB_CEP": "",
+          "COB_CNPJ": "",
+          "COB_INSCR": "",
+          "COB_FONE": "",
+          "COB_EMAIL": "",
+          "COB_CONTAT": "",
+          "ENT_NOME": "",
+          "ENT_ENDERE": "",
+          "ENT_NUMERO": "",
+          "ENT_COMPL": "",
+          "ENT_BAIRRO": "",
+          "ENT_CIDADE": "",
+          "ENT_ESTADO": "",
+          "ENT_CEP": "",
+          "ENT_CNPJ": "",
+          "ENT_INSCR": "",
+          "ENT_CPF": "",
+          "ENT_FONE": "",
+          "ENT_EMAIL": "",
+          "TRANSPOR": "000001",
+          "VENDEDOR": "",
+          "BANCO": "",
+          "TIPOFRET": "000001",
+          "VIATRANS": "01",
+          "REDESPACHO": "",
+          "MARCA": "BRASIL",
+          "CAIXA": "BRASIL",
+          "CARISOLASN": 1,
+          "CARISOLANO": "BRASIL",
+          "PALMILHA": 1,
+          "MARCPALM": "BRASIL",
+          "COR_M_PALM": "",
+          "LIB_BLOQ": 1,
+          "LB_OPER": "",
+          "LB_DATA": null,
+          "LB_MOTIV": "",
+          "COMISSAO": null,
+          "COMIS_NF": null,
+          "COMIS_DP": null,
+          "PDESCOMISS": null,
+          "PDESCONTO": null,
+          "DESCONTONF": null,
+          "DESNF_ICMS": null,
+          "DESCPEDIDO": null,
+          "BASECOMISS": null,
+          "REDUCAO": null,
+          "TAB_PRECO": "",
+          "PERC_PRECO": null,
+          "COND_PGTO": "",
+          "OBS_FAT": "",
+          "OBS_PED": "",
+          "FANTASIA": "",
+          "CODREDE": "",
+          "REDE": "",
+          "LOJA": "",
+          "CONTSOCIAL": null,
+          "CVSOFT": "",
+          "CCUSTOS": "",
+          "CCUSTOSN": "",
+          "MALADIRETA": "",
+          "EXCL_2432": null,
+          "OPER_INC": "GISELE",
+          "INCLUIDO": "2026-02-18",
+          "HORA_INC": "16:55",
+          "OPER_ALT": "GISELE",
+          "CLIE_WEB": false,
+          "ATUALIZADO": "2026-02-18",
+          "HORA_ATU": "16:55",
+          "DIASAGENDA": null,
+          "LISTAPRECO": "",
+          "FICHA3VLRS": 0,
+          "E_DAFITI": null,
+          "E_LEPOSTIC": null,
+          "SIMPLES": null,
+          "TIPO_EMP": null,
+          "RAMO_ATIV": null,
+          "PESQ_SIMPL": null,
+          "PASTAFOTOS": "",
+          "CONS_FINAL": 0,
+          "ACRESCIMO": null,
+          "NASCIMENTO": null,
+          "CST_ICMS": "",
+          "SDO_ANTECI": null,
+          "INDIEDEST": 0,
+          "BLOQ_BORDE": null,
+          "FABRICA": "",
+          "FONE_OK": null,
+          "LANCAR_GRD": null,
+          "LANCAR_OC": null,
+          "METAL_PC": null,
+          "NFSE": null,
+          "NFSE_BOLET": null,
+          "NFSE_VCTO": null,
+          "NFSE_VALOR": null,
+          "AGRUP_REF": null,
+          "EXIG_XPED": null,
+          "LOGO_ETIQ": "",
+          "OBS_PADRAO": "",
+          "NF_END_CAD": null,
+          "PLACON": "",
+          "CONCEITO": null
+        },
+        {
+          "CODIGO": "000366",
+          "ID": null,
+          "NOME": "LEGUT STUDIO DESIGN LTDA",
+          "CHAVE": "36.147.527/0001-90",
+          "TIPO": 1,
+          "ENDERECO": "RUA ODORICO MOSMANN",
+          "NUMERO": "558",
+          "COMPL": "SALA 01 E 02",
+          "TIPO_SHOP": null,
+          "SHOPPING": "",
+          "BAIRRO": "CENTRO",
+          "CIDADE": "PAROBE",
+          "ESTADO": "RS",
+          "PAIS": "",
+          "CEP": "95630-000",
+          "CNPJ": "36.147.527/0001-90",
+          "INSCRICAO": "241/0088010",
+          "UF_ISENTO": "",
+          "CIC": "",
+          "CI": "",
+          "INSC_MUNIC": "",
+          "ID_ESTRANG": "",
+          "SUFRAMA": "",
+          "NATOP": "",
+          "TELEFONE": "",
+          "FONE_CHAVE": "",
+          "FAX": "",
+          "EMAIL": "",
+          "EMAIL_NFE": "",
+          "HOMEPAGE": "",
+          "CONTATO": "",
+          "COB_NOME": "",
+          "COB_ENDERE": "",
+          "COB_BAIRRO": "",
+          "COB_CIDADE": "",
+          "COB_ESTADO": "",
+          "COB_CEP": "",
+          "COB_CNPJ": "",
+          "COB_INSCR": "",
+          "COB_FONE": "",
+          "COB_EMAIL": "",
+          "COB_CONTAT": "",
+          "ENT_NOME": "",
+          "ENT_ENDERE": "",
+          "ENT_NUMERO": "",
+          "ENT_COMPL": "",
+          "ENT_BAIRRO": "",
+          "ENT_CIDADE": "",
+          "ENT_ESTADO": "",
+          "ENT_CEP": "",
+          "ENT_CNPJ": "",
+          "ENT_INSCR": "",
+          "ENT_CPF": "",
+          "ENT_FONE": "",
+          "ENT_EMAIL": "",
+          "TRANSPOR": "000003",
+          "VENDEDOR": "",
+          "BANCO": "",
+          "TIPOFRET": "000002",
+          "VIATRANS": "",
+          "REDESPACHO": "",
+          "MARCA": "BRASIL",
+          "CAIXA": "BRASIL",
+          "CARISOLASN": 1,
+          "CARISOLANO": "BRASIL",
+          "PALMILHA": 1,
+          "MARCPALM": "BRASIL",
+          "COR_M_PALM": "",
+          "LIB_BLOQ": 1,
+          "LB_OPER": "",
+          "LB_DATA": null,
+          "LB_MOTIV": "",
+          "COMISSAO": null,
+          "COMIS_NF": null,
+          "COMIS_DP": null,
+          "PDESCOMISS": null,
+          "PDESCONTO": null,
+          "DESCONTONF": null,
+          "DESNF_ICMS": null,
+          "DESCPEDIDO": null,
+          "BASECOMISS": null,
+          "REDUCAO": null,
+          "TAB_PRECO": "",
+          "PERC_PRECO": null,
+          "COND_PGTO": "",
+          "OBS_FAT": "",
+          "OBS_PED": "",
+          "FANTASIA": "",
+          "CODREDE": "",
+          "REDE": "",
+          "LOJA": "",
+          "CONTSOCIAL": null,
+          "CVSOFT": "",
+          "CCUSTOS": "",
+          "CCUSTOSN": "",
+          "MALADIRETA": "",
+          "EXCL_2432": null,
+          "OPER_INC": "GISELE",
+          "INCLUIDO": "2026-02-20",
+          "HORA_INC": "13:12",
+          "OPER_ALT": "GISELE",
+          "CLIE_WEB": false,
+          "ATUALIZADO": "2026-02-20",
+          "HORA_ATU": "13:17",
+          "DIASAGENDA": null,
+          "LISTAPRECO": "",
+          "FICHA3VLRS": 0,
+          "E_DAFITI": null,
+          "E_LEPOSTIC": null,
+          "SIMPLES": null,
+          "TIPO_EMP": null,
+          "RAMO_ATIV": null,
+          "PESQ_SIMPL": null,
+          "PASTAFOTOS": "",
+          "CONS_FINAL": 1,
+          "ACRESCIMO": null,
+          "NASCIMENTO": null,
+          "CST_ICMS": "",
+          "SDO_ANTECI": null,
+          "INDIEDEST": 1,
+          "BLOQ_BORDE": null,
+          "FABRICA": "",
+          "FONE_OK": null,
+          "LANCAR_GRD": null,
+          "LANCAR_OC": null,
+          "METAL_PC": null,
+          "NFSE": null,
+          "NFSE_BOLET": null,
+          "NFSE_VCTO": null,
+          "NFSE_VALOR": null,
+          "AGRUP_REF": null,
+          "EXIG_XPED": null,
+          "LOGO_ETIQ": "",
+          "OBS_PADRAO": "",
+          "NF_END_CAD": null,
+          "PLACON": "",
+          "CONCEITO": null
+        },
+        {
+          "CODIGO": "000367",
+          "ID": null,
+          "NOME": "ZENGLEIN IND E COM DE CALCADOS LTDA",
+          "CHAVE": "91.681.973/0001-99",
+          "TIPO": 1,
+          "ENDERECO": "RUA ENG JORGE SCHURY",
+          "NUMERO": "865",
+          "COMPL": "",
+          "TIPO_SHOP": null,
+          "SHOPPING": "",
+          "BAIRRO": "SAO JOSE",
+          "CIDADE": "NOVO HAMBURGO",
+          "ESTADO": "RS",
+          "PAIS": "",
+          "CEP": "93534-115",
+          "CNPJ": "91.681.973/0001-99",
+          "INSCRICAO": "0860005763",
+          "UF_ISENTO": "",
+          "CIC": "",
+          "CI": "",
+          "INSC_MUNIC": "",
+          "ID_ESTRANG": "",
+          "SUFRAMA": "",
+          "NATOP": "",
+          "TELEFONE": " 51 30979500",
+          "FONE_CHAVE": "30979500",
+          "FAX": " 51996297864",
+          "EMAIL": "",
+          "EMAIL_NFE": "sergio@zenglein.com.br;nfe@zenglein.com.br",
+          "HOMEPAGE": "",
+          "CONTATO": "",
+          "COB_NOME": "",
+          "COB_ENDERE": "",
+          "COB_BAIRRO": "",
+          "COB_CIDADE": "",
+          "COB_ESTADO": "",
+          "COB_CEP": "",
+          "COB_CNPJ": "",
+          "COB_INSCR": "",
+          "COB_FONE": "",
+          "COB_EMAIL": "",
+          "COB_CONTAT": "SERGIO-COMPRADOR",
+          "ENT_NOME": "",
+          "ENT_ENDERE": "",
+          "ENT_NUMERO": "",
+          "ENT_COMPL": "",
+          "ENT_BAIRRO": "",
+          "ENT_CIDADE": "",
+          "ENT_ESTADO": "",
+          "ENT_CEP": "",
+          "ENT_CNPJ": "",
+          "ENT_INSCR": "",
+          "ENT_CPF": "",
+          "ENT_FONE": "",
+          "ENT_EMAIL": "",
+          "TRANSPOR": "000003",
+          "VENDEDOR": "000001",
+          "BANCO": "",
+          "TIPOFRET": "000001",
+          "VIATRANS": "",
+          "REDESPACHO": "",
+          "MARCA": "BRASIL",
+          "CAIXA": "BRASIL",
+          "CARISOLASN": 1,
+          "CARISOLANO": "BRASIL",
+          "PALMILHA": 1,
+          "MARCPALM": "BRASIL",
+          "COR_M_PALM": "",
+          "LIB_BLOQ": 1,
+          "LB_OPER": "",
+          "LB_DATA": null,
+          "LB_MOTIV": "",
+          "COMISSAO": null,
+          "COMIS_NF": null,
+          "COMIS_DP": null,
+          "PDESCOMISS": null,
+          "PDESCONTO": null,
+          "DESCONTONF": null,
+          "DESNF_ICMS": null,
+          "DESCPEDIDO": null,
+          "BASECOMISS": null,
+          "REDUCAO": null,
+          "TAB_PRECO": "",
+          "PERC_PRECO": null,
+          "COND_PGTO": "028",
+          "OBS_FAT": "",
+          "OBS_PED": "",
+          "FANTASIA": "",
+          "CODREDE": "",
+          "REDE": "",
+          "LOJA": "",
+          "CONTSOCIAL": null,
+          "CVSOFT": "",
+          "CCUSTOS": "",
+          "CCUSTOSN": "",
+          "MALADIRETA": "",
+          "EXCL_2432": null,
+          "OPER_INC": "GISELE",
+          "INCLUIDO": "2026-03-03",
+          "HORA_INC": "08:05",
+          "OPER_ALT": "GISELE",
+          "CLIE_WEB": false,
+          "ATUALIZADO": "2026-03-03",
+          "HORA_ATU": "09:34",
+          "DIASAGENDA": null,
+          "LISTAPRECO": "",
+          "FICHA3VLRS": 0,
+          "E_DAFITI": null,
+          "E_LEPOSTIC": null,
+          "SIMPLES": null,
+          "TIPO_EMP": null,
+          "RAMO_ATIV": null,
+          "PESQ_SIMPL": null,
+          "PASTAFOTOS": "",
+          "CONS_FINAL": 0,
+          "ACRESCIMO": null,
+          "NASCIMENTO": null,
+          "CST_ICMS": "",
+          "SDO_ANTECI": null,
+          "INDIEDEST": 0,
+          "BLOQ_BORDE": null,
+          "FABRICA": "",
+          "FONE_OK": null,
+          "LANCAR_GRD": null,
+          "LANCAR_OC": null,
+          "METAL_PC": null,
+          "NFSE": null,
+          "NFSE_BOLET": null,
+          "NFSE_VCTO": null,
+          "NFSE_VALOR": null,
+          "AGRUP_REF": null,
+          "EXIG_XPED": null,
+          "LOGO_ETIQ": "",
+          "OBS_PADRAO": "",
+          "NF_END_CAD": null,
+          "PLACON": "",
+          "CONCEITO": null
+        }
+      ]
+    },
+    "fichas": {
+      "row_count": 56,
+      "column_count": 150,
+      "columns": [
+        "ACO",
+        "ADCORDESC",
+        "ADMATDESC",
+        "ATUALIZADO",
+        "BEIRASOLA",
+        "BLOQ_246F",
+        "CAPASALTO",
+        "CAP_PRODUT",
+        "CARIMBO",
+        "CAVIDADE",
+        "CENTRIFUGA",
+        "CFACE1",
+        "CFACE2",
+        "CFOP",
+        "CLASFISC",
+        "CLIENTE",
+        "CODCOR",
+        "CODFISC",
+        "CODIFISC",
+        "CODIGO",
+        "CODI_ROY",
+        "COLECAO",
+        "COMBINAC",
+        "COMB_COR",
+        "COMISSAO",
+        "COMIS_ROY",
+        "CONSTRUC",
+        "COR01",
+        "COR02",
+        "COR03",
+        "COR04",
+        "COR05",
+        "COR06",
+        "COR07",
+        "CORPALM",
+        "CORRUGADO",
+        "CORR_CHAVE",
+        "COR_AD_01",
+        "COR_AD_02",
+        "COR_ECO",
+        "CUSTOS",
+        "CUST_ADIC",
+        "CUST_TAREF",
+        "C_ELASTICO",
+        "C_VIES",
+        "DESCDAFITI",
+        "DESCFAT",
+        "DIGITACAO",
+        "DISPONIVEL",
+        "DTA_DESENV",
+        "DT_ULT_FAT",
+        "EAN13",
+        "ESTOQUE",
+        "FABRICA",
+        "FINAL",
+        "FORMA",
+        "FORRO",
+        "FOTOGRAFIA",
+        "GRADE",
+        "GRADELIVRE",
+        "GRD_TALAO",
+        "HORA",
+        "HORA_ATU",
+        "INTERNET",
+        "ITEM_BRIO",
+        "LARGURA",
+        "LINHA",
+        "MARCADO",
+        "MARCAR",
+        "MARCPALM",
+        "MATER_CXA",
+        "MATESTOQUE",
+        "MATRIZ",
+        "MAT_ECO",
+        "MERCADO",
+        "MFACE1",
+        "MFACE2",
+        "MODELOCOML",
+        "NAVALHA",
+        "NET",
+        "NMEDIOGRAD",
+        "NOME",
+        "NOMECOR",
+        "NOME_ROY",
+        "NSUBCAT",
+        "NUMCOR",
+        "OBS",
+        "OBS_FOTO",
+        "OPERADOR",
+        "PALMILHA",
+        "PERC_AGREG",
+        "PESO",
+        "PRECO",
+        "PRECO2",
+        "PRECO3",
+        "PRECO_FAB",
+        "PROCES_TXT",
+        "PROCES_VAL",
+        "PROD_TXT",
+        "PROD_VAL",
+        "QTDEVOL",
+        "QTDE_TALAO",
+        "REFCOSTPOL",
+        "REFCOSTRED",
+        "REFER",
+        "REFERCLIE",
+        "REFILAR",
+        "REFPALMA",
+        "REFTOTAL",
+        "RISCO",
+        "ROYALTIE",
+        "SALTO",
+        "SEGMENTO",
+        "SEGUIR",
+        "SEL01",
+        "SEL02",
+        "SEL03",
+        "SEL04",
+        "SEL05",
+        "SEL06",
+        "SEL07",
+        "SEL08",
+        "SEL09",
+        "SEL10",
+        "SEL11",
+        "SEL12",
+        "SEL13",
+        "SEL14",
+        "SEL15",
+        "SEL16",
+        "SEL17",
+        "SEL18",
+        "SEL19",
+        "SEL20",
+        "SEM_AGREG",
+        "SEQUENCIA",
+        "SETORPALM",
+        "SITUACAO",
+        "SOLA",
+        "SPEED_CLAS",
+        "SPEED_CODI",
+        "SUBCAT",
+        "TAB_CAPA",
+        "TIPO16",
+        "TIPOCARIMB",
+        "TIPOPALM",
+        "TIPOPROD",
+        "TIRAPOLIND",
+        "TORNO",
+        "UNID_TALAO"
+      ],
+      "fill_rate": {
+        "ACO": 0.6964,
+        "ADCORDESC": 0.6964,
+        "ADMATDESC": 0.6964,
+        "ATUALIZADO": 1.0,
+        "BEIRASOLA": 1.0,
+        "BLOQ_246F": 0.6964,
+        "CAPASALTO": 0.6964,
+        "CAP_PRODUT": 0.6964,
+        "CARIMBO": 1.0,
+        "CAVIDADE": 0.6964,
+        "CENTRIFUGA": 0.6964,
+        "CFACE1": 1.0,
+        "CFACE2": 1.0,
+        "CFOP": 1.0,
+        "CLASFISC": 1.0,
+        "CLIENTE": 1.0,
+        "CODCOR": 1.0,
+        "CODFISC": 1.0,
+        "CODIFISC": 1.0,
+        "CODIGO": 1.0,
+        "CODI_ROY": 1.0,
+        "COLECAO": 1.0,
+        "COMBINAC": 1.0,
+        "COMB_COR": 1.0,
+        "COMISSAO": 0.6964,
+        "COMIS_ROY": 0.6964,
+        "CONSTRUC": 1.0,
+        "COR01": 1.0,
+        "COR02": 1.0,
+        "COR03": 1.0,
+        "COR04": 1.0,
+        "COR05": 1.0,
+        "COR06": 1.0,
+        "COR07": 1.0,
+        "CORPALM": 1.0,
+        "CORRUGADO": 0.6964,
+        "CORR_CHAVE": 1.0,
+        "COR_AD_01": 1.0,
+        "COR_AD_02": 1.0,
+        "COR_ECO": 1.0,
+        "CUSTOS": 1.0,
+        "CUST_ADIC": 0.6964,
+        "CUST_TAREF": 0.6964,
+        "C_ELASTICO": 0.6964,
+        "C_VIES": 0.6964,
+        "DESCDAFITI": 1.0,
+        "DESCFAT": 1.0,
+        "DIGITACAO": 1.0,
+        "DISPONIVEL": 0.6964,
+        "DTA_DESENV": 0.0,
+        "DT_ULT_FAT": 0.0,
+        "EAN13": 1.0,
+        "ESTOQUE": 0.6964,
+        "FABRICA": 1.0,
+        "FINAL": 0.6964,
+        "FORMA": 1.0,
+        "FORRO": 1.0,
+        "FOTOGRAFIA": 1.0,
+        "GRADE": 1.0,
+        "GRADELIVRE": 0.6964,
+        "GRD_TALAO": 0.6964,
+        "HORA": 1.0,
+        "HORA_ATU": 1.0,
+        "INTERNET": 1.0,
+        "ITEM_BRIO": 1.0,
+        "LARGURA": 1.0,
+        "LINHA": 1.0,
+        "MARCADO": 0.6964,
+        "MARCAR": 1.0,
+        "MARCPALM": 1.0,
+        "MATER_CXA": 1.0,
+        "MATESTOQUE": 1.0,
+        "MATRIZ": 1.0,
+        "MAT_ECO": 1.0,
+        "MERCADO": 0.6964,
+        "MFACE1": 1.0,
+        "MFACE2": 1.0,
+        "MODELOCOML": 1.0,
+        "NAVALHA": 1.0,
+        "NET": 0.6964,
+        "NMEDIOGRAD": 0.6964,
+        "NOME": 1.0,
+        "NOMECOR": 1.0,
+        "NOME_ROY": 1.0,
+        "NSUBCAT": 0.6964,
+        "NUMCOR": 1.0,
+        "OBS": 1.0,
+        "OBS_FOTO": 1.0,
+        "OPERADOR": 1.0,
+        "PALMILHA": 1.0,
+        "PERC_AGREG": 0.7143,
+        "PESO": 0.7143,
+        "PRECO": 0.9286,
+        "PRECO2": 0.6964,
+        "PRECO3": 0.6964,
+        "PRECO_FAB": 0.6964,
+        "PROCES_TXT": 1.0,
+        "PROCES_VAL": 1.0,
+        "PROD_TXT": 1.0,
+        "PROD_VAL": 1.0,
+        "QTDEVOL": 0.6964,
+        "QTDE_TALAO": 0.6964,
+        "REFCOSTPOL": 0.6964,
+        "REFCOSTRED": 0.6964,
+        "REFER": 1.0,
+        "REFERCLIE": 1.0,
+        "REFILAR": 0.6964,
+        "REFPALMA": 0.6964,
+        "REFTOTAL": 0.6964,
+        "RISCO": 1.0,
+        "ROYALTIE": 0.6964,
+        "SALTO": 1.0,
+        "SEGMENTO": 1.0,
+        "SEGUIR": 1.0,
+        "SEL01": 0.9286,
+        "SEL02": 0.9286,
+        "SEL03": 0.9286,
+        "SEL04": 0.9286,
+        "SEL05": 0.9286,
+        "SEL06": 0.9286,
+        "SEL07": 0.9286,
+        "SEL08": 0.9286,
+        "SEL09": 0.7679,
+        "SEL10": 0.7679,
+        "SEL11": 0.7679,
+        "SEL12": 0.7679,
+        "SEL13": 0.7321,
+        "SEL14": 0.7321,
+        "SEL15": 0.7321,
+        "SEL16": 1.0,
+        "SEL17": 0.6964,
+        "SEL18": 0.6964,
+        "SEL19": 0.6964,
+        "SEL20": 1.0,
+        "SEM_AGREG": 0.6964,
+        "SEQUENCIA": 1.0,
+        "SETORPALM": 1.0,
+        "SITUACAO": 0.6964,
+        "SOLA": 1.0,
+        "SPEED_CLAS": 0.6964,
+        "SPEED_CODI": 1.0,
+        "SUBCAT": 1.0,
+        "TAB_CAPA": 1.0,
+        "TIPO16": 0.6964,
+        "TIPOCARIMB": 1.0,
+        "TIPOPALM": 0.6964,
+        "TIPOPROD": 1.0,
+        "TIRAPOLIND": 0.6964,
+        "TORNO": 0.6964,
+        "UNID_TALAO": 0.6964
+      },
+      "numeric_ranges": {
+        "ACO": {
+          "min": 0,
+          "max": 0
+        },
+        "CAPASALTO": {
+          "min": 0,
+          "max": 0
+        },
+        "CAP_PRODUT": {
+          "min": 0,
+          "max": 0
+        },
+        "CAVIDADE": {
+          "min": 0,
+          "max": 0
+        },
+        "CENTRIFUGA": {
+          "min": 0,
+          "max": 0
+        },
+        "COMISSAO": {
+          "min": 0.0,
+          "max": 0.0
+        },
+        "COMIS_ROY": {
+          "min": 0.0,
+          "max": 0.0
+        },
+        "CORRUGADO": {
+          "min": 0,
+          "max": 0
+        },
+        "CUST_ADIC": {
+          "min": 0.0,
+          "max": 0.0
+        },
+        "CUST_TAREF": {
+          "min": 0.0,
+          "max": 0.0
+        },
+        "DISPONIVEL": {
+          "min": 0.0,
+          "max": 0.0
+        },
+        "ESTOQUE": {
+          "min": 0.0,
+          "max": 0.0
+        },
+        "FINAL": {
+          "min": 0.0,
+          "max": 0.0
+        },
+        "GRD_TALAO": {
+          "min": 0,
+          "max": 0
+        },
+        "MERCADO": {
+          "min": 0,
+          "max": 0
+        },
+        "NMEDIOGRAD": {
+          "min": 0,
+          "max": 0
+        },
+        "NSUBCAT": {
+          "min": 0,
+          "max": 0
+        },
+        "NUMCOR": {
+          "min": 1,
+          "max": 1
+        },
+        "PERC_AGREG": {
+          "min": 0.0,
+          "max": 0.0
+        },
+        "PESO": {
+          "min": 0.0,
+          "max": 0.0
+        },
+        "PRECO": {
+          "min": 1.32,
+          "max": 7.23
+        },
+        "PRECO2": {
+          "min": 0.0,
+          "max": 0.0
+        },
+        "PRECO3": {
+          "min": 0.0,
+          "max": 0.0
+        },
+        "PRECO_FAB": {
+          "min": 0.0,
+          "max": 0.0
+        },
+        "PROCES_VAL": {
+          "min": 1,
+          "max": 5
+        },
+        "PROD_VAL": {
+          "min": 2,
+          "max": 5
+        },
+        "QTDEVOL": {
+          "min": 0,
+          "max": 0
+        },
+        "QTDE_TALAO": {
+          "min": 0,
+          "max": 0
+        },
+        "REFILAR": {
+          "min": 0.0,
+          "max": 0.0
+        },
+        "ROYALTIE": {
+          "min": 0,
+          "max": 0
+        },
+        "SEM_AGREG": {
+          "min": 0,
+          "max": 0
+        },
+        "SPEED_CLAS": {
+          "min": 0,
+          "max": 0
+        },
+        "TIPO16": {
+          "min": 0,
+          "max": 0
+        },
+        "TIPOPALM": {
+          "min": 0,
+          "max": 0
+        },
+        "TORNO": {
+          "min": 0.0,
+          "max": 0.0
+        },
+        "UNID_TALAO": {
+          "min": 0,
+          "max": 0
+        }
+      },
+      "date_ranges": {
+        "ATUALIZADO": {
+          "min": "2026-03-03T00:00:00",
+          "max": "2026-03-19T00:00:00"
+        },
+        "DIGITACAO": {
+          "min": "2026-03-03T00:00:00",
+          "max": "2026-03-19T00:00:00"
+        }
+      },
+      "top_values": {
+        "DESCDAFITI": [
+          [
+            "",
+            56
+          ]
+        ],
+        "FABRICA": [
+          [
+            "",
+            56
+          ]
+        ],
+        "CONSTRUC": [
+          [
+            "",
+            56
+          ]
+        ],
+        "SALTO": [
+          [
+            "",
+            56
+          ]
+        ],
+        "PALMILHA": [
+          [
+            "",
+            56
+          ]
+        ],
+        "FORMA": [
+          [
+            "",
+            56
+          ]
+        ],
+        "REFER": [
+          [
+            "",
+            56
+          ]
+        ],
+        "NUMCOR": [
+          [
+            "1",
+            56
+          ]
+        ],
+        "LINHA": [
+          [
+            "",
+            56
+          ]
+        ],
+        "TIPOPROD": [
+          [
+            "",
+            56
+          ]
+        ],
+        "COLECAO": [
+          [
+            "",
+            56
+          ]
+        ],
+        "CUSTOS": [
+          [
+            "",
+            56
+          ]
+        ],
+        "COMBINAC": [
+          [
+            "",
+            56
+          ]
+        ],
+        "CODFISC": [
+          [
+            "01",
+            39
+          ],
+          [
+            "91",
+            13
+          ],
+          [
+            "",
+            4
+          ]
+        ],
+        "CODIFISC": [
+          [
+            "",
+            56
+          ]
+        ],
+        "GRADE": [
+          [
+            "MI",
+            44
+          ],
+          [
+            "",
+            4
+          ],
+          [
+            "CA",
+            3
+          ],
+          [
+            "CP",
+            2
+          ],
+          [
+            "IN",
+            1
+          ],
+          [
+            "ZZ",
+            1
+          ],
+          [
+            "C2",
+            1
+          ]
+        ],
+        "MARCAR": [
+          [
+            "",
+            56
+          ]
+        ],
+        "MATESTOQUE": [
+          [
+            "",
+            56
+          ]
+        ],
+        "RISCO": [
+          [
+            "",
+            56
+          ]
+        ],
+        "OBS_FOTO": [
+          [
+            "",
+            56
+          ]
+        ],
+        "OBS": [
+          [
+            "",
+            21
+          ],
+          [
+            "TAMPOGRAFIA ANACAPRI MARROM",
+            6
+          ],
+          [
+            "CARIMBO LUZ DA LUA OURO",
+            5
+          ],
+          [
+            "SERIG. CAPEZIO BRANCO",
+            4
+          ],
+          [
+            "TAMPOGRAFIA AREZZO PRETO",
+            3
+          ],
+          [
+            "TAMPOGRAFIA AREZZO",
+            2
+          ],
+          [
+            "TAMP. AREZZO PRETO",
+            2
+          ],
+          [
+            "TAMPOGRAFIA RESERVA DOURADO",
+            2
+          ]
+        ],
+        "TAB_CAPA": [
+          [
+            "",
+            56
+          ]
+        ],
+        "BEIRASOLA": [
+          [
+            "",
+            56
+          ]
+        ],
+        "CORR_CHAVE": [
+          [
+            "",
+            56
+          ]
+        ],
+        "CLASFISC": [
+          [
+            "D0",
+            52
+          ],
+          [
+            "",
+            4
+          ]
+        ],
+        "SOLA": [
+          [
+            "",
+            56
+          ]
+        ],
+        "CARIMBO": [
+          [
+            "",
+            56
+          ]
+        ],
+        "FORRO": [
+          [
+            "",
+            56
+          ]
+        ],
+        "EAN13": [
+          [
+            "",
+            56
+          ]
+        ],
+        "SEL16": [
+          [
+            "False",
+            56
+          ]
+        ],
+        "SEL20": [
+          [
+            "False",
+            56
+          ]
+        ],
+        "COR01": [
+          [
+            "",
+            56
+          ]
+        ],
+        "COR02": [
+          [
+            "",
+            56
+          ]
+        ],
+        "COR03": [
+          [
+            "",
+            56
+          ]
+        ],
+        "COR04": [
+          [
+            "",
+            56
+          ]
+        ],
+        "COR05": [
+          [
+            "",
+            56
+          ]
+        ],
+        "COR06": [
+          [
+            "",
+            56
+          ]
+        ],
+        "COR07": [
+          [
+            "",
+            56
+          ]
+        ],
+        "MATRIZ": [
+          [
+            "298",
+            16
+          ],
+          [
+            "PLANA",
+            7
+          ],
+          [
+            "258",
+            5
+          ],
+          [
+            "",
+            4
+          ],
+          [
+            "290",
+            3
+          ],
+          [
+            "297",
+            3
+          ],
+          [
+            "BIRRA NOVA",
+            3
+          ],
+          [
+            "293",
+            2
+          ]
+        ],
+        "NAVALHA": [
+          [
+            "SEM RECORTE",
+            6
+          ],
+          [
+            "1000",
+            5
+          ],
+          [
+            "",
+            4
+          ],
+          [
+            "10965",
+            4
+          ],
+          [
+            "K960",
+            4
+          ],
+          [
+            "290",
+            3
+          ],
+          [
+            "ANACAPRI",
+            3
+          ],
+          [
+            "30277",
+            2
+          ]
+        ],
+        "OPERADOR": [
+          [
+            "GISELE",
+            52
+          ],
+          [
+            "GUSTAVO",
+            4
+          ]
+        ],
+        "DIGITACAO": [
+          [
+            "2026-03-16",
+            13
+          ],
+          [
+            "2026-03-03",
+            11
+          ],
+          [
+            "2026-03-05",
+            10
+          ],
+          [
+            "2026-03-09",
+            9
+          ],
+          [
+            "2026-03-06",
+            6
+          ],
+          [
+            "2026-03-10",
+            4
+          ],
+          [
+            "2026-03-19",
+            1
+          ],
+          [
+            "2026-03-04",
+            1
+          ]
+        ],
+        "ATUALIZADO": [
+          [
+            "2026-03-09",
+            28
+          ],
+          [
+            "2026-03-16",
+            11
+          ],
+          [
+            "2026-03-10",
+            5
+          ],
+          [
+            "2026-03-05",
+            3
+          ],
+          [
+            "2026-03-18",
+            3
+          ],
+          [
+            "2026-03-12",
+            2
+          ],
+          [
+            "2026-03-03",
+            1
+          ],
+          [
+            "2026-03-19",
+            1
+          ]
+        ],
+        "INTERNET": [
+          [
+            "",
+            56
+          ]
+        ],
+        "LARGURA": [
+          [
+            "",
+            56
+          ]
+        ],
+        "ITEM_BRIO": [
+          [
+            "",
+            56
+          ]
+        ],
+        "COR_AD_01": [
+          [
+            "",
+            56
+          ]
+        ],
+        "COR_AD_02": [
+          [
+            "",
+            56
+          ]
+        ],
+        "SEGUIR": [
+          [
+            "",
+            56
+          ]
+        ],
+        "MATER_CXA": [
+          [
+            "",
+            56
+          ]
+        ],
+        "CODI_ROY": [
+          [
+            "",
+            56
+          ]
+        ],
+        "NOME_ROY": [
+          [
+            "",
+            56
+          ]
+        ],
+        "CLIENTE": [
+          [
+            "000377",
+            10
+          ],
+          [
+            "000384",
+            6
+          ],
+          [
+            "000379",
+            6
+          ],
+          [
+            "000367",
+            5
+          ],
+          [
+            "",
+            4
+          ],
+          [
+            "000383",
+            4
+          ],
+          [
+            "000373",
+            3
+          ],
+          [
+            "000374",
+            3
+          ]
+        ],
+        "MARCPALM": [
+          [
+            "SEM MARCA",
+            15
+          ],
+          [
+            "AREZZO",
+            7
+          ],
+          [
+            "ANACAPRI",
+            6
+          ],
+          [
+            "CAPEZIO",
+            6
+          ],
+          [
+            "LUZ DA LUA",
+            5
+          ],
+          [
+            "",
+            4
+          ],
+          [
+            "RESERVA",
+            4
+          ],
+          [
+            "TRANS. MARY JANE",
+            3
+          ]
+        ],
+        "CORPALM": [
+          [
+            "",
+            19
+          ],
+          [
+            "PRETO",
+            11
+          ],
+          [
+            "OURO",
+            9
+          ],
+          [
+            "MARROM",
+            7
+          ],
+          [
+            "BRANCO",
+            5
+          ],
+          [
+            "NO EVA",
+            2
+          ],
+          [
+            "DOURADO",
+            2
+          ],
+          [
+            "GRAFITTE",
+            1
+          ]
+        ],
+        "PROD_VAL": [
+          [
+            "3",
+            43
+          ],
+          [
+            "2",
+            8
+          ],
+          [
+            "4",
+            4
+          ],
+          [
+            "5",
+            1
+          ]
+        ],
+        "PROD_TXT": [
+          [
+            "2-PALM CON",
+            43
+          ],
+          [
+            "1-PALM PLA",
+            8
+          ],
+          [
+            "3-PALM CUN",
+            4
+          ],
+          [
+            "4-PEÇA TEC",
+            1
+          ]
+        ],
+        "PROCES_VAL": [
+          [
+            "4",
+            29
+          ],
+          [
+            "1",
+            22
+          ],
+          [
+            "5",
+            5
+          ]
+        ],
+        "PROCES_TXT": [
+          [
+            "3-TERMO CONFORMADA",
+            29
+          ],
+          [
+            "",
+            19
+          ],
+          [
+            "4-PLANA",
+            5
+          ],
+          [
+            "0-Não Definido",
+            3
+          ]
+        ],
+        "CFOP": [
+          [
+            "5124",
+            30
+          ],
+          [
+            "5101",
+            21
+          ],
+          [
+            "",
+            4
+          ],
+          [
+            "6101",
+            1
+          ]
+        ],
+        "SETORPALM": [
+          [
+            "001-CONFORMADA",
+            44
+          ],
+          [
+            "002-PLANA",
+            8
+          ],
+          [
+            "003-CUNHO",
+            4
+          ]
+        ],
+        "COMB_COR": [
+          [
+            "0005",
+            8
+          ],
+          [
+            "0001",
+            5
+          ],
+          [
+            "",
+            4
+          ],
+          [
+            "0006",
+            4
+          ],
+          [
+            "0024",
+            4
+          ],
+          [
+            "0003",
+            2
+          ],
+          [
+            "0025",
+            2
+          ],
+          [
+            "0004",
+            2
+          ]
+        ],
+        "MODELOCOML": [
+          [
+            "",
+            56
+          ]
+        ],
+        "TIPOCARIMB": [
+          [
+            "",
+            56
+          ]
+        ],
+        "MFACE1": [
+          [
+            "",
+            56
+          ]
+        ],
+        "CFACE1": [
+          [
+            "",
+            56
+          ]
+        ],
+        "MAT_ECO": [
+          [
+            "",
+            56
+          ]
+        ],
+        "COR_ECO": [
+          [
+            "",
+            56
+          ]
+        ],
+        "MFACE2": [
+          [
+            "",
+            56
+          ]
+        ],
+        "CFACE2": [
+          [
+            "",
+            56
+          ]
+        ],
+        "SEQUENCIA": [
+          [
+            "",
+            56
+          ]
+        ],
+        "CODCOR": [
+          [
+            "",
+            56
+          ]
+        ],
+        "NOMECOR": [
+          [
+            "",
+            56
+          ]
+        ],
+        "SUBCAT": [
+          [
+            "",
+            56
+          ]
+        ],
+        "SEGMENTO": [
+          [
+            "",
+            56
+          ]
+        ],
+        "SPEED_CODI": [
+          [
+            "",
+            56
+          ]
+        ],
+        "PRECO": [
+          [
+            "2.52",
+            5
+          ],
+          [
+            "2.16",
+            4
+          ],
+          [
+            "3.62",
+            4
+          ],
+          [
+            "2.95",
+            3
+          ],
+          [
+            "3.38",
+            3
+          ],
+          [
+            "1.73",
+            3
+          ],
+          [
+            "2.4",
+            3
+          ],
+          [
+            "3.17",
+            3
+          ]
+        ],
+        "PESO": [
+          [
+            "0.0",
+            40
+          ]
+        ],
+        "SEL01": [
+          [
+            "True",
+            51
+          ],
+          [
+            "False",
+            1
+          ]
+        ],
+        "SEL02": [
+          [
+            "True",
+            51
+          ],
+          [
+            "False",
+            1
+          ]
+        ],
+        "SEL03": [
+          [
+            "True",
+            51
+          ],
+          [
+            "False",
+            1
+          ]
+        ],
+        "SEL04": [
+          [
+            "True",
+            51
+          ],
+          [
+            "False",
+            1
+          ]
+        ],
+        "SEL05": [
+          [
+            "True",
+            51
+          ],
+          [
+            "False",
+            1
+          ]
+        ],
+        "SEL06": [
+          [
+            "True",
+            51
+          ],
+          [
+            "False",
+            1
+          ]
+        ],
+        "SEL07": [
+          [
+            "True",
+            51
+          ],
+          [
+            "False",
+            1
+          ]
+        ],
+        "SEL08": [
+          [
+            "True",
+            51
+          ],
+          [
+            "False",
+            1
+          ]
+        ],
+        "ADMATDESC": [
+          [
+            "False",
+            39
+          ]
+        ],
+        "ADCORDESC": [
+          [
+            "False",
+            39
+          ]
+        ],
+        "MERCADO": [
+          [
+            "0",
+            39
+          ]
+        ],
+        "SITUACAO": [
+          [
+            "False",
+            39
+          ]
+        ],
+        "TIPO16": [
+          [
+            "0",
+            39
+          ]
+        ],
+        "ACO": [
+          [
+            "0",
+            39
+          ]
+        ],
+        "CENTRIFUGA": [
+          [
+            "0",
+            39
+          ]
+        ],
+        "CAVIDADE": [
+          [
+            "0",
+            39
+          ]
+        ],
+        "PRECO2": [
+          [
+            "0.0",
+            39
+          ]
+        ],
+        "PRECO3": [
+          [
+            "0.0",
+            39
+          ]
+        ],
+        "PRECO_FAB": [
+          [
+            "0.0",
+            39
+          ]
+        ],
+        "COMISSAO": [
+          [
+            "0.0",
+            39
+          ]
+        ],
+        "CUST_ADIC": [
+          [
+            "0.0",
+            39
+          ]
+        ],
+        "CUST_TAREF": [
+          [
+            "0.0",
+            39
+          ]
+        ],
+        "GRD_TALAO": [
+          [
+            "0",
+            39
+          ]
+        ],
+        "NMEDIOGRAD": [
+          [
+            "0",
+            39
+          ]
+        ],
+        "CAPASALTO": [
+          [
+            "0",
+            39
+          ]
+        ],
+        "CORRUGADO": [
+          [
+            "0",
+            39
+          ]
+        ],
+        "SEL09": [
+          [
+            "False",
+            27
+          ],
+          [
+            "True",
+            16
+          ]
+        ],
+        "SEL10": [
+          [
+            "False",
+            27
+          ],
+          [
+            "True",
+            16
+          ]
+        ],
+        "SEL11": [
+          [
+            "False",
+            27
+          ],
+          [
+            "True",
+            16
+          ]
+        ],
+        "SEL12": [
+          [
+            "False",
+            27
+          ],
+          [
+            "True",
+            16
+          ]
+        ],
+        "SEL13": [
+          [
+            "False",
+            35
+          ],
+          [
+            "True",
+            6
+          ]
+        ],
+        "SEL14": [
+          [
+            "False",
+            35
+          ],
+          [
+            "True",
+            6
+          ]
+        ],
+        "SEL15": [
+          [
+            "False",
+            35
+          ],
+          [
+            "True",
+            6
+          ]
+        ],
+        "SEL17": [
+          [
+            "False",
+            39
+          ]
+        ],
+        "SEL18": [
+          [
+            "False",
+            39
+          ]
+        ],
+        "SEL19": [
+          [
+            "False",
+            39
+          ]
+        ],
+        "NET": [
+          [
+            "False",
+            39
+          ]
+        ],
+        "BLOQ_246F": [
+          [
+            "False",
+            39
+          ]
+        ],
+        "TIRAPOLIND": [
+          [
+            "False",
+            39
+          ]
+        ],
+        "REFPALMA": [
+          [
+            "False",
+            39
+          ]
+        ],
+        "REFTOTAL": [
+          [
+            "False",
+            39
+          ]
+        ],
+        "REFCOSTRED": [
+          [
+            "False",
+            39
+          ]
+        ],
+        "REFCOSTPOL": [
+          [
+            "False",
+            39
+          ]
+        ],
+        "C_VIES": [
+          [
+            "False",
+            39
+          ]
+        ],
+        "C_ELASTICO": [
+          [
+            "False",
+            39
+          ]
+        ],
+        "QTDE_TALAO": [
+          [
+            "0",
+            39
+          ]
+        ],
+        "UNID_TALAO": [
+          [
+            "0",
+            39
+          ]
+        ],
+        "QTDEVOL": [
+          [
+            "0",
+            39
+          ]
+        ],
+        "GRADELIVRE": [
+          [
+            "False",
+            39
+          ]
+        ],
+        "CAP_PRODUT": [
+          [
+            "0",
+            39
+          ]
+        ],
+        "ROYALTIE": [
+          [
+            "0",
+            39
+          ]
+        ],
+        "COMIS_ROY": [
+          [
+            "0.0",
+            39
+          ]
+        ],
+        "TIPOPALM": [
+          [
+            "0",
+            39
+          ]
+        ],
+        "PERC_AGREG": [
+          [
+            "0.0",
+            40
+          ]
+        ],
+        "SEM_AGREG": [
+          [
+            "0",
+            39
+          ]
+        ],
+        "TORNO": [
+          [
+            "0.0",
+            39
+          ]
+        ],
+        "FINAL": [
+          [
+            "0.0",
+            39
+          ]
+        ],
+        "REFILAR": [
+          [
+            "0.0",
+            39
+          ]
+        ],
+        "ESTOQUE": [
+          [
+            "0.0",
+            39
+          ]
+        ],
+        "DISPONIVEL": [
+          [
+            "0.0",
+            39
+          ]
+        ],
+        "MARCADO": [
+          [
+            "False",
+            39
+          ]
+        ],
+        "NSUBCAT": [
+          [
+            "0",
+            39
+          ]
+        ],
+        "SPEED_CLAS": [
+          [
+            "0",
+            39
+          ]
+        ]
+      },
+      "sample_rows": [
+        {
+          "CODIGO": "1",
+          "NOME": "PLANA",
+          "DESCFAT": "PLANA",
+          "DESCDAFITI": "",
+          "ADMATDESC": null,
+          "ADCORDESC": null,
+          "FABRICA": "",
+          "MERCADO": null,
+          "SITUACAO": null,
+          "CONSTRUC": "",
+          "SALTO": "",
+          "PALMILHA": "",
+          "FORMA": "",
+          "REFER": "",
+          "NUMCOR": 1,
+          "LINHA": "",
+          "TIPOPROD": "",
+          "TIPO16": null,
+          "COLECAO": "",
+          "ACO": null,
+          "CENTRIFUGA": null,
+          "CAVIDADE": null,
+          "PRECO": null,
+          "PRECO2": null,
+          "PRECO3": null,
+          "PRECO_FAB": null,
+          "COMISSAO": null,
+          "CUSTOS": "",
+          "COMBINAC": "",
+          "CUST_ADIC": null,
+          "CUST_TAREF": null,
+          "CODFISC": "",
+          "CODIFISC": "",
+          "GRADE": "",
+          "MARCAR": "",
+          "GRD_TALAO": null,
+          "MATESTOQUE": "",
+          "NMEDIOGRAD": null,
+          "FOTOGRAFIA": "",
+          "RISCO": "",
+          "OBS_FOTO": "",
+          "OBS": "",
+          "CAPASALTO": null,
+          "TAB_CAPA": "",
+          "BEIRASOLA": "",
+          "PESO": null,
+          "CORRUGADO": null,
+          "CORR_CHAVE": "",
+          "CLASFISC": "",
+          "SOLA": "",
+          "CARIMBO": "",
+          "FORRO": "",
+          "EAN13": "",
+          "SEL01": null,
+          "SEL02": null,
+          "SEL03": null,
+          "SEL04": null,
+          "SEL05": null,
+          "SEL06": null,
+          "SEL07": null,
+          "SEL08": null,
+          "SEL09": null,
+          "SEL10": null,
+          "SEL11": null,
+          "SEL12": null,
+          "SEL13": null,
+          "SEL14": null,
+          "SEL15": null,
+          "SEL16": false,
+          "SEL17": null,
+          "SEL18": null,
+          "SEL19": null,
+          "SEL20": false,
+          "COR01": "",
+          "COR02": "",
+          "COR03": "",
+          "COR04": "",
+          "COR05": "",
+          "COR06": "",
+          "COR07": "",
+          "MATRIZ": "",
+          "NAVALHA": "",
+          "OPERADOR": "GUSTAVO",
+          "DIGITACAO": "2026-03-03",
+          "HORA": "08:06",
+          "ATUALIZADO": "2026-03-05",
+          "HORA_ATU": "16:49",
+          "INTERNET": "",
+          "NET": null,
+          "LARGURA": "",
+          "BLOQ_246F": null,
+          "ITEM_BRIO": "",
+          "TIRAPOLIND": null,
+          "REFPALMA": null,
+          "REFTOTAL": null,
+          "REFCOSTRED": null,
+          "REFCOSTPOL": null,
+          "C_VIES": null,
+          "C_ELASTICO": null,
+          "QTDE_TALAO": null,
+          "UNID_TALAO": null,
+          "DTA_DESENV": null,
+          "DT_ULT_FAT": null,
+          "COR_AD_01": "",
+          "COR_AD_02": "",
+          "SEGUIR": "",
+          "MATER_CXA": "",
+          "QTDEVOL": null,
+          "GRADELIVRE": null,
+          "CAP_PRODUT": null,
+          "ROYALTIE": null,
+          "CODI_ROY": "",
+          "NOME_ROY": "",
+          "COMIS_ROY": null,
+          "CLIENTE": "",
+          "TIPOPALM": null,
+          "MARCPALM": "",
+          "CORPALM": "",
+          "PROD_VAL": 2,
+          "PROD_TXT": "1-PALM PLA",
+          "PROCES_VAL": 1,
+          "PROCES_TXT": "",
+          "CFOP": "",
+          "SETORPALM": "002-PLANA",
+          "COMB_COR": "",
+          "MODELOCOML": "",
+          "TIPOCARIMB": "",
+          "PERC_AGREG": null,
+          "SEM_AGREG": null,
+          "MFACE1": "",
+          "CFACE1": "",
+          "MAT_ECO": "",
+          "COR_ECO": "",
+          "TORNO": null,
+          "FINAL": null,
+          "REFILAR": null,
+          "MFACE2": "",
+          "CFACE2": "",
+          "SEQUENCIA": "",
+          "ESTOQUE": null,
+          "DISPONIVEL": null,
+          "CODCOR": "",
+          "NOMECOR": "",
+          "MARCADO": null,
+          "NSUBCAT": null,
+          "SUBCAT": "",
+          "REFERCLIE": "",
+          "SEGMENTO": "",
+          "SPEED_CLAS": null,
+          "SPEED_CODI": ""
+        },
+        {
+          "CODIGO": "2",
+          "NOME": "CONFORMADA",
+          "DESCFAT": "PALMILHA CONFORMADA",
+          "DESCDAFITI": "",
+          "ADMATDESC": null,
+          "ADCORDESC": null,
+          "FABRICA": "",
+          "MERCADO": null,
+          "SITUACAO": null,
+          "CONSTRUC": "",
+          "SALTO": "",
+          "PALMILHA": "",
+          "FORMA": "",
+          "REFER": "",
+          "NUMCOR": 1,
+          "LINHA": "",
+          "TIPOPROD": "",
+          "TIPO16": null,
+          "COLECAO": "",
+          "ACO": null,
+          "CENTRIFUGA": null,
+          "CAVIDADE": null,
+          "PRECO": null,
+          "PRECO2": null,
+          "PRECO3": null,
+          "PRECO_FAB": null,
+          "COMISSAO": null,
+          "CUSTOS": "",
+          "COMBINAC": "",
+          "CUST_ADIC": null,
+          "CUST_TAREF": null,
+          "CODFISC": "",
+          "CODIFISC": "",
+          "GRADE": "",
+          "MARCAR": "",
+          "GRD_TALAO": null,
+          "MATESTOQUE": "",
+          "NMEDIOGRAD": null,
+          "FOTOGRAFIA": "",
+          "RISCO": "",
+          "OBS_FOTO": "",
+          "OBS": "",
+          "CAPASALTO": null,
+          "TAB_CAPA": "",
+          "BEIRASOLA": "",
+          "PESO": null,
+          "CORRUGADO": null,
+          "CORR_CHAVE": "",
+          "CLASFISC": "",
+          "SOLA": "",
+          "CARIMBO": "",
+          "FORRO": "",
+          "EAN13": "",
+          "SEL01": null,
+          "SEL02": null,
+          "SEL03": null,
+          "SEL04": null,
+          "SEL05": null,
+          "SEL06": null,
+          "SEL07": null,
+          "SEL08": null,
+          "SEL09": null,
+          "SEL10": null,
+          "SEL11": null,
+          "SEL12": null,
+          "SEL13": null,
+          "SEL14": null,
+          "SEL15": null,
+          "SEL16": false,
+          "SEL17": null,
+          "SEL18": null,
+          "SEL19": null,
+          "SEL20": false,
+          "COR01": "",
+          "COR02": "",
+          "COR03": "",
+          "COR04": "",
+          "COR05": "",
+          "COR06": "",
+          "COR07": "",
+          "MATRIZ": "",
+          "NAVALHA": "",
+          "OPERADOR": "GUSTAVO",
+          "DIGITACAO": "2026-03-03",
+          "HORA": "08:12",
+          "ATUALIZADO": "2026-03-05",
+          "HORA_ATU": "16:49",
+          "INTERNET": "",
+          "NET": null,
+          "LARGURA": "",
+          "BLOQ_246F": null,
+          "ITEM_BRIO": "",
+          "TIRAPOLIND": null,
+          "REFPALMA": null,
+          "REFTOTAL": null,
+          "REFCOSTRED": null,
+          "REFCOSTPOL": null,
+          "C_VIES": null,
+          "C_ELASTICO": null,
+          "QTDE_TALAO": null,
+          "UNID_TALAO": null,
+          "DTA_DESENV": null,
+          "DT_ULT_FAT": null,
+          "COR_AD_01": "",
+          "COR_AD_02": "",
+          "SEGUIR": "",
+          "MATER_CXA": "",
+          "QTDEVOL": null,
+          "GRADELIVRE": null,
+          "CAP_PRODUT": null,
+          "ROYALTIE": null,
+          "CODI_ROY": "",
+          "NOME_ROY": "",
+          "COMIS_ROY": null,
+          "CLIENTE": "",
+          "TIPOPALM": null,
+          "MARCPALM": "",
+          "CORPALM": "",
+          "PROD_VAL": 3,
+          "PROD_TXT": "2-PALM CON",
+          "PROCES_VAL": 1,
+          "PROCES_TXT": "",
+          "CFOP": "",
+          "SETORPALM": "001-CONFORMADA",
+          "COMB_COR": "",
+          "MODELOCOML": "",
+          "TIPOCARIMB": "",
+          "PERC_AGREG": null,
+          "SEM_AGREG": null,
+          "MFACE1": "",
+          "CFACE1": "",
+          "MAT_ECO": "",
+          "COR_ECO": "",
+          "TORNO": null,
+          "FINAL": null,
+          "REFILAR": null,
+          "MFACE2": "",
+          "CFACE2": "",
+          "SEQUENCIA": "",
+          "ESTOQUE": null,
+          "DISPONIVEL": null,
+          "CODCOR": "",
+          "NOMECOR": "",
+          "MARCADO": null,
+          "NSUBCAT": null,
+          "SUBCAT": "",
+          "REFERCLIE": "",
+          "SEGMENTO": "",
+          "SPEED_CLAS": null,
+          "SPEED_CODI": ""
+        },
+        {
+          "CODIGO": "3",
+          "NOME": "CUNHO",
+          "DESCFAT": "PALMILHA EM CUNHO",
+          "DESCDAFITI": "",
+          "ADMATDESC": null,
+          "ADCORDESC": null,
+          "FABRICA": "",
+          "MERCADO": null,
+          "SITUACAO": null,
+          "CONSTRUC": "",
+          "SALTO": "",
+          "PALMILHA": "",
+          "FORMA": "",
+          "REFER": "",
+          "NUMCOR": 1,
+          "LINHA": "",
+          "TIPOPROD": "",
+          "TIPO16": null,
+          "COLECAO": "",
+          "ACO": null,
+          "CENTRIFUGA": null,
+          "CAVIDADE": null,
+          "PRECO": null,
+          "PRECO2": null,
+          "PRECO3": null,
+          "PRECO_FAB": null,
+          "COMISSAO": null,
+          "CUSTOS": "",
+          "COMBINAC": "",
+          "CUST_ADIC": null,
+          "CUST_TAREF": null,
+          "CODFISC": "",
+          "CODIFISC": "",
+          "GRADE": "",
+          "MARCAR": "",
+          "GRD_TALAO": null,
+          "MATESTOQUE": "",
+          "NMEDIOGRAD": null,
+          "FOTOGRAFIA": "",
+          "RISCO": "",
+          "OBS_FOTO": "",
+          "OBS": "",
+          "CAPASALTO": null,
+          "TAB_CAPA": "",
+          "BEIRASOLA": "",
+          "PESO": null,
+          "CORRUGADO": null,
+          "CORR_CHAVE": "",
+          "CLASFISC": "",
+          "SOLA": "",
+          "CARIMBO": "",
+          "FORRO": "",
+          "EAN13": "",
+          "SEL01": null,
+          "SEL02": null,
+          "SEL03": null,
+          "SEL04": null,
+          "SEL05": null,
+          "SEL06": null,
+          "SEL07": null,
+          "SEL08": null,
+          "SEL09": null,
+          "SEL10": null,
+          "SEL11": null,
+          "SEL12": null,
+          "SEL13": null,
+          "SEL14": null,
+          "SEL15": null,
+          "SEL16": false,
+          "SEL17": null,
+          "SEL18": null,
+          "SEL19": null,
+          "SEL20": false,
+          "COR01": "",
+          "COR02": "",
+          "COR03": "",
+          "COR04": "",
+          "COR05": "",
+          "COR06": "",
+          "COR07": "",
+          "MATRIZ": "",
+          "NAVALHA": "",
+          "OPERADOR": "GUSTAVO",
+          "DIGITACAO": "2026-03-03",
+          "HORA": "08:13",
+          "ATUALIZADO": "2026-03-05",
+          "HORA_ATU": "16:50",
+          "INTERNET": "",
+          "NET": null,
+          "LARGURA": "",
+          "BLOQ_246F": null,
+          "ITEM_BRIO": "",
+          "TIRAPOLIND": null,
+          "REFPALMA": null,
+          "REFTOTAL": null,
+          "REFCOSTRED": null,
+          "REFCOSTPOL": null,
+          "C_VIES": null,
+          "C_ELASTICO": null,
+          "QTDE_TALAO": null,
+          "UNID_TALAO": null,
+          "DTA_DESENV": null,
+          "DT_ULT_FAT": null,
+          "COR_AD_01": "",
+          "COR_AD_02": "",
+          "SEGUIR": "",
+          "MATER_CXA": "",
+          "QTDEVOL": null,
+          "GRADELIVRE": null,
+          "CAP_PRODUT": null,
+          "ROYALTIE": null,
+          "CODI_ROY": "",
+          "NOME_ROY": "",
+          "COMIS_ROY": null,
+          "CLIENTE": "",
+          "TIPOPALM": null,
+          "MARCPALM": "",
+          "CORPALM": "",
+          "PROD_VAL": 4,
+          "PROD_TXT": "3-PALM CUN",
+          "PROCES_VAL": 1,
+          "PROCES_TXT": "",
+          "CFOP": "",
+          "SETORPALM": "003-CUNHO",
+          "COMB_COR": "",
+          "MODELOCOML": "",
+          "TIPOCARIMB": "",
+          "PERC_AGREG": null,
+          "SEM_AGREG": null,
+          "MFACE1": "",
+          "CFACE1": "",
+          "MAT_ECO": "",
+          "COR_ECO": "",
+          "TORNO": null,
+          "FINAL": null,
+          "REFILAR": null,
+          "MFACE2": "",
+          "CFACE2": "",
+          "SEQUENCIA": "",
+          "ESTOQUE": null,
+          "DISPONIVEL": null,
+          "CODCOR": "",
+          "NOMECOR": "",
+          "MARCADO": null,
+          "NSUBCAT": null,
+          "SUBCAT": "",
+          "REFERCLIE": "",
+          "SEGMENTO": "",
+          "SPEED_CLAS": null,
+          "SPEED_CODI": ""
+        }
+      ]
+    },
+    "login_sessions": {
+      "row_count": 46,
+      "column_count": 6,
+      "columns": [
+        "created_at",
+        "expires_at",
+        "id",
+        "revoked_at",
+        "token_hash",
+        "user_id"
+      ],
+      "fill_rate": {
+        "created_at": 1.0,
+        "expires_at": 1.0,
+        "id": 1.0,
+        "revoked_at": 0.1522,
+        "token_hash": 1.0,
+        "user_id": 1.0
+      },
+      "numeric_ranges": {},
+      "date_ranges": {
+        "created_at": {
+          "min": "2026-03-04T18:14:45.434403+00:00",
+          "max": "2026-03-19T20:58:33.264646+00:00"
+        },
+        "expires_at": {
+          "min": "2026-03-11T18:14:45.434403+00:00",
+          "max": "2026-03-26T20:58:33.264646+00:00"
+        },
+        "revoked_at": {
+          "min": "2026-03-04T20:14:40.661577+00:00",
+          "max": "2026-03-17T17:13:50.359801+00:00"
+        }
+      },
+      "top_values": {
+        "user_id": [
+          [
+            "14bab91e-7c87-4b22-bbcb-2cc94859c091",
+            46
+          ]
+        ],
+        "revoked_at": [
+          [
+            "2026-03-04T20:14:40.661577+00:00",
+            1
+          ],
+          [
+            "2026-03-07T21:42:21.940322+00:00",
+            1
+          ],
+          [
+            "2026-03-11T23:40:11.56894+00:00",
+            1
+          ],
+          [
+            "2026-03-12T01:43:11.622986+00:00",
+            1
+          ],
+          [
+            "2026-03-12T20:49:23.65497+00:00",
+            1
+          ],
+          [
+            "2026-03-12T21:01:53.688945+00:00",
+            1
+          ],
+          [
+            "2026-03-17T17:13:50.359801+00:00",
+            1
+          ]
+        ]
+      },
+      "sample_rows": [
+        {
+          "id": "d1c6b716-3840-4ab2-9e17-46bd7e143a57",
+          "user_id": "14bab91e-7c87-4b22-bbcb-2cc94859c091",
+          "token_hash": "[REDACTED]",
+          "expires_at": "2026-03-11T18:14:45.434403+00:00",
+          "revoked_at": "2026-03-04T20:14:40.661577+00:00",
+          "created_at": "2026-03-04T18:14:45.434403+00:00"
+        },
+        {
+          "id": "837b9c9b-bc34-482e-b412-c2a6492af489",
+          "user_id": "14bab91e-7c87-4b22-bbcb-2cc94859c091",
+          "token_hash": "[REDACTED]",
+          "expires_at": "2026-03-11T20:14:51.553291+00:00",
+          "revoked_at": null,
+          "created_at": "2026-03-04T20:14:51.553291+00:00"
+        },
+        {
+          "id": "7524052e-ea2c-48a9-9790-21d8ae0378bc",
+          "user_id": "14bab91e-7c87-4b22-bbcb-2cc94859c091",
+          "token_hash": "[REDACTED]",
+          "expires_at": "2026-03-11T23:58:15.11401+00:00",
+          "revoked_at": null,
+          "created_at": "2026-03-04T23:58:15.11401+00:00"
+        }
+      ]
+    },
+    "pedidos": {
+      "row_count": 41,
+      "column_count": 80,
+      "columns": [
+        "ACEITE",
+        "ANALISE",
+        "ATRASO1",
+        "ATRASO2",
+        "ATRASO_TXT",
+        "ATUALIZADO",
+        "BASECOMISS",
+        "BLOQ_243D",
+        "CLIENTE",
+        "CODIGO",
+        "COMISSAO",
+        "COMISSAO2",
+        "COMIS_NF",
+        "COND_PGTO",
+        "DATA_FABR",
+        "DESCONTO",
+        "DESCONTO2",
+        "DIGITACAO",
+        "DIGITANDO",
+        "DOCTO_PGTO",
+        "EMBARQUEF",
+        "EMBARQUEI",
+        "EPP",
+        "EPPPROD",
+        "EPPRESERVA",
+        "EPP_P_ANT",
+        "EPP_R_ANT",
+        "EXPEDICAO",
+        "FABRICA",
+        "FAB_ID",
+        "FATURADOS",
+        "HORA",
+        "HORA_ATU",
+        "HORA_FABR",
+        "IMP_ROTULO",
+        "INFORMAFAT",
+        "LEPOSTICHE",
+        "LOJA",
+        "MARC_REMES",
+        "MERCADO",
+        "MOTIVO",
+        "NAO_COMPRA",
+        "NAO_CONSUL",
+        "NAO_REMESS",
+        "NET",
+        "NFOBS",
+        "NOME",
+        "NPED_INT",
+        "N_ITENS",
+        "OBS_EXPED",
+        "OC",
+        "OPCAO34",
+        "OPERADOR",
+        "OPER_ALT",
+        "PEDCLIENTE",
+        "PERC_NF",
+        "PLANOFAB",
+        "PRAZOMEDIO",
+        "PREVISAO",
+        "PREVPROD",
+        "PRIORIDADE",
+        "PRODUCAO",
+        "PROGRAMADO",
+        "PRONTAENTR",
+        "REMESSA",
+        "REPROVACAO",
+        "SALDO",
+        "SEMANA",
+        "SEMST",
+        "STATUS",
+        "TIPODOCTO",
+        "TIPOFRETE",
+        "TIPOPEDIDO",
+        "TOTAL",
+        "TRANSPORT",
+        "VENDA",
+        "VENDALOJA",
+        "VENDEDOR",
+        "VENDEDOR2",
+        "WEB_ID"
+      ],
+      "fill_rate": {
+        "ACEITE": 0.0,
+        "ANALISE": 0.0,
+        "ATRASO1": 0.0,
+        "ATRASO2": 0.0,
+        "ATRASO_TXT": 1.0,
+        "ATUALIZADO": 1.0,
+        "BASECOMISS": 0.0,
+        "BLOQ_243D": 0.0,
+        "CLIENTE": 1.0,
+        "CODIGO": 1.0,
+        "COMISSAO": 0.0,
+        "COMISSAO2": 0.0,
+        "COMIS_NF": 1.0,
+        "COND_PGTO": 1.0,
+        "DATA_FABR": 0.0,
+        "DESCONTO": 0.0,
+        "DESCONTO2": 0.0,
+        "DIGITACAO": 1.0,
+        "DIGITANDO": 0.0,
+        "DOCTO_PGTO": 0.0,
+        "EMBARQUEF": 0.0,
+        "EMBARQUEI": 0.0,
+        "EPP": 0.0,
+        "EPPPROD": 1.0,
+        "EPPRESERVA": 1.0,
+        "EPP_P_ANT": 1.0,
+        "EPP_R_ANT": 1.0,
+        "EXPEDICAO": 1.0,
+        "FABRICA": 0.0,
+        "FAB_ID": 0.0,
+        "FATURADOS": 1.0,
+        "HORA": 1.0,
+        "HORA_ATU": 1.0,
+        "HORA_FABR": 1.0,
+        "IMP_ROTULO": 0.0,
+        "INFORMAFAT": 1.0,
+        "LEPOSTICHE": 0.0,
+        "LOJA": 1.0,
+        "MARC_REMES": 1.0,
+        "MERCADO": 0.0,
+        "MOTIVO": 1.0,
+        "NAO_COMPRA": 1.0,
+        "NAO_CONSUL": 1.0,
+        "NAO_REMESS": 1.0,
+        "NET": 0.0,
+        "NFOBS": 1.0,
+        "NOME": 1.0,
+        "NPED_INT": 0.0,
+        "N_ITENS": 0.0,
+        "OBS_EXPED": 1.0,
+        "OC": 1.0,
+        "OPCAO34": 0.0,
+        "OPERADOR": 1.0,
+        "OPER_ALT": 1.0,
+        "PEDCLIENTE": 1.0,
+        "PERC_NF": 0.0,
+        "PLANOFAB": 1.0,
+        "PRAZOMEDIO": 1.0,
+        "PREVISAO": 1.0,
+        "PREVPROD": 0.0,
+        "PRIORIDADE": 0.0,
+        "PRODUCAO": 1.0,
+        "PROGRAMADO": 0.0,
+        "PRONTAENTR": 1.0,
+        "REMESSA": 0.0,
+        "REPROVACAO": 0.0,
+        "SALDO": 1.0,
+        "SEMANA": 1.0,
+        "SEMST": 0.0,
+        "STATUS": 1.0,
+        "TIPODOCTO": 0.0,
+        "TIPOFRETE": 1.0,
+        "TIPOPEDIDO": 0.0,
+        "TOTAL": 1.0,
+        "TRANSPORT": 1.0,
+        "VENDA": 1.0,
+        "VENDALOJA": 0.0,
+        "VENDEDOR": 1.0,
+        "VENDEDOR2": 1.0,
+        "WEB_ID": 0.0
+      },
+      "numeric_ranges": {
+        "COMIS_NF": {
+          "min": 0.0,
+          "max": 0.0
+        },
+        "EXPEDICAO": {
+          "min": 0,
+          "max": 0
+        },
+        "FATURADOS": {
+          "min": 0,
+          "max": 180
+        },
+        "PRAZOMEDIO": {
+          "min": 0,
+          "max": 90
+        },
+        "PRODUCAO": {
+          "min": 0,
+          "max": 0
+        },
+        "SALDO": {
+          "min": -90,
+          "max": 4137
+        },
+        "TOTAL": {
+          "min": 6,
+          "max": 4137
+        }
+      },
+      "date_ranges": {
+        "ATUALIZADO": {
+          "min": "2026-03-09T00:00:00",
+          "max": "2026-03-18T00:00:00"
+        },
+        "DIGITACAO": {
+          "min": "2026-03-09T00:00:00",
+          "max": "2026-03-18T00:00:00"
+        },
+        "PREVISAO": {
+          "min": "2026-03-12T00:00:00",
+          "max": "2026-04-16T00:00:00"
+        },
+        "VENDA": {
+          "min": "2026-03-09T00:00:00",
+          "max": "2026-03-18T00:00:00"
+        }
+      },
+      "top_values": {
+        "NOME": [
+          [
+            "IND DE CALCADOS GRAZIELA LTDA",
+            14
+          ],
+          [
+            "CALCADOS V.S.T LTDA",
+            7
+          ],
+          [
+            "IND DE CALCADOS WIRTH LTDA",
+            6
+          ],
+          [
+            "SUGAR SHOES INDUSTRIA DE CALCADOS L",
+            4
+          ],
+          [
+            "BRUNA IND Eamp; COM DE CALCADOS LTD",
+            3
+          ],
+          [
+            "D MATTHES CALCADOS LTDA",
+            2
+          ],
+          [
+            "CALCADOS R.M.S. LTDA",
+            1
+          ],
+          [
+            "FASCINIO CALCADOS E BOLSAS LTDA",
+            1
+          ]
+        ],
+        "CLIENTE": [
+          [
+            "000384",
+            14
+          ],
+          [
+            "000377",
+            7
+          ],
+          [
+            "000383",
+            6
+          ],
+          [
+            "000368",
+            4
+          ],
+          [
+            "000380",
+            3
+          ],
+          [
+            "000374",
+            2
+          ],
+          [
+            "000373",
+            1
+          ],
+          [
+            "000379",
+            1
+          ]
+        ],
+        "VENDEDOR": [
+          [
+            "000002",
+            24
+          ],
+          [
+            "000001",
+            15
+          ],
+          [
+            "000003",
+            2
+          ]
+        ],
+        "VENDEDOR2": [
+          [
+            "",
+            41
+          ]
+        ],
+        "COND_PGTO": [
+          [
+            "000",
+            15
+          ],
+          [
+            "028035042",
+            11
+          ],
+          [
+            "028",
+            9
+          ],
+          [
+            "021",
+            2
+          ],
+          [
+            "090",
+            2
+          ],
+          [
+            "014",
+            1
+          ],
+          [
+            "021028",
+            1
+          ]
+        ],
+        "PRAZOMEDIO": [
+          [
+            "0",
+            15
+          ],
+          [
+            "35",
+            11
+          ],
+          [
+            "28",
+            9
+          ],
+          [
+            "21",
+            2
+          ],
+          [
+            "90",
+            2
+          ],
+          [
+            "14",
+            1
+          ],
+          [
+            "24",
+            1
+          ]
+        ],
+        "VENDA": [
+          [
+            "2026-03-16",
+            22
+          ],
+          [
+            "2026-03-11",
+            9
+          ],
+          [
+            "2026-03-10",
+            4
+          ],
+          [
+            "2026-03-17",
+            2
+          ],
+          [
+            "2026-03-18",
+            2
+          ],
+          [
+            "2026-03-12",
+            1
+          ],
+          [
+            "2026-03-09",
+            1
+          ]
+        ],
+        "PREVISAO": [
+          [
+            "2026-03-20",
+            19
+          ],
+          [
+            "2026-03-27",
+            5
+          ],
+          [
+            "2026-03-30",
+            5
+          ],
+          [
+            "2026-04-03",
+            5
+          ],
+          [
+            "2026-03-23",
+            2
+          ],
+          [
+            "2026-04-01",
+            1
+          ],
+          [
+            "2026-03-12",
+            1
+          ],
+          [
+            "2026-03-13",
+            1
+          ]
+        ],
+        "ATRASO_TXT": [
+          [
+            "",
+            41
+          ]
+        ],
+        "SEMANA": [
+          [
+            "",
+            41
+          ]
+        ],
+        "PRODUCAO": [
+          [
+            "0",
+            41
+          ]
+        ],
+        "EXPEDICAO": [
+          [
+            "0",
+            41
+          ]
+        ],
+        "FATURADOS": [
+          [
+            "0",
+            40
+          ],
+          [
+            "180",
+            1
+          ]
+        ],
+        "INFORMAFAT": [
+          [
+            "False",
+            41
+          ]
+        ],
+        "OC": [
+          [
+            "",
+            41
+          ]
+        ],
+        "PLANOFAB": [
+          [
+            "",
+            41
+          ]
+        ],
+        "COMIS_NF": [
+          [
+            "0.0",
+            41
+          ]
+        ],
+        "NFOBS": [
+          [
+            "",
+            41
+          ]
+        ],
+        "OBS_EXPED": [
+          [
+            "",
+            41
+          ]
+        ],
+        "OPERADOR": [
+          [
+            "GISELE",
+            41
+          ]
+        ],
+        "DIGITACAO": [
+          [
+            "2026-03-16",
+            22
+          ],
+          [
+            "2026-03-11",
+            9
+          ],
+          [
+            "2026-03-10",
+            4
+          ],
+          [
+            "2026-03-17",
+            2
+          ],
+          [
+            "2026-03-18",
+            2
+          ],
+          [
+            "2026-03-12",
+            1
+          ],
+          [
+            "2026-03-09",
+            1
+          ]
+        ],
+        "OPER_ALT": [
+          [
+            "GISELE",
+            41
+          ]
+        ],
+        "ATUALIZADO": [
+          [
+            "2026-03-16",
+            22
+          ],
+          [
+            "2026-03-11",
+            7
+          ],
+          [
+            "2026-03-17",
+            4
+          ],
+          [
+            "2026-03-10",
+            3
+          ],
+          [
+            "2026-03-13",
+            2
+          ],
+          [
+            "2026-03-18",
+            2
+          ],
+          [
+            "2026-03-09",
+            1
+          ]
+        ],
+        "MOTIVO": [
+          [
+            "",
+            41
+          ]
+        ],
+        "PRONTAENTR": [
+          [
+            "False",
+            41
+          ]
+        ],
+        "EPPRESERVA": [
+          [
+            "False",
+            41
+          ]
+        ],
+        "EPP_R_ANT": [
+          [
+            "False",
+            41
+          ]
+        ],
+        "EPPPROD": [
+          [
+            "False",
+            41
+          ]
+        ],
+        "EPP_P_ANT": [
+          [
+            "False",
+            41
+          ]
+        ],
+        "MARC_REMES": [
+          [
+            "False",
+            41
+          ]
+        ],
+        "STATUS": [
+          [
+            "",
+            41
+          ]
+        ],
+        "LOJA": [
+          [
+            "",
+            41
+          ]
+        ],
+        "NAO_COMPRA": [
+          [
+            "False",
+            41
+          ]
+        ],
+        "NAO_REMESS": [
+          [
+            "False",
+            41
+          ]
+        ],
+        "NAO_CONSUL": [
+          [
+            "False",
+            41
+          ]
+        ],
+        "TRANSPORT": [
+          [
+            "",
+            41
+          ]
+        ],
+        "TIPOFRETE": [
+          [
+            "",
+            41
+          ]
+        ],
+        "HORA_FABR": [
+          [
+            "",
+            41
+          ]
+        ]
+      },
+      "sample_rows": [
+        {
+          "CODIGO": "000003",
+          "NOME": "BRUNA IND Eamp; COM DE CALCADOS LTD",
+          "CLIENTE": "000380",
+          "VENDEDOR": "000002",
+          "VENDEDOR2": "",
+          "COND_PGTO": "000",
+          "TIPODOCTO": null,
+          "TIPOPEDIDO": null,
+          "PRAZOMEDIO": 0,
+          "DESCONTO": null,
+          "DESCONTO2": null,
+          "VENDA": "2026-03-10",
+          "PREVISAO": "2026-03-27",
+          "PREVPROD": null,
+          "ATRASO1": null,
+          "ATRASO2": null,
+          "ATRASO_TXT": "",
+          "SEMANA": "",
+          "REMESSA": null,
+          "PROGRAMADO": null,
+          "TOTAL": 193,
+          "PRODUCAO": 0,
+          "EXPEDICAO": 0,
+          "FATURADOS": 0,
+          "INFORMAFAT": false,
+          "SALDO": 193,
+          "PEDCLIENTE": "10.03",
+          "OC": "",
+          "PLANOFAB": "",
+          "COMISSAO": null,
+          "COMISSAO2": null,
+          "COMIS_NF": 0.0,
+          "NFOBS": "",
+          "OBS_EXPED": "",
+          "OPERADOR": "GISELE",
+          "DIGITACAO": "2026-03-10",
+          "HORA": "09:48",
+          "OPER_ALT": "GISELE",
+          "ATUALIZADO": "2026-03-10",
+          "HORA_ATU": "09:49",
+          "FABRICA": null,
+          "DIGITANDO": null,
+          "ANALISE": null,
+          "ACEITE": null,
+          "REPROVACAO": null,
+          "MOTIVO": "",
+          "PRONTAENTR": false,
+          "EPPRESERVA": false,
+          "EPP_R_ANT": false,
+          "EPPPROD": false,
+          "EPP_P_ANT": false,
+          "MARC_REMES": false,
+          "STATUS": "",
+          "NET": null,
+          "WEB_ID": null,
+          "FAB_ID": null,
+          "PERC_NF": null,
+          "DOCTO_PGTO": null,
+          "BASECOMISS": null,
+          "EPP": null,
+          "BLOQ_243D": null,
+          "LOJA": "",
+          "NAO_COMPRA": false,
+          "NAO_REMESS": false,
+          "NAO_CONSUL": false,
+          "TRANSPORT": "",
+          "TIPOFRETE": "",
+          "VENDALOJA": null,
+          "N_ITENS": null,
+          "OPCAO34": null,
+          "MERCADO": null,
+          "EMBARQUEI": null,
+          "EMBARQUEF": null,
+          "LEPOSTICHE": null,
+          "SEMST": null,
+          "PRIORIDADE": null,
+          "DATA_FABR": null,
+          "HORA_FABR": "",
+          "IMP_ROTULO": null,
+          "NPED_INT": null
+        },
+        {
+          "CODIGO": "00002R",
+          "NOME": "BRUNA IND Eamp; COM DE CALCADOS LTD",
+          "CLIENTE": "000380",
+          "VENDEDOR": "000002",
+          "VENDEDOR2": "",
+          "COND_PGTO": "000",
+          "TIPODOCTO": null,
+          "TIPOPEDIDO": null,
+          "PRAZOMEDIO": 0,
+          "DESCONTO": null,
+          "DESCONTO2": null,
+          "VENDA": "2026-03-10",
+          "PREVISAO": "2026-03-20",
+          "PREVPROD": null,
+          "ATRASO1": null,
+          "ATRASO2": null,
+          "ATRASO_TXT": "",
+          "SEMANA": "",
+          "REMESSA": null,
+          "PROGRAMADO": null,
+          "TOTAL": 38,
+          "PRODUCAO": 0,
+          "EXPEDICAO": 0,
+          "FATURADOS": 0,
+          "INFORMAFAT": false,
+          "SALDO": 38,
+          "PEDCLIENTE": "10-03",
+          "OC": "",
+          "PLANOFAB": "",
+          "COMISSAO": null,
+          "COMISSAO2": null,
+          "COMIS_NF": 0.0,
+          "NFOBS": "",
+          "OBS_EXPED": "",
+          "OPERADOR": "GISELE",
+          "DIGITACAO": "2026-03-10",
+          "HORA": "09:50",
+          "OPER_ALT": "GISELE",
+          "ATUALIZADO": "2026-03-10",
+          "HORA_ATU": "09:50",
+          "FABRICA": null,
+          "DIGITANDO": null,
+          "ANALISE": null,
+          "ACEITE": null,
+          "REPROVACAO": null,
+          "MOTIVO": "",
+          "PRONTAENTR": false,
+          "EPPRESERVA": false,
+          "EPP_R_ANT": false,
+          "EPPPROD": false,
+          "EPP_P_ANT": false,
+          "MARC_REMES": false,
+          "STATUS": "",
+          "NET": null,
+          "WEB_ID": null,
+          "FAB_ID": null,
+          "PERC_NF": null,
+          "DOCTO_PGTO": null,
+          "BASECOMISS": null,
+          "EPP": null,
+          "BLOQ_243D": null,
+          "LOJA": "",
+          "NAO_COMPRA": false,
+          "NAO_REMESS": false,
+          "NAO_CONSUL": false,
+          "TRANSPORT": "",
+          "TIPOFRETE": "",
+          "VENDALOJA": null,
+          "N_ITENS": null,
+          "OPCAO34": null,
+          "MERCADO": null,
+          "EMBARQUEI": null,
+          "EMBARQUEF": null,
+          "LEPOSTICHE": null,
+          "SEMST": null,
+          "PRIORIDADE": null,
+          "DATA_FABR": null,
+          "HORA_FABR": "",
+          "IMP_ROTULO": null,
+          "NPED_INT": null
+        },
+        {
+          "CODIGO": "000004",
+          "NOME": "CALCADOS V.S.T LTDA",
+          "CLIENTE": "000377",
+          "VENDEDOR": "000002",
+          "VENDEDOR2": "",
+          "COND_PGTO": "028035042",
+          "TIPODOCTO": null,
+          "TIPOPEDIDO": null,
+          "PRAZOMEDIO": 35,
+          "DESCONTO": null,
+          "DESCONTO2": null,
+          "VENDA": "2026-03-11",
+          "PREVISAO": "2026-03-27",
+          "PREVPROD": null,
+          "ATRASO1": null,
+          "ATRASO2": null,
+          "ATRASO_TXT": "",
+          "SEMANA": "",
+          "REMESSA": null,
+          "PROGRAMADO": null,
+          "TOTAL": 286,
+          "PRODUCAO": 0,
+          "EXPEDICAO": 0,
+          "FATURADOS": 0,
+          "INFORMAFAT": false,
+          "SALDO": 286,
+          "PEDCLIENTE": "4514",
+          "OC": "",
+          "PLANOFAB": "",
+          "COMISSAO": null,
+          "COMISSAO2": null,
+          "COMIS_NF": 0.0,
+          "NFOBS": "",
+          "OBS_EXPED": "",
+          "OPERADOR": "GISELE",
+          "DIGITACAO": "2026-03-11",
+          "HORA": "14:29",
+          "OPER_ALT": "GISELE",
+          "ATUALIZADO": "2026-03-11",
+          "HORA_ATU": "14:30",
+          "FABRICA": null,
+          "DIGITANDO": null,
+          "ANALISE": null,
+          "ACEITE": null,
+          "REPROVACAO": null,
+          "MOTIVO": "",
+          "PRONTAENTR": false,
+          "EPPRESERVA": false,
+          "EPP_R_ANT": false,
+          "EPPPROD": false,
+          "EPP_P_ANT": false,
+          "MARC_REMES": false,
+          "STATUS": "",
+          "NET": null,
+          "WEB_ID": null,
+          "FAB_ID": null,
+          "PERC_NF": null,
+          "DOCTO_PGTO": null,
+          "BASECOMISS": null,
+          "EPP": null,
+          "BLOQ_243D": null,
+          "LOJA": "",
+          "NAO_COMPRA": false,
+          "NAO_REMESS": false,
+          "NAO_CONSUL": false,
+          "TRANSPORT": "",
+          "TIPOFRETE": "",
+          "VENDALOJA": null,
+          "N_ITENS": null,
+          "OPCAO34": null,
+          "MERCADO": null,
+          "EMBARQUEI": null,
+          "EMBARQUEF": null,
+          "LEPOSTICHE": null,
+          "SEMST": null,
+          "PRIORIDADE": null,
+          "DATA_FABR": null,
+          "HORA_FABR": "",
+          "IMP_ROTULO": null,
+          "NPED_INT": null
+        }
+      ]
+    },
+    "peditens": {
+      "row_count": 0,
+      "column_count": 0,
+      "columns": [],
+      "fill_rate": {},
+      "numeric_ranges": {},
+      "date_ranges": {},
+      "top_values": {},
+      "sample_rows": []
+    },
+    "setores": {
+      "row_count": 39,
+      "column_count": 20,
+      "columns": [
+        "ABREVIAT",
+        "ATUSDASET",
+        "ATUSDASET2",
+        "CABEDAL",
+        "CODIGO",
+        "EMBALAGEM",
+        "HORAS",
+        "IBAMA",
+        "IMPRIMIR",
+        "NOME",
+        "OPCAOSET1",
+        "OPCAOSET2",
+        "ORDEM",
+        "PALMILHA",
+        "PREFABRIC",
+        "QTDE_DIA",
+        "SDA_ENT",
+        "SOLA",
+        "USAR_GRAF",
+        "USAR_IWD"
+      ],
+      "fill_rate": {
+        "ABREVIAT": 1.0,
+        "ATUSDASET": 1.0,
+        "ATUSDASET2": 1.0,
+        "CABEDAL": 1.0,
+        "CODIGO": 1.0,
+        "EMBALAGEM": 1.0,
+        "HORAS": 1.0,
+        "IBAMA": 1.0,
+        "IMPRIMIR": 1.0,
+        "NOME": 1.0,
+        "OPCAOSET1": 1.0,
+        "OPCAOSET2": 1.0,
+        "ORDEM": 1.0,
+        "PALMILHA": 1.0,
+        "PREFABRIC": 1.0,
+        "QTDE_DIA": 1.0,
+        "SDA_ENT": 1.0,
+        "SOLA": 1.0,
+        "USAR_GRAF": 1.0,
+        "USAR_IWD": 1.0
+      },
+      "numeric_ranges": {
+        "HORAS": {
+          "min": 0,
+          "max": 0
+        },
+        "OPCAOSET1": {
+          "min": 0,
+          "max": 0
+        },
+        "OPCAOSET2": {
+          "min": 0,
+          "max": 0
+        },
+        "ORDEM": {
+          "min": 0,
+          "max": 0
+        },
+        "QTDE_DIA": {
+          "min": 0,
+          "max": 0
+        }
+      },
+      "date_ranges": {},
+      "top_values": {
+        "NOME": [
+          [
+            "",
+            28
+          ],
+          [
+            "ALMOXARIFADO",
+            1
+          ],
+          [
+            "DUBLAGEM",
+            1
+          ],
+          [
+            "CORTE SERRA",
+            1
+          ],
+          [
+            "CUNHO",
+            1
+          ],
+          [
+            "CONFORMAÇÃO",
+            1
+          ],
+          [
+            "DISTRIBUIÇÃO",
+            1
+          ],
+          [
+            "RECORTE",
+            1
+          ]
+        ],
+        "ATUSDASET": [
+          [
+            "",
+            39
+          ]
+        ],
+        "OPCAOSET1": [
+          [
+            "0",
+            39
+          ]
+        ],
+        "ATUSDASET2": [
+          [
+            "",
+            39
+          ]
+        ],
+        "OPCAOSET2": [
+          [
+            "0",
+            39
+          ]
+        ],
+        "IMPRIMIR": [
+          [
+            "False",
+            35
+          ],
+          [
+            "True",
+            4
+          ]
+        ],
+        "SDA_ENT": [
+          [
+            "False",
+            39
+          ]
+        ],
+        "PREFABRIC": [
+          [
+            "False",
+            39
+          ]
+        ],
+        "ORDEM": [
+          [
+            "0",
+            39
+          ]
+        ],
+        "ABREVIAT": [
+          [
+            "",
+            39
+          ]
+        ],
+        "QTDE_DIA": [
+          [
+            "0",
+            39
+          ]
+        ],
+        "HORAS": [
+          [
+            "0",
+            39
+          ]
+        ],
+        "IBAMA": [
+          [
+            "False",
+            39
+          ]
+        ],
+        "USAR_IWD": [
+          [
+            "False",
+            39
+          ]
+        ],
+        "USAR_GRAF": [
+          [
+            "False",
+            39
+          ]
+        ],
+        "PALMILHA": [
+          [
+            "False",
+            39
+          ]
+        ],
+        "CABEDAL": [
+          [
+            "False",
+            39
+          ]
+        ],
+        "SOLA": [
+          [
+            "False",
+            39
+          ]
+        ],
+        "EMBALAGEM": [
+          [
+            "False",
+            39
+          ]
+        ]
+      },
+      "sample_rows": [
+        {
+          "CODIGO": "001",
+          "NOME": "ALMOXARIFADO",
+          "ATUSDASET": "",
+          "OPCAOSET1": 0,
+          "ATUSDASET2": "",
+          "OPCAOSET2": 0,
+          "IMPRIMIR": true,
+          "SDA_ENT": false,
+          "PREFABRIC": false,
+          "ORDEM": 0,
+          "ABREVIAT": "",
+          "QTDE_DIA": 0,
+          "HORAS": 0,
+          "IBAMA": false,
+          "USAR_IWD": false,
+          "USAR_GRAF": false,
+          "PALMILHA": false,
+          "CABEDAL": false,
+          "SOLA": false,
+          "EMBALAGEM": false
+        },
+        {
+          "CODIGO": "002",
+          "NOME": "DUBLAGEM",
+          "ATUSDASET": "",
+          "OPCAOSET1": 0,
+          "ATUSDASET2": "",
+          "OPCAOSET2": 0,
+          "IMPRIMIR": true,
+          "SDA_ENT": false,
+          "PREFABRIC": false,
+          "ORDEM": 0,
+          "ABREVIAT": "",
+          "QTDE_DIA": 0,
+          "HORAS": 0,
+          "IBAMA": false,
+          "USAR_IWD": false,
+          "USAR_GRAF": false,
+          "PALMILHA": false,
+          "CABEDAL": false,
+          "SOLA": false,
+          "EMBALAGEM": false
+        },
+        {
+          "CODIGO": "003",
+          "NOME": "CORTE SERRA",
+          "ATUSDASET": "",
+          "OPCAOSET1": 0,
+          "ATUSDASET2": "",
+          "OPCAOSET2": 0,
+          "IMPRIMIR": true,
+          "SDA_ENT": false,
+          "PREFABRIC": false,
+          "ORDEM": 0,
+          "ABREVIAT": "",
+          "QTDE_DIA": 0,
+          "HORAS": 0,
+          "IBAMA": false,
+          "USAR_IWD": false,
+          "USAR_GRAF": false,
+          "PALMILHA": false,
+          "CABEDAL": false,
+          "SOLA": false,
+          "EMBALAGEM": false
+        }
+      ]
+    },
+    "sync_log": {
+      "row_count": 1,
+      "column_count": 2,
+      "columns": [
+        "id",
+        "ultima_sync"
+      ],
+      "fill_rate": {
+        "id": 1.0,
+        "ultima_sync": 1.0
+      },
+      "numeric_ranges": {
+        "id": {
+          "min": 1,
+          "max": 1
+        }
+      },
+      "date_ranges": {
+        "ultima_sync": {
+          "min": "2026-03-19T12:48:24.894040+00:00",
+          "max": "2026-03-19T12:48:24.894040+00:00"
+        }
+      },
+      "top_values": {
+        "id": [
+          [
+            "1",
+            1
+          ]
+        ],
+        "ultima_sync": [
+          [
+            "2026-03-19T12:48:24.89404+00:00",
+            1
+          ]
+        ]
+      },
+      "sample_rows": [
+        {
+          "id": 1,
+          "ultima_sync": "2026-03-19T12:48:24.89404+00:00"
+        }
+      ]
+    },
+    "taloes": {
+      "row_count": 190,
+      "column_count": 33,
+      "columns": [
+        "AGRUPADO",
+        "ATUALIZADO",
+        "BLOQ_2469",
+        "CANCELADO",
+        "CODIGO",
+        "DE_ATE",
+        "DE_ESTOQUE",
+        "DTULTSETOR",
+        "EMPROD",
+        "EXPEDICAO",
+        "FATURADO",
+        "GRADE",
+        "HORA_ATU",
+        "IMPRESSO",
+        "IMP_ETIQ",
+        "ITEM",
+        "ITEMNF",
+        "LOTE",
+        "MATERIAL",
+        "MI",
+        "NFISCAL",
+        "NOME",
+        "NUMEROS",
+        "PEDIDO",
+        "PRODUCAO",
+        "QTDE_ETIQ",
+        "QUEBORIGEM",
+        "REFERENCIA",
+        "REMESSA",
+        "SERIE",
+        "SETORESTOQ",
+        "TOTAL",
+        "ULTSETOR"
+      ],
+      "fill_rate": {
+        "AGRUPADO": 1.0,
+        "ATUALIZADO": 1.0,
+        "BLOQ_2469": 1.0,
+        "CANCELADO": 1.0,
+        "CODIGO": 1.0,
+        "DE_ATE": 1.0,
+        "DE_ESTOQUE": 1.0,
+        "DTULTSETOR": 0.0,
+        "EMPROD": 0.0053,
+        "EXPEDICAO": 0.0,
+        "FATURADO": 0.0,
+        "GRADE": 1.0,
+        "HORA_ATU": 1.0,
+        "IMPRESSO": 1.0,
+        "IMP_ETIQ": 0.0,
+        "ITEM": 1.0,
+        "ITEMNF": 1.0,
+        "LOTE": 1.0,
+        "MATERIAL": 1.0,
+        "MI": 1.0,
+        "NFISCAL": 1.0,
+        "NOME": 1.0,
+        "NUMEROS": 1.0,
+        "PEDIDO": 1.0,
+        "PRODUCAO": 0.0,
+        "QTDE_ETIQ": 0.0,
+        "QUEBORIGEM": 1.0,
+        "REFERENCIA": 1.0,
+        "REMESSA": 1.0,
+        "SERIE": 1.0,
+        "SETORESTOQ": 1.0,
+        "TOTAL": 1.0,
+        "ULTSETOR": 1.0
+      },
+      "numeric_ranges": {
+        "TOTAL": {
+          "min": 1,
+          "max": 120
+        }
+      },
+      "date_ranges": {
+        "ATUALIZADO": {
+          "min": "2026-03-12T00:00:00",
+          "max": "2026-03-18T00:00:00"
+        }
+      },
+      "top_values": {
+        "NOME": [
+          [
+            "",
+            190
+          ]
+        ],
+        "ITEM": [
+          [
+            "001",
+            119
+          ],
+          [
+            "008",
+            23
+          ],
+          [
+            "009",
+            15
+          ],
+          [
+            "002",
+            10
+          ],
+          [
+            "003",
+            8
+          ],
+          [
+            "007",
+            6
+          ],
+          [
+            "006",
+            6
+          ],
+          [
+            "010",
+            1
+          ]
+        ],
+        "REFERENCIA": [
+          [
+            "",
+            190
+          ]
+        ],
+        "MATERIAL": [
+          [
+            "",
+            190
+          ]
+        ],
+        "GRADE": [
+          [
+            "",
+            190
+          ]
+        ],
+        "LOTE": [
+          [
+            "000001",
+            190
+          ]
+        ],
+        "MI": [
+          [
+            "N",
+            152
+          ],
+          [
+            "S",
+            38
+          ]
+        ],
+        "ULTSETOR": [
+          [
+            "",
+            190
+          ]
+        ],
+        "NFISCAL": [
+          [
+            "",
+            190
+          ]
+        ],
+        "SERIE": [
+          [
+            "",
+            190
+          ]
+        ],
+        "ITEMNF": [
+          [
+            "",
+            190
+          ]
+        ],
+        "IMPRESSO": [
+          [
+            "True",
+            190
+          ]
+        ],
+        "CANCELADO": [
+          [
+            "False",
+            189
+          ],
+          [
+            "True",
+            1
+          ]
+        ],
+        "AGRUPADO": [
+          [
+            "False",
+            190
+          ]
+        ],
+        "ATUALIZADO": [
+          [
+            "2026-03-13",
+            120
+          ],
+          [
+            "2026-03-17",
+            63
+          ],
+          [
+            "2026-03-18",
+            6
+          ],
+          [
+            "2026-03-12",
+            1
+          ]
+        ],
+        "HORA_ATU": [
+          [
+            "11:16",
+            55
+          ],
+          [
+            "09:00",
+            28
+          ],
+          [
+            "14:55",
+            18
+          ],
+          [
+            "11:14",
+            16
+          ],
+          [
+            "11:15",
+            15
+          ],
+          [
+            "09:04",
+            13
+          ],
+          [
+            "11:17",
+            8
+          ],
+          [
+            "14:54",
+            8
+          ]
+        ],
+        "BLOQ_2469": [
+          [
+            "False",
+            190
+          ]
+        ],
+        "SETORESTOQ": [
+          [
+            "",
+            190
+          ]
+        ],
+        "DE_ESTOQUE": [
+          [
+            "False",
+            190
+          ]
+        ],
+        "QUEBORIGEM": [
+          [
+            "",
+            190
+          ]
+        ],
+        "EMPROD": [
+          [
+            "True",
+            1
+          ]
+        ]
+      },
+      "sample_rows": [
+        {
+          "CODIGO": "00000301",
+          "NOME": "",
+          "PEDIDO": "00001R",
+          "ITEM": "001",
+          "REFERENCIA": "",
+          "MATERIAL": "",
+          "GRADE": "",
+          "NUMEROS": "00000004000100060001000000020000000000000000000000000000000000014",
+          "TOTAL": 14,
+          "REMESSA": "000004",
+          "LOTE": "000001",
+          "MI": "S",
+          "PRODUCAO": null,
+          "ULTSETOR": "",
+          "DTULTSETOR": null,
+          "EXPEDICAO": null,
+          "FATURADO": null,
+          "NFISCAL": "",
+          "SERIE": "",
+          "ITEMNF": "",
+          "IMPRESSO": true,
+          "CANCELADO": true,
+          "EMPROD": null,
+          "AGRUPADO": false,
+          "ATUALIZADO": "2026-03-12",
+          "HORA_ATU": "08:59",
+          "IMP_ETIQ": null,
+          "BLOQ_2469": false,
+          "SETORESTOQ": "",
+          "DE_ESTOQUE": false,
+          "QUEBORIGEM": "",
+          "QTDE_ETIQ": null,
+          "DE_ATE": "001-001"
+        },
+        {
+          "CODIGO": "00000401",
+          "NOME": "",
+          "PEDIDO": "000004",
+          "ITEM": "001",
+          "REFERENCIA": "",
+          "MATERIAL": "",
+          "GRADE": "",
+          "NUMEROS": "00040000000000000000000000000000000000000000000000000000000000004",
+          "TOTAL": 4,
+          "REMESSA": "000005",
+          "LOTE": "000001",
+          "MI": "N",
+          "PRODUCAO": null,
+          "ULTSETOR": "",
+          "DTULTSETOR": null,
+          "EXPEDICAO": null,
+          "FATURADO": null,
+          "NFISCAL": "",
+          "SERIE": "",
+          "ITEMNF": "",
+          "IMPRESSO": true,
+          "CANCELADO": false,
+          "EMPROD": null,
+          "AGRUPADO": false,
+          "ATUALIZADO": "2026-03-13",
+          "HORA_ATU": "11:14",
+          "IMP_ETIQ": null,
+          "BLOQ_2469": false,
+          "SETORESTOQ": "",
+          "DE_ESTOQUE": false,
+          "QUEBORIGEM": "",
+          "QTDE_ETIQ": null,
+          "DE_ATE": "001-008"
+        },
+        {
+          "CODIGO": "00000402",
+          "NOME": "",
+          "PEDIDO": "000004",
+          "ITEM": "001",
+          "REFERENCIA": "",
+          "MATERIAL": "",
+          "GRADE": "",
+          "NUMEROS": "00000023000000000000000000000000000000000000000000000000000000023",
+          "TOTAL": 23,
+          "REMESSA": "000005",
+          "LOTE": "000001",
+          "MI": "N",
+          "PRODUCAO": null,
+          "ULTSETOR": "",
+          "DTULTSETOR": null,
+          "EXPEDICAO": null,
+          "FATURADO": null,
+          "NFISCAL": "",
+          "SERIE": "",
+          "ITEMNF": "",
+          "IMPRESSO": true,
+          "CANCELADO": false,
+          "EMPROD": null,
+          "AGRUPADO": false,
+          "ATUALIZADO": "2026-03-13",
+          "HORA_ATU": "11:14",
+          "IMP_ETIQ": null,
+          "BLOQ_2469": false,
+          "SETORESTOQ": "",
+          "DE_ESTOQUE": false,
+          "QUEBORIGEM": "",
+          "QTDE_ETIQ": null,
+          "DE_ATE": "002-008"
+        }
+      ]
+    },
+    "talsetor": {
+      "row_count": 169,
+      "column_count": 7,
+      "columns": [
+        "DATA",
+        "LOTE",
+        "NOMESET",
+        "QTDE",
+        "REMESSA",
+        "SETOR",
+        "TALAO"
+      ],
+      "fill_rate": {
+        "DATA": 1.0,
+        "LOTE": 1.0,
+        "NOMESET": 1.0,
+        "QTDE": 1.0,
+        "REMESSA": 1.0,
+        "SETOR": 1.0,
+        "TALAO": 1.0
+      },
+      "numeric_ranges": {
+        "QTDE": {
+          "min": 1,
+          "max": 120
+        }
+      },
+      "date_ranges": {
+        "DATA": {
+          "min": "2026-03-16T00:00:00",
+          "max": "2026-03-20T00:00:00"
+        }
+      },
+      "top_values": {
+        "LOTE": [
+          [
+            "000001",
+            169
+          ]
+        ],
+        "SETOR": [
+          [
+            "011",
+            163
+          ],
+          [
+            "001",
+            3
+          ],
+          [
+            "002",
+            3
+          ]
+        ],
+        "NOMESET": [
+          [
+            "EXPEDIÇÃO",
+            163
+          ],
+          [
+            "ALMOXARIFADO",
+            3
+          ],
+          [
+            "DUBLAGEM",
+            3
+          ]
+        ],
+        "DATA": [
+          [
+            "2026-03-16",
+            67
+          ],
+          [
+            "2026-03-18",
+            31
+          ],
+          [
+            "2026-03-17",
+            29
+          ],
+          [
+            "2026-03-20",
+            27
+          ],
+          [
+            "2026-03-19",
+            15
+          ]
+        ]
+      },
+      "sample_rows": [
+        {
+          "REMESSA": "000003",
+          "LOTE": "000001",
+          "SETOR": "001",
+          "NOMESET": "ALMOXARIFADO",
+          "TALAO": "00000201",
+          "DATA": "2026-03-20",
+          "QTDE": 19
+        },
+        {
+          "REMESSA": "000002",
+          "LOTE": "000001",
+          "SETOR": "001",
+          "NOMESET": "ALMOXARIFADO",
+          "TALAO": "00000101",
+          "DATA": "2026-03-20",
+          "QTDE": 92
+        },
+        {
+          "REMESSA": "000001",
+          "LOTE": "000001",
+          "SETOR": "001",
+          "NOMESET": "ALMOXARIFADO",
+          "TALAO": "00000001",
+          "DATA": "2026-03-20",
+          "QTDE": 62
+        }
+      ]
+    },
+    "usuarios": {
+      "row_count": 2,
+      "column_count": 6,
+      "columns": [
+        "ativo",
+        "created_at",
+        "id",
+        "nome",
+        "password_hash",
+        "username"
+      ],
+      "fill_rate": {
+        "ativo": 1.0,
+        "created_at": 1.0,
+        "id": 1.0,
+        "nome": 1.0,
+        "password_hash": 1.0,
+        "username": 1.0
+      },
+      "numeric_ranges": {},
+      "date_ranges": {
+        "created_at": {
+          "min": "2026-03-03T18:27:23.654537+00:00",
+          "max": "2026-03-03T18:27:23.654537+00:00"
+        }
+      },
+      "top_values": {
+        "id": [
+          [
+            "5dd563cd-a20e-4f29-b2ea-30fe41a2feb3",
+            1
+          ],
+          [
+            "14bab91e-7c87-4b22-bbcb-2cc94859c091",
+            1
+          ]
+        ],
+        "username": [
+          [
+            "admin",
+            1
+          ],
+          [
+            "adm",
+            1
+          ]
+        ],
+        "nome": [
+          [
+            "Administrador",
+            1
+          ],
+          [
+            "ADM",
+            1
+          ]
+        ],
+        "password_hash": [
+          [
+            "$2a$06$oDbSZqFRz4eVUVEQco7txuPdfV1vEBoAWYlqHYb6i0uW86NbPfD6K",
+            1
+          ],
+          [
+            "$2a$06$s5mqqpwLDwRGMBXYF7nkCOjPTQbDDAQp0JVuxL4hRcLY.gMN6axQu",
+            1
+          ]
+        ],
+        "ativo": [
+          [
+            "True",
+            2
+          ]
+        ],
+        "created_at": [
+          [
+            "2026-03-03T18:27:23.654537+00:00",
+            2
+          ]
+        ]
+      },
+      "sample_rows": [
+        {
+          "id": "5dd563cd-a20e-4f29-b2ea-30fe41a2feb3",
+          "username": "admin",
+          "nome": "Administrador",
+          "password_hash": "[REDACTED]",
+          "ativo": true,
+          "created_at": "2026-03-03T18:27:23.654537+00:00"
+        },
+        {
+          "id": "14bab91e-7c87-4b22-bbcb-2cc94859c091",
+          "username": "adm",
+          "nome": "ADM",
+          "password_hash": "[REDACTED]",
+          "ativo": true,
+          "created_at": "2026-03-03T18:27:23.654537+00:00"
+        }
+      ]
+    }
+  },
+  "cross_checks": {
+    "pedidos_cliente_sem_cliente": {
+      "count": 0,
+      "examples": []
+    },
+    "taloes_pedido_sem_pedido": {
+      "count": 0,
+      "examples": []
+    },
+    "peditens_pedido_sem_pedido": {
+      "count": 0,
+      "examples": []
+    },
+    "talsetor_talao_sem_taloes": {
+      "count": 0,
+      "examples": []
+    },
+    "talsetor_setor_sem_setores": {
+      "count": 0,
+      "examples": []
+    },
+    "login_sessions_user_sem_usuario": {
+      "count": 0,
+      "examples": []
+    }
+  }
+}

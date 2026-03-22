@@ -1,0 +1,3 @@
+ativo,created_at,id,nome,password_hash,username
+True,2026-03-03T18:27:23.654537+00:00,5dd563cd-a20e-4f29-b2ea-30fe41a2feb3,Administrador,[REDACTED],admin
+True,2026-03-03T18:27:23.654537+00:00,14bab91e-7c87-4b22-bbcb-2cc94859c091,ADM,[REDACTED],adm

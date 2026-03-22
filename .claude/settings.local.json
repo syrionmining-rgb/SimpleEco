@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc:*)",
+      "Bash(npm install:*)",
+      "Bash(supabase --version)",
+      "Bash(npx supabase:*)",
+      "Bash(find 'c:\\\\Users\\\\Arthu\\\\OneDrive\\\\Área de Trabalho\\\\SimpleEco\\\\Development\\\\node_modules\\\\@zxing\\\\browser' -name *.d.ts)"
+    ]
+  }
+}

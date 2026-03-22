@@ -1,0 +1,63 @@
+{
+  "pedidos": {
+    "total": 41,
+    "saldo_total": 9641.0,
+    "saldo_zero": 0,
+    "saldo_positivo": 40,
+    "vencidos_com_saldo": 2
+  },
+  "taloes": {
+    "total": 190,
+    "cancelados_true": 1,
+    "faturado_true": 0,
+    "faturado_null": 190
+  },
+  "talsetor": {
+    "total": 169,
+    "periodo_min": "2026-03-16",
+    "periodo_max": "2026-03-20",
+    "top_setores": [
+      {
+        "setor": "011",
+        "nomeset": "EXPEDIÇÃO",
+        "registros": 163,
+        "qtde_total": 8295.0
+      },
+      {
+        "setor": "001",
+        "nomeset": "ALMOXARIFADO",
+        "registros": 3,
+        "qtde_total": 173.0
+      },
+      {
+        "setor": "002",
+        "nomeset": "DUBLAGEM",
+        "registros": 3,
+        "qtde_total": 61.0
+      }
+    ]
+  },
+  "login_sessions": {
+    "total": 46,
+    "ativas": 14,
+    "revogadas": 7,
+    "expiradas": 25
+  },
+  "usuarios": {
+    "total": 2,
+    "ativos": 2,
+    "usernames": [
+      "admin",
+      "adm"
+    ]
+  },
+  "sync_log": {
+    "ultima_sync": "2026-03-19T12:48:24.89404+00:00"
+  },
+  "totais": {
+    "setores": 39,
+    "clientes": 46,
+    "fichas": 56,
+    "peditens": 0
+  }
+}
