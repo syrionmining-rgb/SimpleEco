@@ -755,7 +755,7 @@ export default function AdminPanel() {
     <div className="flex h-screen overflow-hidden bg-[var(--th-page)] text-[var(--th-txt-1)]">
 
       {/* ── Sidebar ── */}
-      <aside className="w-[230px] shrink-0 border-r border-[var(--th-border)] flex flex-col">
+      <aside className="w-[230px] shrink-0 border-r border-[var(--th-border)] flex flex-col bg-[var(--th-card)]">
         {/* Logo */}
         <div className="px-4 py-4 border-b border-[var(--th-border)] shrink-0">
           <div className="flex items-center gap-2.5">
@@ -803,7 +803,7 @@ export default function AdminPanel() {
         {selectedModule === 'orders' && (
           <>
             {/* List panel */}
-            <div className="w-[300px] shrink-0 border-r border-[var(--th-border)] flex flex-col">
+            <div className="w-[300px] shrink-0 border-r border-[var(--th-border)] flex flex-col bg-[var(--th-card)]">
               <div className="px-4 py-4 border-b border-[var(--th-border)] shrink-0">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
@@ -1210,7 +1210,7 @@ export default function AdminPanel() {
           return (
             <>
               {/* List panel */}
-              <div className="w-[300px] shrink-0 border-r border-[var(--th-border)] flex flex-col">
+              <div className="w-[300px] shrink-0 border-r border-[var(--th-border)] flex flex-col bg-[var(--th-card)]">
                 <div className="px-4 py-4 border-b border-[var(--th-border)] shrink-0">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
@@ -1458,7 +1458,7 @@ export default function AdminPanel() {
         {selectedModule === 'sectors' && (
           <>
             {/* List panel */}
-            <div className="w-[300px] shrink-0 border-r border-[var(--th-border)] flex flex-col">
+            <div className="w-[300px] shrink-0 border-r border-[var(--th-border)] flex flex-col bg-[var(--th-card)]">
               <div className="px-4 py-4 border-b border-[var(--th-border)] shrink-0">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
@@ -1994,7 +1994,7 @@ export default function AdminPanel() {
               return (
                 <div className="flex h-full gap-0 -m-6">
                   {/* List panel */}
-                  <div className="w-[320px] shrink-0 flex flex-col border-r border-[var(--th-border)]">
+                  <div className="w-[320px] shrink-0 flex flex-col border-r border-[var(--th-border)] bg-[var(--th-card)]">
                     {/* Header */}
                     <div className="px-4 py-4 border-b border-[var(--th-border)]">
                       <div className="flex items-center justify-between mb-3">
