@@ -15,6 +15,8 @@ const AuthContext = createContext<AuthContextType | null>(null)
 function parseUserAgent(ua: string): { os: string; browser: string; deviceType: string } {
   const isTablet = /iPad|Tablet/.test(ua)
   const isMobile = /Mobile|Android|iPhone/.test(ua)
+  const isPWA = (window.navigator as Navigator & { standalone?: boolean }).standalone === true
+    || window.matchMedia('(display-mode: standalone)').matches
   let os = 'Desconhecido'
   if (/Windows/.test(ua)) os = 'Windows'
   else if (/iPhone/.test(ua)) os = 'iOS'
@@ -28,7 +30,10 @@ function parseUserAgent(ua: string): { os: string; browser: string; deviceType: 
   else if (/Chrome\//.test(ua)) browser = 'Chrome'
   else if (/Firefox\//.test(ua)) browser = 'Firefox'
   else if (/Safari\//.test(ua)) browser = 'Safari'
-  return { os, browser, deviceType: isTablet ? 'Tablet' : isMobile ? 'Mobile' : 'Desktop' }
+  if (isPWA) browser = browser + ' (PWA)'
+  const deviceType = isPWA ? (isTablet ? 'Tablet PWA' : isMobile ? 'Mobile PWA' : 'Desktop PWA')
+    : isTablet ? 'Tablet' : isMobile ? 'Mobile' : 'Desktop'
+  return { os, browser, deviceType }
 }
 
 async function logDeviceAccess(username: string): Promise<void> {
@@ -147,8 +152,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       setAuthToken(session.token, rememberMe)
       localStorage.setItem(USER_STORAGE_KEY, session.nome ?? user)
+      await logDeviceAccess(session.nome ?? user)
       setIsAuthenticated(true)
-      void logDeviceAccess(session.nome ?? user)
       return true
     } catch {
       clearAuthToken()
