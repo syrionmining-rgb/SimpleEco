@@ -604,6 +604,8 @@ create table if not exists public.sync_log (
 alter table public.sync_log enable row level security;
 drop policy if exists "leitura_anonima_sync" on public.sync_log;
 create policy "leitura_anonima_sync" on public.sync_log for select using (true);
+drop policy if exists "update_sync_log" on public.sync_log;
+create policy "update_sync_log" on public.sync_log for update to anon, authenticated using (true) with check (true);
 
 -- Linha inicial (id=1 fixo — o SE Link sempre faz upsert nesse id)
 insert into public.sync_log (id, ultima_sync, force_sync)
