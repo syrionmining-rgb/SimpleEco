@@ -1016,15 +1016,17 @@ export default function AdminPanel() {
                       <div className="rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] overflow-hidden">
                         <div className="px-4 py-2.5 border-b border-[var(--th-border)] bg-[var(--th-subtle)] flex items-center justify-between">
                           <p className="text-xs font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Grade do Pedido</p>
-                          <p className="text-[10px] text-[var(--th-txt-4)]">Total: <span className="font-mono text-[var(--th-txt-2)]">{gradeAgregada.reduce((s, x) => s + x.qty, 0).toLocaleString('pt-BR')}</span> pares</p>
+                          <p className="text-[10px] text-[var(--th-txt-4)]">
+                            Total: <span className="font-mono font-bold text-orange-400">{gradeAgregada.reduce((s, x) => s + x.qty, 0).toLocaleString('pt-BR')}</span> pares
+                          </p>
                         </div>
-                        <div className="px-4 py-3">
+                        <div className="px-4 py-4">
                           <div className="flex flex-wrap gap-2">
                             {gradeAgregada.map(({ slot, qty }) => (
-                              <div key={slot} className="flex flex-col items-center w-10 rounded-md border border-[var(--th-border)] bg-[var(--th-subtle)] overflow-hidden">
-                                <span className="py-1.5 text-[11px] font-mono font-semibold text-[var(--th-txt-1)] text-center w-full leading-none">{slot}</span>
+                              <div key={slot} className="flex flex-col items-center rounded-lg border border-[var(--th-border)] bg-[var(--th-subtle)] overflow-hidden" style={{ minWidth: 44 }}>
+                                <span className="px-2 py-1.5 text-[11px] font-bold font-mono text-[var(--th-txt-2)] text-center w-full leading-none">{slot}</span>
                                 <div className="w-full border-t border-[var(--th-border)]" />
-                                <span className="py-1.5 text-[11px] font-mono text-[var(--th-txt-3)] text-center w-full leading-none">{qty}</span>
+                                <span className="px-2 py-1.5 text-sm font-bold font-mono text-orange-400 text-center w-full leading-none">{qty}</span>
                               </div>
                             ))}
                           </div>
@@ -1044,34 +1046,48 @@ export default function AdminPanel() {
                         const canc = isTruthy(tNode.talao.CANCELADO)
                         const fat = isTruthy(tNode.talao.FATURADO)
                         const grade = parseNumeros(tNode.talao.NUMEROS)
+                        const statusBorder = canc ? 'border-red-500/25' : fat ? 'border-green-500/25' : 'border-[var(--th-border)]'
+                        const statusBar = canc ? 'bg-red-500' : fat ? 'bg-green-500' : 'bg-orange-500'
                         return (
-                          <div key={tc} className="rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] overflow-hidden">
-                            {/* Info row */}
-                            <div className="flex items-center gap-4 px-4 py-3 flex-wrap">
-                              <span className="font-mono font-semibold text-sm text-[var(--th-txt-1)]">{tc}</span>
-                              <span className="text-xs text-[var(--th-txt-4)]">Item <span className="text-[var(--th-txt-2)]">{asText(tNode.talao.ITEM) || '—'}</span></span>
-                              <span className="text-xs text-[var(--th-txt-4)]">Ref <span className="font-mono text-[var(--th-txt-2)]">{fc || '—'}</span></span>
-                              <span className="text-xs text-[var(--th-txt-2)] truncate max-w-[200px]">{fn}</span>
-                              <span className="text-xs text-[var(--th-txt-4)]">Remessa <span className="font-mono text-[var(--th-txt-2)]">{asText(tNode.talao.REMESSA) || '—'}</span></span>
-                              <span className="text-xs text-[var(--th-txt-4)]">Qtd <span className="font-mono text-[var(--th-txt-2)]">{fmtNumber(tNode.talao.TOTAL)}</span></span>
-                              <span className="ml-auto">
-                                {canc
-                                  ? <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium border bg-red-500/15 text-red-400 border-red-500/30">Cancelado</span>
-                                  : fat
-                                    ? <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium border bg-green-500/15 text-green-400 border-green-500/30">Faturado</span>
-                                    : <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium border bg-orange-500/15 text-orange-400 border-orange-500/30">Em produção</span>
-                                }
-                              </span>
+                          <div key={tc} className={`rounded-xl border ${statusBorder} bg-[var(--th-card)] overflow-hidden`}>
+                            {/* Header */}
+                            <div className="flex items-stretch gap-0">
+                              {/* Status accent bar */}
+                              <div className={`w-1 shrink-0 ${statusBar} opacity-60`} />
+                              <div className="flex-1 flex items-center justify-between gap-4 px-4 py-3">
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-2.5 mb-1 flex-wrap">
+                                    <span className="font-mono font-bold text-base text-[var(--th-txt-1)] tracking-wide">{tc}</span>
+                                    {canc
+                                      ? <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border bg-red-500/15 text-red-400 border-red-500/30">Cancelado</span>
+                                      : fat
+                                        ? <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border bg-green-500/15 text-green-400 border-green-500/30">Faturado</span>
+                                        : <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border bg-orange-500/15 text-orange-400 border-orange-500/30">Em produção</span>
+                                    }
+                                  </div>
+                                  <p className="text-xs text-[var(--th-txt-3)] truncate max-w-[320px]">{fn}</p>
+                                </div>
+                                <div className="shrink-0 text-right">
+                                  <p className="text-[10px] text-[var(--th-txt-4)] mb-0.5 uppercase tracking-widest">Total</p>
+                                  <p className="text-lg font-bold font-mono text-orange-400 leading-none">{fmtNumber(tNode.talao.TOTAL)}</p>
+                                </div>
+                              </div>
+                            </div>
+                            {/* Meta strip */}
+                            <div className="flex gap-4 px-4 py-1.5 bg-[var(--th-subtle)] border-t border-[var(--th-border)] flex-wrap">
+                              <span className="text-[11px] text-[var(--th-txt-4)]">Item <span className="font-mono text-[var(--th-txt-2)]">{asText(tNode.talao.ITEM) || '—'}</span></span>
+                              <span className="text-[11px] text-[var(--th-txt-4)]">Ref <span className="font-mono text-[var(--th-txt-2)]">{fc || '—'}</span></span>
+                              <span className="text-[11px] text-[var(--th-txt-4)]">Remessa <span className="font-mono text-[var(--th-txt-2)]">{asText(tNode.talao.REMESSA) || '—'}</span></span>
                             </div>
                             {/* Grade */}
                             {grade.length > 0 && (
-                              <div className="border-t border-[var(--th-border)] bg-[var(--th-subtle)] px-4 py-2.5">
+                              <div className="px-4 py-3 border-t border-[var(--th-border)]">
                                 <div className="flex flex-wrap gap-1.5">
                                   {grade.map(({ slot, qty }) => (
-                                    <div key={slot} className="flex flex-col items-center w-9 rounded border border-[var(--th-border)] bg-[var(--th-card)] overflow-hidden">
-                                      <span className="py-1 text-[10px] font-mono font-semibold text-[var(--th-txt-1)] text-center w-full leading-none">{slot}</span>
+                                    <div key={slot} className="flex flex-col items-center rounded-lg border border-[var(--th-border)] bg-[var(--th-subtle)] overflow-hidden" style={{ minWidth: 38 }}>
+                                      <span className="px-1.5 py-1 text-[11px] font-bold font-mono text-[var(--th-txt-2)] text-center w-full leading-none">{slot}</span>
                                       <div className="w-full border-t border-[var(--th-border)]" />
-                                      <span className="py-1 text-[10px] font-mono text-[var(--th-txt-3)] text-center w-full leading-none">{qty}</span>
+                                      <span className="px-1.5 py-1 text-[11px] font-bold font-mono text-orange-400 text-center w-full leading-none">{qty}</span>
                                     </div>
                                   ))}
                                 </div>
