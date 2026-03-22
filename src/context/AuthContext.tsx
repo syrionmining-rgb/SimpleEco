@@ -36,29 +36,35 @@ function parseUserAgent(ua: string): { os: string; browser: string; deviceType: 
   return { os, browser, deviceType }
 }
 
+const SUPABASE_URL = 'https://whwwcgyqpaspzymhdwox.supabase.co'
+const SUPABASE_ANON = 'sb_publishable_0SfEbi8VIoUboTNkczDh5w_L7pqbgfo'
+
 async function logDeviceAccess(username: string): Promise<void> {
   try {
     const ua = navigator.userAgent
     const { os, browser, deviceType } = parseUserAgent(ua)
 
-    // Insere imediatamente sem esperar IP (evita cancelamento no iOS Safari)
-    const { data: inserted, error } = await supabase
-      .from('device_logs')
-      .insert({ username, ip: 'Desconhecido', user_agent: ua, device_type: deviceType, os, browser, action: 'login' })
-      .select('id')
-      .single()
-    if (error || !inserted) return
-
-    // Tenta atualizar o IP em background — se falhar não é crítico
+    // Busca IP com timeout curto — não bloqueia o insert
+    let ip = 'Desconhecido'
     try {
       const res = await Promise.race([
         fetch('https://api.ipify.org?format=json').then(r => r.json()),
-        new Promise<never>((_, rej) => setTimeout(() => rej(new Error('timeout')), 5000)),
+        new Promise<never>((_, rej) => setTimeout(() => rej(new Error('timeout')), 3000)),
       ]) as { ip: string }
-      if (res.ip) {
-        await supabase.from('device_logs').update({ ip: res.ip }).eq('id', inserted.id)
-      }
+      if (res.ip) ip = res.ip
     } catch { /* IP opcional */ }
+
+    // Usa fetch direto à REST API (mais confiável no Safari iOS que o JS client)
+    await fetch(`${SUPABASE_URL}/rest/v1/device_logs`, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_ANON,
+        'Authorization': `Bearer ${SUPABASE_ANON}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal',
+      },
+      body: JSON.stringify({ username, ip, user_agent: ua, device_type: deviceType, os, browser, action: 'login' }),
+    })
   } catch { /* log é não-crítico */ }
 }
 
