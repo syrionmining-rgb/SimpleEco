@@ -225,7 +225,7 @@ export default function AdminPanel() {
   async function requestForceSync() {
     setForceSyncLoading(true); setForceSyncError(null); setForceSyncStatus('idle')
     try {
-      const { error } = await supabase.from('sync_log').upsert({ id: 1, force_sync: true })
+      const { error } = await supabase.from('sync_log').update({ force_sync: true }).eq('id', 1)
       if (error) throw new Error(error.message)
       setForceSyncLoading(false)
       setForceSyncStatus('waiting')
