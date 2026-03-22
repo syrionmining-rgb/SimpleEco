@@ -36,15 +36,11 @@ function parseUserAgent(ua: string): { os: string; browser: string; deviceType: 
   return { os, browser, deviceType }
 }
 
-const SUPABASE_URL = 'https://whwwcgyqpaspzymhdwox.supabase.co'
-const SUPABASE_ANON = 'sb_publishable_0SfEbi8VIoUboTNkczDh5w_L7pqbgfo'
-
-async function logDeviceAccess(username: string): Promise<void> {
+async function registrarDeviceSessao(token: string): Promise<void> {
   try {
     const ua = navigator.userAgent
     const { os, browser, deviceType } = parseUserAgent(ua)
 
-    // Busca IP com timeout curto — não bloqueia o insert
     let ip = 'Desconhecido'
     try {
       const res = await Promise.race([
@@ -54,18 +50,15 @@ async function logDeviceAccess(username: string): Promise<void> {
       if (res.ip) ip = res.ip
     } catch { /* IP opcional */ }
 
-    // Usa fetch direto à REST API (mais confiável no Safari iOS que o JS client)
-    await fetch(`${SUPABASE_URL}/rest/v1/device_logs`, {
-      method: 'POST',
-      headers: {
-        'apikey': SUPABASE_ANON,
-        'Authorization': `Bearer ${SUPABASE_ANON}`,
-        'Content-Type': 'application/json',
-        'Prefer': 'return=minimal',
-      },
-      body: JSON.stringify({ username, ip, user_agent: ua, device_type: deviceType, os, browser, action: 'login' }),
+    await supabase.rpc('registrar_device_sessao', {
+      p_token:       token,
+      p_ip:          ip,
+      p_user_agent:  ua,
+      p_device_type: deviceType,
+      p_os:          os,
+      p_browser:     browser,
     })
-  } catch { /* log é não-crítico */ }
+  } catch { /* não-crítico */ }
 }
 
 // ── Auth storage ──────────────────────────────────────────────────────────────
@@ -158,7 +151,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       setAuthToken(session.token, rememberMe)
       localStorage.setItem(USER_STORAGE_KEY, session.nome ?? user)
-      await logDeviceAccess(session.nome ?? user)
+      await registrarDeviceSessao(session.token)
       setIsAuthenticated(true)
       return true
     } catch {

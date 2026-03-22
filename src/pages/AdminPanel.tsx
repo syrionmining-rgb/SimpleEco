@@ -69,9 +69,10 @@ interface ClienteRow {
   INCLUIDO?: string; ATUALIZADO?: string
 }
 interface DeviceLogRow {
-  id: number; username: string | null; ip: string | null; device_type: string | null
-  os: string | null; browser: string | null; action: string | null
-  created_at: string | null; user_agent: string | null
+  id: string; username: string | null; nome: string | null; ip: string | null
+  device_type: string | null; os: string | null; browser: string | null
+  created_at: string | null; expires_at: string | null; revoked_at: string | null
+  user_agent: string | null; status: string | null
 }
 interface FichaRow { [key: string]: unknown; CODIGO?: string; NOME?: string }
 
@@ -381,7 +382,7 @@ export default function AdminPanel() {
   async function clearLogs() {
     setClearLogsLoading(true)
     try {
-      const { error } = await supabase.from('device_logs').delete().gte('id', 0)
+      const { error } = await supabase.from('login_sessions').delete().gte('id', '00000000-0000-0000-0000-000000000000')
       if (error) throw new Error(error.message)
       setLogs([])
       setSelectedLog(null)
@@ -393,7 +394,7 @@ export default function AdminPanel() {
   async function fetchLogs() {
     setLogsLoading(true); setLogsError(null)
     try {
-      const { data, error } = await supabase.from('device_logs').select('*').order('created_at', { ascending: false }).limit(200)
+      const { data, error } = await supabase.from('login_activity').select('*').order('created_at', { ascending: false }).limit(200)
       if (error) throw new Error(error.message)
       setLogs((data ?? []) as DeviceLogRow[])
       setLogsLastSync(new Date())
@@ -436,8 +437,8 @@ export default function AdminPanel() {
     const id = setInterval(() => { void fetchLogs() }, 10_000)
 
     const channel = supabase
-      .channel('device_logs_realtime')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'device_logs' }, () => {
+      .channel('login_sessions_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'login_sessions' }, () => {
         void fetchLogs()
       })
       .subscribe()
@@ -1355,7 +1356,7 @@ export default function AdminPanel() {
                                 : <Monitor strokeWidth={1.5} className="w-5 h-5 text-[var(--th-txt-3)]" />}
                               {log.username || '—'}
                             </span>
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium border bg-green-500/15 text-green-400 border-green-500/30">{log.action || 'login'}</span>
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium border bg-green-500/15 text-green-400 border-green-500/30">{log.status || 'login'}</span>
                           </div>
                           <p className="text-xs text-[var(--th-txt-4)]">{ts}</p>
                         </div>
@@ -1370,7 +1371,7 @@ export default function AdminPanel() {
                           { label: 'Dispositivo', value: log.device_type || '—', mono: false },
                           { label: 'Sistema Operacional', value: log.os || '—', mono: false },
                           { label: 'Navegador', value: log.browser || '—', mono: false },
-                          { label: 'Ação', value: log.action || '—', mono: false },
+                          { label: 'Status', value: log.status || '—', mono: false },
                           { label: 'ID do Registro', value: String(log.id), mono: true },
                         ].map(({ label, value, mono }) => (
                           <div key={label} className="rounded-lg border border-[var(--th-border)] bg-[var(--th-card)] px-3 py-2.5">
