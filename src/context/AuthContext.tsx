@@ -35,15 +35,25 @@ async function logDeviceAccess(username: string): Promise<void> {
   try {
     const ua = navigator.userAgent
     const { os, browser, deviceType } = parseUserAgent(ua)
-    let ip = 'Desconhecido'
+
+    // Insere imediatamente sem esperar IP (evita cancelamento no iOS Safari)
+    const { data: inserted, error } = await supabase
+      .from('device_logs')
+      .insert({ username, ip: 'Desconhecido', user_agent: ua, device_type: deviceType, os, browser, action: 'login' })
+      .select('id')
+      .single()
+    if (error || !inserted) return
+
+    // Tenta atualizar o IP em background — se falhar não é crítico
     try {
       const res = await Promise.race([
         fetch('https://api.ipify.org?format=json').then(r => r.json()),
-        new Promise<never>((_, rej) => setTimeout(() => rej(new Error('timeout')), 4000)),
+        new Promise<never>((_, rej) => setTimeout(() => rej(new Error('timeout')), 5000)),
       ]) as { ip: string }
-      ip = res.ip ?? 'Desconhecido'
-    } catch { /* IP detection falhou — continua sem IP */ }
-    await supabase.from('device_logs').insert({ username, ip, user_agent: ua, device_type: deviceType, os, browser, action: 'login' })
+      if (res.ip) {
+        await supabase.from('device_logs').update({ ip: res.ip }).eq('id', inserted.id)
+      }
+    } catch { /* IP opcional */ }
   } catch { /* log é não-crítico */ }
 }
 
