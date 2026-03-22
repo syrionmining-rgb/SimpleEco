@@ -10,6 +10,45 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null)
 
+// ── Device logging ────────────────────────────────────────────────────────────
+
+function parseUserAgent(ua: string): { os: string; browser: string; deviceType: string } {
+  const isTablet = /iPad|Tablet/.test(ua)
+  const isMobile = /Mobile|Android|iPhone/.test(ua)
+  let os = 'Desconhecido'
+  if (/Windows/.test(ua)) os = 'Windows'
+  else if (/iPhone/.test(ua)) os = 'iOS'
+  else if (/iPad/.test(ua)) os = 'iPadOS'
+  else if (/Android/.test(ua)) os = 'Android'
+  else if (/Mac OS X/.test(ua)) os = 'macOS'
+  else if (/Linux/.test(ua)) os = 'Linux'
+  let browser = 'Desconhecido'
+  if (/Edg\//.test(ua)) browser = 'Edge'
+  else if (/OPR\/|Opera/.test(ua)) browser = 'Opera'
+  else if (/Chrome\//.test(ua)) browser = 'Chrome'
+  else if (/Firefox\//.test(ua)) browser = 'Firefox'
+  else if (/Safari\//.test(ua)) browser = 'Safari'
+  return { os, browser, deviceType: isTablet ? 'Tablet' : isMobile ? 'Mobile' : 'Desktop' }
+}
+
+async function logDeviceAccess(username: string): Promise<void> {
+  try {
+    const ua = navigator.userAgent
+    const { os, browser, deviceType } = parseUserAgent(ua)
+    let ip = 'Desconhecido'
+    try {
+      const res = await Promise.race([
+        fetch('https://api.ipify.org?format=json').then(r => r.json()),
+        new Promise<never>((_, rej) => setTimeout(() => rej(new Error('timeout')), 4000)),
+      ]) as { ip: string }
+      ip = res.ip ?? 'Desconhecido'
+    } catch { /* IP detection falhou — continua sem IP */ }
+    await supabase.from('device_logs').insert({ username, ip, user_agent: ua, device_type: deviceType, os, browser, action: 'login' })
+  } catch { /* log é não-crítico */ }
+}
+
+// ── Auth storage ──────────────────────────────────────────────────────────────
+
 const AUTH_STORAGE_KEY = 'se_auth_token'
 const USER_STORAGE_KEY = 'se_user'
 const STORAGE_KIND_KEY = 'se_auth_storage'
@@ -99,6 +138,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setAuthToken(session.token, rememberMe)
       localStorage.setItem(USER_STORAGE_KEY, session.nome ?? user)
       setIsAuthenticated(true)
+      void logDeviceAccess(session.nome ?? user)
       return true
     } catch {
       clearAuthToken()

@@ -1,8 +1,10 @@
 export interface DelayedOrder {
   id: string
+  remessa: string
   client: string
   colorModel: string
   qty: number
+  scheduledDateIso: string | null
   expDate: string | null
   daysLate: number
   setor: string
@@ -13,11 +15,14 @@ export interface DelayedOrder {
 
 export interface TodayOrder {
   id: string
+  remessa: string
   client: string
   colorModel: string
   qty: number
+  scheduledDateIso: string | null
   expDate: string | null
   status: 'Em Produção' | 'Finalizado' | 'Aguardando' | 'Pausado'
+  isTodayProgrammed: boolean
   setor: string
   setorCod: string
   allSetorCods: string[]

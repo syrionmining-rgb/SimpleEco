@@ -216,8 +216,27 @@ class Api:
             _push_status("Monitorando...", True)
             _push_log("INFO", f"Monitorando {ss.BASE_DIR} — aguardando alteracoes...")
 
+            # Polling de sync remoto: verifica a flag force_sync no Supabase a cada 15s
+            _poll_counter = 0
             while not self._stop_event.is_set():
                 time.sleep(1)
+                _poll_counter += 1
+                if _poll_counter >= 15:
+                    _poll_counter = 0
+                    try:
+                        res = client.table("sync_log").select("force_sync").eq("id", 1).single().execute()
+                        if res.data and res.data.get("force_sync"):
+                            _push_log("INFO", "Sync remoto solicitado pelo painel — iniciando...")
+                            _push_state("syncing")
+                            _push_status("Sincronizando (remoto)...", True)
+                            # Reseta flag antes de sincronizar para evitar duplo disparo
+                            client.table("sync_log").update({"force_sync": False}).eq("id", 1).execute()
+                            ss.sync_all(client)
+                            _push_log("INFO", "Sync remoto concluido.")
+                            _push_state("monitoring")
+                            _push_status("Monitorando...", True)
+                    except Exception as _poll_err:
+                        _push_log("WARNING", f"Erro no polling remoto: {_poll_err}")
 
             observer.stop()
             observer.join()

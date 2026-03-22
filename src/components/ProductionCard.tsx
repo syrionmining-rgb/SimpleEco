@@ -1,12 +1,15 @@
 import { Target } from 'lucide-react'
 
 interface ProductionCardProps {
-  goal: number
+  goal: number | null
   produced: number
 }
 
 export default function ProductionCard({ goal, produced }: ProductionCardProps) {
-  const pct = Math.min((produced / goal) * 100, 100)
+  const hasGoal = goal !== null && goal > 0
+  const pct = hasGoal ? Math.min((produced / goal) * 100, 100) : 0
+  const goalLabel = hasGoal ? String(goal) : 'N/D'
+  const progressLabel = hasGoal ? `${pct.toFixed(1)}%` : 'N/D'
 
   return (
     <div className="rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] h-full">
@@ -26,9 +29,15 @@ export default function ProductionCard({ goal, produced }: ProductionCardProps) 
           </div>
           {/* Valor alinhado à direita */}
           <div className="flex items-baseline gap-0.5 shrink-0">
-            <span className="text-sm font-bold leading-none text-[var(--th-txt-4)]">{produced}/</span>
-            <span className="text-sm font-bold leading-none bg-gradient-to-r from-[#FF8C00] to-[#D81B60] bg-clip-text text-transparent">{goal}</span>
-            <span className="text-xs text-[var(--th-txt-4)]"> und.</span>
+            {hasGoal ? (
+              <>
+                <span className="text-sm font-bold leading-none text-[var(--th-txt-4)]">{produced}/</span>
+                <span className="text-sm font-bold leading-none bg-gradient-to-r from-[#FF8C00] to-[#D81B60] bg-clip-text text-transparent">{goalLabel}</span>
+                <span className="text-xs text-[var(--th-txt-4)]"> und.</span>
+              </>
+            ) : (
+              <span className="text-sm font-bold leading-none text-[var(--th-txt-4)]">N/D</span>
+            )}
           </div>
         </div>
         {/* Barra de progresso compacta */}
@@ -39,7 +48,7 @@ export default function ProductionCard({ goal, produced }: ProductionCardProps) 
               style={{ width: `${pct}%` }}
             />
           </div>
-          <span className="text-xs font-semibold text-[var(--th-txt-2)] shrink-0">{pct.toFixed(1)}%</span>
+          <span className="text-xs font-semibold text-[var(--th-txt-2)] shrink-0">{progressLabel}</span>
         </div>
       </div>
 
@@ -58,9 +67,15 @@ export default function ProductionCard({ goal, produced }: ProductionCardProps) 
           </div>
           <div className="flex flex-col items-end">
             <p className="text-4xl font-bold leading-none">
-              <span className="text-[var(--th-txt-4)]">{produced}/</span>
-              <span className="bg-gradient-to-r from-[#FF8C00] to-[#D81B60] bg-clip-text text-transparent">{goal}</span>
-              <span className="text-lg font-normal text-[var(--th-txt-4)]"> und.</span>
+              {hasGoal ? (
+                <>
+                  <span className="text-[var(--th-txt-4)]">{produced}/</span>
+                  <span className="bg-gradient-to-r from-[#FF8C00] to-[#D81B60] bg-clip-text text-transparent">{goalLabel}</span>
+                  <span className="text-lg font-normal text-[var(--th-txt-4)]"> und.</span>
+                </>
+              ) : (
+                <span className="text-[var(--th-txt-4)]">N/D</span>
+              )}
             </p>
           </div>
         </div>
@@ -68,7 +83,7 @@ export default function ProductionCard({ goal, produced }: ProductionCardProps) 
         <div className="space-y-1.5">
           <div className="flex justify-between items-center">
             <span className="text-base font-semibold text-[var(--th-txt-1)] tracking-widest">Progresso diário</span>
-            <span className="text-sm font-semibold text-[var(--th-txt-2)]">{pct.toFixed(1)}%</span>
+            <span className="text-sm font-semibold text-[var(--th-txt-2)]">{progressLabel}</span>
           </div>
           <div className="w-full h-3 rounded-full bg-[var(--th-subtle)] overflow-hidden">
             <div
