@@ -804,7 +804,7 @@ export default function AdminPanel() {
           <>
             {/* List panel */}
             <div className="w-[300px] shrink-0 border-r border-[var(--th-border)] flex flex-col bg-[var(--th-card)]">
-              <div className="px-3 py-3 border-b border-[var(--th-border)] shrink-0">
+              <div className="px-4 py-4 border-b border-[var(--th-border)] shrink-0">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <div className="relative">
@@ -818,7 +818,7 @@ export default function AdminPanel() {
                       </select>
                       <ChevronDown strokeWidth={2} className="w-3 h-3 absolute right-1.5 top-1/2 -translate-y-1/2 text-[var(--th-txt-4)] pointer-events-none" />
                     </div>
-                    <span className="text-[11px] text-[var(--th-txt-4)] bg-[var(--th-subtle)] px-1.5 py-0.5 rounded-full">
+                    <span className="text-xs bg-[var(--th-subtle)] px-2 py-0.5 rounded-full text-[var(--th-txt-4)]">
                       {ordersSubTab === 'pedidos' ? filteredOrders.length : remessaTree.length}
                     </span>
                   </div>
@@ -849,15 +849,15 @@ export default function AdminPanel() {
                 )}
               </div>
 
-              <div className="flex-1 overflow-y-auto">
-                {ordersError && <div className="px-3 py-2 text-xs text-red-400 bg-red-500/10 border-b border-red-500/20">{ordersError}</div>}
+              <div className="flex-1 overflow-y-auto p-2 space-y-1">
+                {ordersError && <div className="px-3 py-2 text-xs text-red-400 bg-red-500/10 rounded-lg border border-red-500/20">{ordersError}</div>}
                 {ordersLoading && orders.length === 0 && (
                   <div className="px-4 py-8 text-center text-sm text-[var(--th-txt-3)]">Carregando...</div>
                 )}
 
                 {/* Pedidos list */}
                 {ordersSubTab === 'pedidos' && !ordersLoading && pedidoTree.length === 0 && (
-                  <div className="px-4 py-8 text-center text-sm text-[var(--th-txt-3)]">Nenhum pedido.</div>
+                  <div className="px-4 py-16 text-center text-sm text-[var(--th-txt-3)]">Nenhum pedido.</div>
                 )}
                 {ordersSubTab === 'pedidos' && pedidoTree.map(pNode => {
                   const pc = asText(pNode.pedido.CODIGO).trim() || 'SEM-CODIGO'
@@ -870,7 +870,7 @@ export default function AdminPanel() {
                       key={pc}
                       type="button"
                       onClick={() => setSelectedPedidoDetail(pNode)}
-                      className={`w-full text-left px-3 py-3 border-b border-[var(--th-border)] transition-colors ${isSelected ? 'bg-orange-500/10 border-l-2 border-l-orange-400' : 'hover:bg-[var(--th-hover)]'}`}
+                      className={isSelected ? 'w-full text-left rounded-xl border border-orange-500/40 bg-orange-500/8 px-4 py-3 transition-all' : 'w-full text-left rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] px-4 py-3 transition-all hover:border-orange-500/30 hover:bg-orange-500/5'}
                     >
                       <div className="flex items-start gap-2.5">
                         <div className="flex-1 min-w-0">
@@ -894,7 +894,7 @@ export default function AdminPanel() {
 
                 {/* Remessas list */}
                 {ordersSubTab === 'remessas' && !ordersLoading && remessaTree.length === 0 && (
-                  <div className="px-4 py-8 text-center text-sm text-[var(--th-txt-3)]">Nenhuma remessa.</div>
+                  <div className="px-4 py-16 text-center text-sm text-[var(--th-txt-3)]">Nenhuma remessa.</div>
                 )}
                 {ordersSubTab === 'remessas' && remessaTree.map(rNode => {
                   const pedUnicos = [...new Set(rNode.taloes.map(t => asText(t.pedido?.CODIGO).trim()).filter(Boolean))]
@@ -904,7 +904,7 @@ export default function AdminPanel() {
                       key={rNode.remessa}
                       type="button"
                       onClick={() => setSelectedRemessaDetail(rNode)}
-                      className={`w-full text-left px-3 py-3 border-b border-[var(--th-border)] transition-colors ${isSelected ? 'bg-orange-500/10 border-l-2 border-l-orange-400' : 'hover:bg-[var(--th-hover)]'}`}
+                      className={isSelected ? 'w-full text-left rounded-xl border border-orange-500/40 bg-orange-500/8 px-4 py-3 transition-all' : 'w-full text-left rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] px-4 py-3 transition-all hover:border-orange-500/30 hover:bg-orange-500/5'}
                     >
                       <div className="flex items-start gap-2.5">
                         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center shrink-0 mt-0.5">
@@ -930,11 +930,11 @@ export default function AdminPanel() {
             </div>
 
             {/* Detail panel */}
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto p-5">
 
               {/* Pedido detail — empty state */}
               {ordersSubTab === 'pedidos' && !selectedPedidoDetail && (
-                <div className="flex flex-col items-center justify-center h-full text-[var(--th-txt-4)]">
+                <div className="flex flex-col items-center justify-center py-16 text-[var(--th-txt-4)]">
                   <Box strokeWidth={1} className="w-12 h-12 mb-3 opacity-30" />
                   <p className="text-sm">Selecione um pedido para ver detalhes</p>
                 </div>
@@ -972,9 +972,9 @@ export default function AdminPanel() {
                 })()
 
                 return (
-                  <div className="p-6">
+                  <div className="space-y-4">
                     {/* Header */}
-                    <div className="flex items-start justify-between gap-4 mb-5 pb-5 border-b border-[var(--th-border)]">
+                    <div className="flex items-start justify-between gap-4 pb-4 border-b border-[var(--th-border)]">
                       <div className="min-w-0">
                         <div className="flex items-center gap-3 flex-wrap mb-1">
                           <button
@@ -1013,9 +1013,9 @@ export default function AdminPanel() {
 
                     {/* Grade agregada do pedido */}
                     {gradeAgregada.length > 0 && (
-                      <div className="mb-5 rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] overflow-hidden">
+                      <div className="rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] overflow-hidden">
                         <div className="px-4 py-2.5 border-b border-[var(--th-border)] bg-[var(--th-subtle)] flex items-center justify-between">
-                          <p className="text-[10px] font-medium text-[var(--th-txt-4)] uppercase tracking-widest">Grade do Pedido</p>
+                          <p className="text-xs font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Grade do Pedido</p>
                           <p className="text-[10px] text-[var(--th-txt-4)]">Total: <span className="font-mono text-[var(--th-txt-2)]">{gradeAgregada.reduce((s, x) => s + x.qty, 0).toLocaleString('pt-BR')}</span> pares</p>
                         </div>
                         <div className="px-4 py-3">
@@ -1087,7 +1087,7 @@ export default function AdminPanel() {
 
               {/* Remessa detail — empty state */}
               {ordersSubTab === 'remessas' && !selectedRemessaDetail && (
-                <div className="flex flex-col items-center justify-center h-full text-[var(--th-txt-4)]">
+                <div className="flex flex-col items-center justify-center py-16 text-[var(--th-txt-4)]">
                   <Box strokeWidth={1} className="w-12 h-12 mb-3 opacity-30" />
                   <p className="text-sm">Selecione uma remessa para ver detalhes</p>
                 </div>
@@ -1099,8 +1099,8 @@ export default function AdminPanel() {
                 const pedUnicos = [...new Set(rNode.taloes.map(t => asText(t.pedido?.CODIGO).trim()).filter(Boolean))]
                 const cliUnicos = [...new Set(rNode.taloes.map(t => t.clienteNome).filter(n => n !== '—'))]
                 return (
-                  <div className="p-6">
-                    <div className="flex items-start gap-4 mb-6 pb-5 border-b border-[var(--th-border)]">
+                  <div className="space-y-4">
+                    <div className="flex items-start gap-4 pb-4 border-b border-[var(--th-border)]">
                       <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center shrink-0">
                         <Box strokeWidth={1.5} className="w-5 h-5 text-blue-400" />
                       </div>
@@ -1211,11 +1211,11 @@ export default function AdminPanel() {
             <>
               {/* List panel */}
               <div className="w-[300px] shrink-0 border-r border-[var(--th-border)] flex flex-col bg-[var(--th-card)]">
-                <div className="px-3 py-3 border-b border-[var(--th-border)] shrink-0">
+                <div className="px-4 py-4 border-b border-[var(--th-border)] shrink-0">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-semibold text-[var(--th-txt-1)]">Logs</span>
-                      <span className="text-[11px] text-[var(--th-txt-4)] bg-[var(--th-subtle)] px-1.5 py-0.5 rounded-full">{filteredLogs.length}</span>
+                      <span className="text-xs bg-[var(--th-subtle)] px-2 py-0.5 rounded-full text-[var(--th-txt-4)]">{filteredLogs.length}</span>
                     </div>
                     <div className="flex items-center gap-1">
                       {logsLastSync && (
@@ -1242,16 +1242,16 @@ export default function AdminPanel() {
                   </div>
                 </div>
 
-                <div className="flex-1 overflow-y-auto">
-                  {logsError && <div className="px-3 py-2 text-xs text-red-400 bg-red-500/10 border-b border-red-500/20">{logsError}</div>}
+                <div className="flex-1 overflow-y-auto p-2 space-y-1">
+                  {logsError && <div className="px-3 py-2 text-xs text-red-400 bg-red-500/10 rounded-lg border border-red-500/20">{logsError}</div>}
                   {logsLoading && logs.length === 0 && (
                     <div className="px-4 py-8 text-center text-sm text-[var(--th-txt-3)]">Carregando...</div>
                   )}
                   {!logsLoading && logs.length === 0 && !logsError && (
-                    <div className="px-4 py-8 text-center text-sm text-[var(--th-txt-3)]">Nenhum acesso registrado.</div>
+                    <div className="px-4 py-16 text-center text-sm text-[var(--th-txt-3)]">Nenhum acesso registrado.</div>
                   )}
                   {!logsLoading && logs.length > 0 && filteredLogs.length === 0 && (
-                    <div className="px-4 py-8 text-center text-sm text-[var(--th-txt-3)]">Nenhum resultado.</div>
+                    <div className="px-4 py-16 text-center text-sm text-[var(--th-txt-3)]">Nenhum resultado.</div>
                   )}
                   {filteredLogs.map(log => {
                     const isMobile = log.device_type === 'Mobile' || log.device_type === 'Tablet'
@@ -1264,7 +1264,7 @@ export default function AdminPanel() {
                         key={log.id}
                         type="button"
                         onClick={() => setSelectedLog(log)}
-                        className={`w-full text-left px-3 py-3 border-b border-[var(--th-border)] transition-colors ${isSelected ? 'bg-orange-500/10 border-l-2 border-l-orange-400' : 'hover:bg-[var(--th-hover)]'}`}
+                        className={isSelected ? 'w-full text-left rounded-xl border border-orange-500/40 bg-orange-500/8 px-4 py-3 transition-all' : 'w-full text-left rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] px-4 py-3 transition-all hover:border-orange-500/30 hover:bg-orange-500/5'}
                       >
                         <div className="flex items-start gap-2.5">
                           <div className="w-7 h-7 rounded-lg bg-[var(--th-subtle)] border border-[var(--th-border)] flex items-center justify-center shrink-0 mt-0.5">
@@ -1291,11 +1291,11 @@ export default function AdminPanel() {
               </div>
 
               {/* Detail panel */}
-              <div className="flex-1 overflow-y-auto">
+              <div className="flex-1 overflow-y-auto p-5">
                 {!selectedLog && (
                   <div className="flex flex-col h-full">
                     {/* Stats */}
-                    <div className="p-6 border-b border-[var(--th-border)]">
+                    <div className="pb-4 border-b border-[var(--th-border)]">
                       <h2 className="text-base font-semibold text-[var(--th-txt-1)] mb-4">Resumo de Acessos</h2>
                       <div className="grid grid-cols-3 gap-3">
                         {[
@@ -1312,8 +1312,8 @@ export default function AdminPanel() {
                     </div>
 
                     {/* Full table */}
-                    <div className="flex-1 overflow-auto p-6 pt-4">
-                      <p className="text-[10px] font-medium text-[var(--th-txt-4)] uppercase tracking-widest mb-3">Todos os registros</p>
+                    <div className="flex-1 overflow-auto pt-4">
+                      <p className="text-xs font-semibold uppercase tracking-widest text-[var(--th-txt-4)] mb-3">Todos os registros</p>
                       <div className="rounded-xl border border-[var(--th-border)] overflow-hidden">
                         <table className="w-full text-xs">
                           <thead>
@@ -1367,8 +1367,8 @@ export default function AdminPanel() {
                     ? new Date(log.created_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' })
                     : '—'
                   return (
-                    <div className="p-6">
-                      <div className="flex items-start justify-between gap-4 mb-6 pb-5 border-b border-[var(--th-border)]">
+                    <div className="space-y-4">
+                      <div className="flex items-start justify-between gap-4 pb-4 border-b border-[var(--th-border)]">
                         <div className="min-w-0">
                           <div className="flex items-center gap-3 flex-wrap mb-1">
                             <span className="inline-flex items-center gap-2 text-lg font-bold text-[var(--th-txt-1)]">
@@ -1386,7 +1386,7 @@ export default function AdminPanel() {
                         </button>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-3 mb-5">
+                      <div className="grid grid-cols-2 gap-3">
                         {[
                           { label: 'IP', value: log.ip || '—', mono: true },
                           { label: 'Dispositivo', value: log.device_type || '—', mono: false },
@@ -1403,13 +1403,9 @@ export default function AdminPanel() {
                       </div>
 
                       {log.user_agent && (
-                        <div className="rounded-xl border border-[var(--th-border)] overflow-hidden">
-                          <div className="px-4 py-2.5 border-b border-[var(--th-border)] bg-[var(--th-subtle)]">
-                            <p className="text-[10px] font-medium text-[var(--th-txt-4)] uppercase tracking-widest">User Agent</p>
-                          </div>
-                          <div className="px-4 py-3">
-                            <p className="text-xs font-mono text-[var(--th-txt-3)] break-all leading-relaxed">{log.user_agent}</p>
-                          </div>
+                        <div className="rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] p-4">
+                          <p className="text-xs font-semibold uppercase tracking-widest text-[var(--th-txt-4)] mb-3">User Agent</p>
+                          <p className="text-xs font-mono text-[var(--th-txt-3)] break-all leading-relaxed">{log.user_agent}</p>
                         </div>
                       )}
                     </div>
@@ -1463,11 +1459,11 @@ export default function AdminPanel() {
           <>
             {/* List panel */}
             <div className="w-[300px] shrink-0 border-r border-[var(--th-border)] flex flex-col bg-[var(--th-card)]">
-              <div className="px-3 py-3 border-b border-[var(--th-border)] shrink-0">
+              <div className="px-4 py-4 border-b border-[var(--th-border)] shrink-0">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-semibold text-[var(--th-txt-1)]">Setores</span>
-                    <span className="text-[11px] text-[var(--th-txt-4)] bg-[var(--th-subtle)] px-1.5 py-0.5 rounded-full">{setoresDb.length}</span>
+                    <span className="text-xs bg-[var(--th-subtle)] px-2 py-0.5 rounded-full text-[var(--th-txt-4)]">{setoresDb.length}</span>
                   </div>
                   <div className="flex items-center gap-0.5">
                     <button type="button" onClick={() => { void fetchSectorsDb() }} className="p-1.5 rounded text-[var(--th-txt-4)] hover:bg-[var(--th-hover)] transition-colors">
@@ -1506,20 +1502,20 @@ export default function AdminPanel() {
                 )}
               </div>
 
-              <div className="flex-1 overflow-y-auto">
-                {sectorsDbError && <div className="px-3 py-2 text-xs text-red-400 bg-red-500/10 border-b border-red-500/20">{sectorsDbError}</div>}
+              <div className="flex-1 overflow-y-auto p-2 space-y-1">
+                {sectorsDbError && <div className="px-3 py-2 text-xs text-red-400 bg-red-500/10 rounded-lg border border-red-500/20">{sectorsDbError}</div>}
                 {sectorsDbLoading && setoresDb.length === 0 && (
                   <div className="px-4 py-8 text-center text-sm text-[var(--th-txt-3)]">Carregando...</div>
                 )}
                 {!sectorsDbLoading && setoresDb.length === 0 && !sectorsDbError && (
-                  <div className="px-4 py-8 text-center text-sm text-[var(--th-txt-3)]">Nenhum setor cadastrado.<br /><span className="text-xs">Clique em + para criar.</span></div>
+                  <div className="px-4 py-16 text-center text-sm text-[var(--th-txt-3)]">Nenhum setor cadastrado.<br /><span className="text-xs">Clique em + para criar.</span></div>
                 )}
                 {setoresDb.map(sector => {
                   const assignedCount = pedidoSetores.filter(ps => ps.setor_codigo === sector.codigo).length
                   const isSelected = selectedSectorCodigo === sector.codigo
                   return (
                     <button key={sector.codigo} type="button" onClick={() => { setSelectedSectorCodigo(sector.codigo); setSectorDetailTab('ficha') }}
-                      className={`w-full text-left px-3 py-3 border-b border-[var(--th-border)] transition-colors ${isSelected ? 'bg-orange-500/10 border-l-2 border-l-orange-400' : 'hover:bg-[var(--th-hover)]'}`}>
+                      className={isSelected ? 'w-full text-left rounded-xl border border-orange-500/40 bg-orange-500/8 px-4 py-3 transition-all' : 'w-full text-left rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] px-4 py-3 transition-all hover:border-orange-500/30 hover:bg-orange-500/5'}>
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
                           <div className="flex items-center gap-2 mb-0.5">
@@ -1540,7 +1536,7 @@ export default function AdminPanel() {
             {/* Detail panel */}
             <div className="flex-1 overflow-hidden flex flex-col">
               {!selectedSectorCodigo && (
-                <div className="flex flex-col items-center justify-center h-full text-[var(--th-txt-4)]">
+                <div className="flex flex-col items-center justify-center py-16 text-[var(--th-txt-4)]">
                   <Layers strokeWidth={1} className="w-12 h-12 mb-3 opacity-30" />
                   <p className="text-sm">Selecione um setor para atribuir pedidos</p>
                 </div>
@@ -1622,7 +1618,7 @@ export default function AdminPanel() {
 
                           {/* Boolean flags */}
                           <div>
-                            <p className="text-xs font-semibold text-[var(--th-txt-4)] uppercase tracking-widest mb-3">Opções</p>
+                            <p className="text-xs font-semibold uppercase tracking-widest text-[var(--th-txt-4)] mb-3">Opções</p>
                             <div className="grid grid-cols-2 gap-2">
                               {([
                                 ['imprimir', 'Imprimir'], ['sda_ent', 'Sda/Ent'], ['prefabric', 'Pré-fabricar'],
@@ -1658,7 +1654,7 @@ export default function AdminPanel() {
                         <div className="space-y-5">
                           {/* Search to assign */}
                           <div>
-                            <p className="text-xs font-semibold text-[var(--th-txt-4)] uppercase tracking-widest mb-3">Atribuir Pedido</p>
+                            <p className="text-xs font-semibold uppercase tracking-widest text-[var(--th-txt-4)] mb-3">Atribuir Pedido</p>
                             <div className="relative">
                               <Search strokeWidth={1.5} className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--th-txt-4)]" />
                               <input value={sectorPedidoSearch} onChange={e => setSectorPedidoSearch(e.target.value)}
@@ -1689,7 +1685,7 @@ export default function AdminPanel() {
 
                           {/* Assigned pedidos */}
                           <div>
-                            <p className="text-xs font-semibold text-[var(--th-txt-4)] uppercase tracking-widest mb-3">
+                            <p className="text-xs font-semibold uppercase tracking-widest text-[var(--th-txt-4)] mb-3">
                               Pedidos Atribuídos{assignedPedidos.length > 0 ? ` (${assignedPedidos.length})` : ''}
                             </p>
                             {assignedPedidos.length === 0 && (
@@ -1759,12 +1755,12 @@ export default function AdminPanel() {
             {selectedModule === 'dashboard' && (
               <div>
                 <div className="mb-6">
-                  <h1 className="text-2xl font-bold text-[var(--th-txt-1)] mb-1">Dashboard Administrativo</h1>
-                  <p className="text-sm text-[var(--th-txt-3)]">Visão geral do sistema Simple&amp;Eco</p>
+                  <h1 className="text-xl font-bold text-[var(--th-txt-1)] mb-1">Dashboard Administrativo</h1>
+                  <p className="text-sm text-[var(--th-txt-3)] mb-6">Visão geral do sistema Simple&amp;Eco</p>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                   <div className="rounded-xl border border-[var(--th-border)] bg-[var(--th-card)]">
-                    <div className="px-5 py-4 flex items-center gap-4">
+                    <div className="p-5 flex items-center gap-4">
                       <div className="w-10 h-10 rounded-lg bg-[var(--th-subtle)] border border-[var(--th-border)] flex items-center justify-center shrink-0">
                         <Box strokeWidth={1.5} className="w-5 h-5 text-[var(--th-txt-4)]" />
                       </div>
@@ -1775,20 +1771,20 @@ export default function AdminPanel() {
                     </div>
                   </div>
                 </div>
-                <div className="rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] overflow-hidden">
-                  <div className="px-5 py-4 border-b border-[var(--th-border)]">
-                    <h3 className="text-sm font-semibold text-[var(--th-txt-1)]">Atividades Recentes</h3>
+                <div className="rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] p-5 overflow-hidden">
+                  <div className="pb-3 mb-3 border-b border-[var(--th-border)]">
+                    <h3 className="text-xs font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Atividades Recentes</h3>
                   </div>
-                  <div>
+                  <div className="space-y-1">
                     {recentActivities.map((a, i) => (
-                      <div key={i} className="px-5 py-3.5 border-b border-[var(--th-border)] last:border-0 hover:bg-[var(--th-hover)] transition-colors">
+                      <div key={i} className="rounded-xl border border-[var(--th-border)] bg-[var(--th-subtle)] px-4 py-3 hover:border-orange-500/30 hover:bg-orange-500/5 transition-all">
                         <div className="flex items-start justify-between gap-4">
                           <div className="min-w-0">
                             <p className="text-sm font-medium text-[var(--th-txt-1)] mb-0.5">{a.title}</p>
                             <p className="text-xs text-[var(--th-txt-3)] line-clamp-1">{a.description}</p>
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
-                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--th-subtle)] text-[var(--th-txt-4)] border border-[var(--th-border)]">{a.tag}</span>
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--th-card)] text-[var(--th-txt-4)] border border-[var(--th-border)]">{a.tag}</span>
                             <span className="text-[11px] text-[var(--th-txt-4)]">{a.timestamp}</span>
                           </div>
                         </div>
@@ -2000,11 +1996,14 @@ export default function AdminPanel() {
                   {/* List panel */}
                   <div className="w-[320px] shrink-0 flex flex-col border-r border-[var(--th-border)]">
                     {/* Header */}
-                    <div className="px-4 pt-5 pb-3 border-b border-[var(--th-border)]">
+                    <div className="px-4 py-4 border-b border-[var(--th-border)]">
                       <div className="flex items-center justify-between mb-3">
-                        <h1 className="text-base font-bold text-[var(--th-txt-1)]">Clientes</h1>
+                        <div className="flex items-center gap-2">
+                          <h1 className="text-sm font-semibold text-[var(--th-txt-1)]">Clientes</h1>
+                          <span className="text-xs bg-[var(--th-subtle)] px-2 py-0.5 rounded-full text-[var(--th-txt-4)]">{filtered.length}</span>
+                        </div>
                         <div className="flex items-center gap-1.5">
-                          <span className="text-[11px] text-[var(--th-txt-4)]">{filtered.length}/{clientesAll.length}</span>
+                          <span className="text-[11px] text-[var(--th-txt-4)]">{clientesAll.length} total</span>
                           <button type="button" onClick={() => void fetchClientes()} className="p-1.5 rounded hover:bg-[var(--th-hover)] text-[var(--th-txt-4)]">
                             <RefreshCw strokeWidth={1.5} className={`w-3.5 h-3.5 ${clientesLoading ? 'animate-spin' : ''}`} />
                           </button>
@@ -2025,10 +2024,10 @@ export default function AdminPanel() {
                       </select>
                     </div>
                     {/* List */}
-                    <div className="flex-1 overflow-y-auto divide-y divide-[var(--th-border)]">
+                    <div className="flex-1 overflow-y-auto p-2 space-y-1">
                       {clientesLoading && <div className="px-4 py-8 text-center text-sm text-[var(--th-txt-3)]">Carregando...</div>}
-                      {clientesError && <div className="px-4 py-4 text-sm text-red-400">{clientesError}</div>}
-                      {!clientesLoading && filtered.length === 0 && <div className="px-4 py-8 text-center text-sm text-[var(--th-txt-3)]">Nenhum cliente encontrado.</div>}
+                      {clientesError && <div className="px-3 py-2 text-xs text-red-400 bg-red-500/10 rounded-lg border border-red-500/20">{clientesError}</div>}
+                      {!clientesLoading && filtered.length === 0 && <div className="px-4 py-16 text-center text-sm text-[var(--th-txt-3)]">Nenhum cliente encontrado.</div>}
                       {filtered.map(c => {
                         const nome = asText(c.FANTASIA || c.NOME).trim() || '—'
                         const cod = asText(c.CODIGO).trim()
@@ -2037,7 +2036,7 @@ export default function AdminPanel() {
                         const isSelected = selectedCliente?.CODIGO === c.CODIGO
                         return (
                           <button key={cod} type="button" onClick={() => setSelectedCliente(c)}
-                            className={`w-full text-left px-4 py-3 transition-colors hover:bg-[var(--th-hover)] ${isSelected ? 'bg-orange-500/10 border-l-2 border-orange-400' : ''}`}>
+                            className={isSelected ? 'w-full text-left rounded-xl border border-orange-500/40 bg-orange-500/8 px-4 py-3 transition-all' : 'w-full text-left rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] px-4 py-3 transition-all hover:border-orange-500/30 hover:bg-orange-500/5'}>
                             <div className="flex items-start justify-between gap-2">
                               <p className="text-sm font-medium text-[var(--th-txt-1)] leading-snug line-clamp-2">{nome}</p>
                               <span className="text-[10px] font-mono text-[var(--th-txt-4)] shrink-0 mt-0.5">{cod}</span>
@@ -2052,9 +2051,9 @@ export default function AdminPanel() {
                   </div>
 
                   {/* Detail panel */}
-                  <div className="flex-1 overflow-y-auto">
+                  <div className="flex-1 overflow-y-auto p-5">
                     {!selectedCliente && (
-                      <div className="flex flex-col items-center justify-center h-full text-[var(--th-txt-4)]">
+                      <div className="flex flex-col items-center justify-center py-16 text-[var(--th-txt-4)]">
                         <Users strokeWidth={1} className="w-12 h-12 mb-3 opacity-30" />
                         <p className="text-sm">Selecione um cliente para ver detalhes</p>
                       </div>
@@ -2068,9 +2067,9 @@ export default function AdminPanel() {
                       const cep = asText(c.CEP).trim()
                       const pedidosDoCliente = orders.filter(p => asText(p.CLIENTE).trim() === asText(c.CODIGO).trim())
                       return (
-                        <div className="p-6">
+                        <div className="space-y-4">
                           {/* Header */}
-                          <div className="flex items-start justify-between gap-4 mb-6 pb-5 border-b border-[var(--th-border)]">
+                          <div className="flex items-start justify-between gap-4 pb-4 border-b border-[var(--th-border)]">
                             <div className="min-w-0 flex-1">
                               <h2 className="text-lg font-bold text-[var(--th-txt-1)] mb-1 leading-snug">{nome}</h2>
                               <div className="flex items-center gap-3 flex-wrap text-xs text-[var(--th-txt-4)]">
@@ -2090,8 +2089,8 @@ export default function AdminPanel() {
                           </div>
 
                           {/* Endereço */}
-                          <div className="rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] p-4 mb-6">
-                            <p className="text-[10px] font-medium text-[var(--th-txt-4)] uppercase tracking-widest mb-3">Endereço</p>
+                          <div className="rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] p-5">
+                            <p className="text-xs font-semibold uppercase tracking-widest text-[var(--th-txt-4)] mb-3">Endereço</p>
                             <div className="space-y-1.5 text-sm">
                               {endereco && <p className="text-[var(--th-txt-2)]">{endereco}</p>}
                               {localidade && <p className="text-[var(--th-txt-3)]">{localidade}</p>}
@@ -2101,9 +2100,9 @@ export default function AdminPanel() {
                           </div>
 
                           {/* Histórico de pedidos */}
-                          <div className="rounded-xl border border-[var(--th-border)] overflow-hidden">
+                          <div className="rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] overflow-hidden">
                             <div className="px-4 py-2.5 bg-[var(--th-subtle)] border-b border-[var(--th-border)] flex items-center justify-between">
-                              <p className="text-[10px] font-medium text-[var(--th-txt-4)] uppercase tracking-widest">Histórico de Pedidos</p>
+                              <p className="text-xs font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Histórico de Pedidos</p>
                               <span className="text-[10px] text-[var(--th-txt-4)]">{pedidosDoCliente.length} pedido(s)</span>
                             </div>
                             {pedidosDoCliente.length === 0
@@ -2169,16 +2168,14 @@ export default function AdminPanel() {
             {selectedModule === 'database' && (
               <div className="max-w-xl space-y-5">
                 <div>
-                  <h1 className="text-2xl font-bold text-[var(--th-txt-1)] mb-1">Banco de Dados</h1>
-                  <p className="text-sm text-[var(--th-txt-3)]">Sincronização ERP → Supabase via SE Link</p>
+                  <h1 className="text-xl font-bold text-[var(--th-txt-1)] mb-1">Banco de Dados</h1>
+                  <p className="text-sm text-[var(--th-txt-3)] mb-6">Sincronização ERP → Supabase via SE Link</p>
                 </div>
 
                 {/* Status card */}
-                <div className="rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] overflow-hidden">
-                  <div className="px-4 py-3 border-b border-[var(--th-border)] bg-[var(--th-subtle)]">
-                    <p className="text-[10px] font-medium text-[var(--th-txt-4)] uppercase tracking-widest">Status da Sincronização</p>
-                  </div>
-                  <div className="px-4 py-4 flex items-center justify-between gap-4">
+                <div className="rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] p-5">
+                  <p className="text-xs font-semibold uppercase tracking-widest text-[var(--th-txt-4)] mb-3">Status da Sincronização</p>
+                  <div className="flex items-center justify-between gap-4">
                     <div>
                       <p className="text-xs text-[var(--th-txt-4)] mb-0.5">Última sincronização</p>
                       <p className="text-sm font-mono text-[var(--th-txt-1)]">
@@ -2193,11 +2190,9 @@ export default function AdminPanel() {
                 </div>
 
                 {/* Force sync card */}
-                <div className="rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] overflow-hidden">
-                  <div className="px-4 py-3 border-b border-[var(--th-border)] bg-[var(--th-subtle)]">
-                    <p className="text-[10px] font-medium text-[var(--th-txt-4)] uppercase tracking-widest">Sincronização Manual</p>
-                  </div>
-                  <div className="px-4 py-4 space-y-3">
+                <div className="rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] p-5">
+                  <p className="text-xs font-semibold uppercase tracking-widest text-[var(--th-txt-4)] mb-3">Sincronização Manual</p>
+                  <div className="space-y-3">
                     <p className="text-sm text-[var(--th-txt-3)]">
                       Solicita ao SE Link (servidor da empresa) que execute uma sincronização completa dos arquivos DBF agora. O SE Link irá detectar a solicitação em até 15 segundos.
                     </p>
@@ -2224,10 +2219,8 @@ export default function AdminPanel() {
                 </div>
 
                 {/* Tables list */}
-                <div className="rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] overflow-hidden">
-                  <div className="px-4 py-3 border-b border-[var(--th-border)] bg-[var(--th-subtle)]">
-                    <p className="text-[10px] font-medium text-[var(--th-txt-4)] uppercase tracking-widest">Tabelas Sincronizadas</p>
-                  </div>
+                <div className="rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] p-5">
+                  <p className="text-xs font-semibold uppercase tracking-widest text-[var(--th-txt-4)] mb-3">Tabelas Sincronizadas</p>
                   <div className="divide-y divide-[var(--th-border)]">
                     {['clientes', 'pedidos', 'fichas', 'taloes', 'talsetor', 'setores'].map(t => (
                       <div key={t} className="flex items-center justify-between px-4 py-2.5">
