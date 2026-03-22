@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import {
   Sun, Moon, LogOut, Settings, Users, Database, Package, Home, Box,
-  ScrollText, RefreshCw, Search, ChevronDown, ChevronRight,
-  Layers, Plus, Save, X, Check, Monitor, Smartphone, ScanLine, Trash2,
+  ScrollText, RefreshCw, Search, ChevronDown, ChevronUp,
+  GitBranch, Plus, X, Check, Monitor, Smartphone, ScanLine, Trash2, Pencil,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
@@ -87,14 +87,12 @@ interface RemessaTreeNode {
   remessa: string; totalQtde: number
   taloes: Array<{ talao: TalaoRow; pedido: PedidoRow | undefined; clienteNome: string; fichaNome: string; movimentos: TalsetorRow[]; latestSetor: string }>
 }
-interface SetorDbRow {
-  id: number; codigo: string; nome: string; ordem: number; ativo: boolean
-  abreviat?: string | null; qtde_dia?: number | null; horas?: number | null
-  imprimir?: boolean | null; sda_ent?: boolean | null; prefabric?: boolean | null
-  ibama?: boolean | null; usar_iwd?: boolean | null; usar_graf?: boolean | null
-  palmilha?: boolean | null; cabedal?: boolean | null; sola?: boolean | null; embalagem?: boolean | null
+interface ProdItem {
+  id: number; nome: string; descricao: string | null; ativo: boolean; created_at: string
 }
-interface PedidoSetorRow { id: number; pedido_codigo: string; setor_codigo: string; ordem: number; criado_em?: string }
+interface ProdEtapa {
+  id: number; item_id: number; nome: string; ordem: number; created_at: string
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -113,7 +111,6 @@ function isTruthy(value: unknown): boolean {
   const s = String(value).trim().toUpperCase()
   return s === '1' || s === 'S' || s === 'SIM' || s === 'TRUE'
 }
-function todayIso(): string { return new Date().toISOString().slice(0, 10) }
 function parseNumeros(numeros: unknown): Array<{ slot: number; qty: number }> {
   const s = String(numeros ?? '').trim()
   if (s.length < 63) return []
@@ -268,31 +265,26 @@ export default function AdminPanel() {
     }
   }, [selectedModule])
 
-  // ── Sectors state ─────────────────────────────────────────────────────────
-  const [assignQuery, setAssignQuery] = useState('')
-  const [assignSelectedPedido, setAssignSelectedPedido] = useState<PedidoRow | null>(null)
-  const [assignOpenTalao, setAssignOpenTalao] = useState<string | null>(null)
-  const [assignForm, setAssignForm] = useState({ setor: '', nomeset: '', data: todayIso(), qtde: '', remessa: '' })
-  const [assignSaving, setAssignSaving] = useState(false)
-  const [assignError, setAssignError] = useState<string | null>(null)
-  const [assignSuccess, setAssignSuccess] = useState(false)
-
-  // ── Sectors DB state ──────────────────────────────────────────────────────
-  const [setoresDb, setSetoresDb] = useState<SetorDbRow[]>([])
-  const [pedidoSetores, setPedidoSetores] = useState<PedidoSetorRow[]>([])
-  const [selectedSectorCodigo, setSelectedSectorCodigo] = useState<string | null>(null)
-  const [showNewSectorForm, setShowNewSectorForm] = useState(false)
-  const [newSectorForm, setNewSectorForm] = useState({ codigo: '', nome: '', ordem: '0' })
-  const [newSectorSaving, setNewSectorSaving] = useState(false)
-  const [newSectorError, setNewSectorError] = useState<string | null>(null)
-  const [sectorPedidoSearch, setSectorPedidoSearch] = useState('')
-  const [sectorsDbLoading, setSectorsDbLoading] = useState(false)
-  const [sectorsDbError, setSectorsDbError] = useState<string | null>(null)
-  const [sectorDetailTab, setSectorDetailTab] = useState<'ficha' | 'pedidos'>('ficha')
-  const [fichaForm, setFichaForm] = useState<Partial<SetorDbRow>>({})
-  const [fichaFormSaving, setFichaFormSaving] = useState(false)
-  const [fichaFormError, setFichaFormError] = useState<string | null>(null)
-  const [fichaFormSuccess, setFichaFormSuccess] = useState(false)
+  // ── Production Flow state ──────────────────────────────────────────────────
+  const [prodItems, setProdItems] = useState<ProdItem[]>([])
+  const [prodItemsLoading, setProdItemsLoading] = useState(false)
+  const [prodItemsError, setProdItemsError] = useState<string | null>(null)
+  const [prodItemsQuery, setProdItemsQuery] = useState('')
+  const [selectedProdItem, setSelectedProdItem] = useState<ProdItem | null>(null)
+  const [prodEtapas, setProdEtapas] = useState<ProdEtapa[]>([])
+  const [prodEtapasLoading, setProdEtapasLoading] = useState(false)
+  const [showNewItemForm, setShowNewItemForm] = useState(false)
+  const [newItemName, setNewItemName] = useState('')
+  const [newItemSaving, setNewItemSaving] = useState(false)
+  const [newItemError, setNewItemError] = useState<string | null>(null)
+  const [newEtapaName, setNewEtapaName] = useState('')
+  const [newEtapaSaving, setNewEtapaSaving] = useState(false)
+  const [etapaEditId, setEtapaEditId] = useState<number | null>(null)
+  const [etapaEditName, setEtapaEditName] = useState('')
+  const [editItemMode, setEditItemMode] = useState(false)
+  const [editItemName, setEditItemName] = useState('')
+  const [showDeleteItemConfirm, setShowDeleteItemConfirm] = useState(false)
+  const [deleteItemLoading, setDeleteItemLoading] = useState(false)
 
   const { logout } = useAuth()
   const navigate = useNavigate()
@@ -317,7 +309,7 @@ export default function AdminPanel() {
       items: [
         { id: 'dashboard', title: 'Dashboard', icon: Home },
         { id: 'orders',    title: 'Pedidos',   icon: Box },
-        { id: 'sectors',   title: 'Setores',   icon: Layers },
+        { id: 'sectors',   title: 'Fluxo de Produção', icon: GitBranch },
         { id: 'clients',   title: 'Clientes',  icon: Users },
       ],
     },
@@ -383,21 +375,6 @@ export default function AdminPanel() {
     } finally { setOrdersLoading(false) }
   }
 
-  async function fetchSectorsDb() {
-    setSectorsDbLoading(true); setSectorsDbError(null)
-    try {
-      const [{ data: s, error: se }, { data: ps, error: pse }] = await Promise.all([
-        supabase.from('admin_setores').select('*').order('ordem'),
-        supabase.from('pedido_setores').select('*').order('ordem'),
-      ])
-      if (se) throw new Error(se.message)
-      if (pse) throw new Error(pse.message)
-      setSetoresDb((s ?? []) as SetorDbRow[])
-      setPedidoSetores((ps ?? []) as PedidoSetorRow[])
-    } catch (err) { setSectorsDbError(err instanceof Error ? err.message : 'Erro ao carregar setores.') }
-    finally { setSectorsDbLoading(false) }
-  }
-
   async function clearLogs() {
     setClearLogsLoading(true)
     try {
@@ -425,29 +402,19 @@ export default function AdminPanel() {
   useEffect(() => { localStorage.setItem(ADMIN_MODULE_STORAGE_KEY, selectedModule) }, [selectedModule])
 
   useEffect(() => {
-    if (!selectedSectorCodigo) return
-    const s = setoresDb.find(x => x.codigo === selectedSectorCodigo)
-    if (!s) return
-    setFichaForm({
-      nome: s.nome, abreviat: s.abreviat ?? '', qtde_dia: s.qtde_dia ?? null, horas: s.horas ?? null,
-      imprimir: s.imprimir ?? false, sda_ent: s.sda_ent ?? false, prefabric: s.prefabric ?? false,
-      ibama: s.ibama ?? false, usar_iwd: s.usar_iwd ?? false, usar_graf: s.usar_graf ?? false,
-      palmilha: s.palmilha ?? false, cabedal: s.cabedal ?? false, sola: s.sola ?? false, embalagem: s.embalagem ?? false,
-    })
-    setFichaFormError(null); setFichaFormSuccess(false)
-  }, [selectedSectorCodigo, setoresDb])
-
-  useEffect(() => {
     async function run() { const { count, error } = await supabase.from('pedidos').select('*', { count: 'exact', head: true }); if (!error) setTotalOrders(count ?? 0) }
     void run(); const id = setInterval(() => { void run() }, 60_000); return () => clearInterval(id)
   }, [])
 
   useEffect(() => {
-    if (selectedModule !== 'orders' && selectedModule !== 'sectors' && selectedModule !== 'clients') return
+    if (selectedModule !== 'orders' && selectedModule !== 'clients') return
     if (orders.length === 0) void fetchAllOrders()
-    if (selectedModule === 'sectors') void fetchSectorsDb()
-    const id = setInterval(() => { void fetchAllOrders(); if (selectedModule === 'sectors') void fetchSectorsDb() }, 60_000)
+    const id = setInterval(() => { void fetchAllOrders() }, 60_000)
     return () => clearInterval(id)
+  }, [selectedModule])
+
+  useEffect(() => {
+    if (selectedModule === 'sectors') void fetchProdItems()
   }, [selectedModule])
 
   useEffect(() => {
@@ -455,97 +422,108 @@ export default function AdminPanel() {
     void fetchLogs()
   }, [selectedModule])
 
-  // ── Sector operations ─────────────────────────────────────────────────────
+  // ── Production Flow operations ────────────────────────────────────────────
 
-  function handleSetorFormChange(codigo: string) {
-    const setor = setorMap.get(codigo)
-    setAssignForm(f => ({ ...f, setor: codigo, nomeset: asText(setor?.NOME) }))
+  async function fetchProdItems() {
+    setProdItemsLoading(true); setProdItemsError(null)
+    try {
+      const { data, error } = await supabase.from('prod_items').select('*').order('nome')
+      if (error) throw new Error(error.message)
+      setProdItems((data ?? []) as ProdItem[])
+    } catch (err) { setProdItemsError(err instanceof Error ? err.message : 'Erro ao carregar.') }
+    finally { setProdItemsLoading(false) }
   }
 
-  async function saveAssignment() {
-    if (!assignSelectedTalao || !assignForm.setor || !assignForm.data || !assignForm.qtde) return
-    setAssignSaving(true); setAssignError(null); setAssignSuccess(false)
+  async function fetchProdEtapas(itemId: number) {
+    setProdEtapasLoading(true)
     try {
-      const { error } = await supabase.from('talsetor').insert({
-        TALAO: assignSelectedTalao,
-        SETOR: assignForm.setor,
-        NOMESET: assignForm.nomeset || null,
-        DATA: assignForm.data,
-        QTDE: Number(assignForm.qtde),
-        REMESSA: assignForm.remessa || null,
+      const { data, error } = await supabase.from('prod_etapas').select('*').eq('item_id', itemId).order('ordem')
+      if (error) throw new Error(error.message)
+      setProdEtapas((data ?? []) as ProdEtapa[])
+    } catch { /* silent */ }
+    finally { setProdEtapasLoading(false) }
+  }
+
+  async function createProdItem() {
+    if (!newItemName.trim()) return
+    setNewItemSaving(true); setNewItemError(null)
+    try {
+      const { data, error } = await supabase.from('prod_items').insert({ nome: newItemName.trim(), descricao: null }).select().single()
+      if (error) throw new Error(error.message)
+      setNewItemName(''); setShowNewItemForm(false)
+      await fetchProdItems()
+      setSelectedProdItem(data as ProdItem)
+      setProdEtapas([])
+    } catch (err) { setNewItemError(err instanceof Error ? err.message : 'Erro ao criar.') }
+    finally { setNewItemSaving(false) }
+  }
+
+  async function createProdEtapa() {
+    if (!selectedProdItem || !newEtapaName.trim()) return
+    setNewEtapaSaving(true)
+    try {
+      const nextOrdem = prodEtapas.length > 0 ? Math.max(...prodEtapas.map(e => e.ordem)) + 1 : 1
+      const { error } = await supabase.from('prod_etapas').insert({
+        item_id: selectedProdItem.id, nome: newEtapaName.trim(), ordem: nextOrdem,
       })
       if (error) throw new Error(error.message)
-      setAssignSuccess(true)
-      setAssignForm(f => ({ ...f, qtde: '', remessa: '' }))
-      const newRows = await fetchTableRows<TalsetorRow>('talsetor')
-      newRows.sort((a, b) => {
-        const r = asText(a.TALAO).localeCompare(asText(b.TALAO), 'pt-BR')
-        return r !== 0 ? r : asText(b.DATA).localeCompare(asText(a.DATA), 'pt-BR')
-      })
-      setTalsetor(newRows)
-    } catch (err) { setAssignError(err instanceof Error ? err.message : 'Erro ao salvar.') }
-    finally { setAssignSaving(false) }
+      setNewEtapaName('')
+      await fetchProdEtapas(selectedProdItem.id)
+    } catch { /* silent */ }
+    finally { setNewEtapaSaving(false) }
   }
 
-  // ── Sector DB operations ──────────────────────────────────────────────────
-
-  async function createSector() {
-    if (!newSectorForm.nome.trim()) return
-    setNewSectorSaving(true); setNewSectorError(null)
+  async function deleteProdEtapa(id: number) {
+    if (!selectedProdItem) return
     try {
-      const codigo = newSectorForm.nome.trim().toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '_').slice(0, 20)
-      const { error } = await supabase.from('admin_setores').insert({
-        codigo,
-        nome: newSectorForm.nome.trim(),
-      })
-      if (error) throw new Error(error.message)
-      setNewSectorForm({ codigo: '', nome: '', ordem: '0' })
-      setShowNewSectorForm(false)
-      await fetchSectorsDb()
-    } catch (err) { setNewSectorError(err instanceof Error ? err.message : 'Erro ao criar setor.') }
-    finally { setNewSectorSaving(false) }
-  }
-
-  async function assignPedidoToSector(pedido_codigo: string, setor_codigo: string) {
-    try {
-      await supabase.from('pedido_setores').insert({ pedido_codigo, setor_codigo, ordem: 0 })
-      const { data } = await supabase.from('pedido_setores').select('*').order('ordem')
-      setPedidoSetores((data ?? []) as PedidoSetorRow[])
+      await supabase.from('prod_etapas').delete().eq('id', id)
+      const remaining = prodEtapas.filter(e => e.id !== id).map((e, i) => ({ ...e, ordem: i + 1 }))
+      setProdEtapas(remaining)
+      for (const e of remaining) await supabase.from('prod_etapas').update({ ordem: e.ordem }).eq('id', e.id)
     } catch { /* silent */ }
   }
 
-  async function removePedidoFromSector(id: number) {
+  async function moveEtapa(id: number, direction: 'up' | 'down') {
+    const idx = prodEtapas.findIndex(e => e.id === id)
+    if (idx === -1) return
+    const targetIdx = direction === 'up' ? idx - 1 : idx + 1
+    if (targetIdx < 0 || targetIdx >= prodEtapas.length) return
+    const next = [...prodEtapas]
+    ;[next[idx], next[targetIdx]] = [next[targetIdx], next[idx]]
+    const reordered = next.map((e, i) => ({ ...e, ordem: i + 1 }))
+    setProdEtapas(reordered)
+    for (const e of reordered) await supabase.from('prod_etapas').update({ ordem: e.ordem }).eq('id', e.id)
+  }
+
+  async function saveEtapaName(id: number) {
+    if (!etapaEditName.trim()) return
     try {
-      await supabase.from('pedido_setores').delete().eq('id', id)
-      setPedidoSetores(prev => prev.filter(r => r.id !== id))
+      await supabase.from('prod_etapas').update({ nome: etapaEditName.trim() }).eq('id', id)
+      setProdEtapas(prev => prev.map(e => e.id === id ? { ...e, nome: etapaEditName.trim() } : e))
+      setEtapaEditId(null)
     } catch { /* silent */ }
   }
 
-  async function saveFicha() {
-    if (!selectedSectorCodigo) return
-    setFichaFormSaving(true); setFichaFormError(null); setFichaFormSuccess(false)
+  async function deleteProdItem() {
+    if (!selectedProdItem) return
+    setDeleteItemLoading(true)
     try {
-      const { error } = await supabase.from('admin_setores').update({
-        nome: fichaForm.nome,
-        abreviat: fichaForm.abreviat || null,
-        qtde_dia: fichaForm.qtde_dia ?? null,
-        horas: fichaForm.horas ?? null,
-        imprimir: fichaForm.imprimir ?? false,
-        sda_ent: fichaForm.sda_ent ?? false,
-        prefabric: fichaForm.prefabric ?? false,
-        ibama: fichaForm.ibama ?? false,
-        usar_iwd: fichaForm.usar_iwd ?? false,
-        usar_graf: fichaForm.usar_graf ?? false,
-        palmilha: fichaForm.palmilha ?? false,
-        cabedal: fichaForm.cabedal ?? false,
-        sola: fichaForm.sola ?? false,
-        embalagem: fichaForm.embalagem ?? false,
-      }).eq('codigo', selectedSectorCodigo)
-      if (error) throw new Error(error.message)
-      setFichaFormSuccess(true)
-      await fetchSectorsDb()
-    } catch (err) { setFichaFormError(err instanceof Error ? err.message : 'Erro ao salvar.') }
-    finally { setFichaFormSaving(false) }
+      await supabase.from('prod_items').delete().eq('id', selectedProdItem.id)
+      setSelectedProdItem(null); setProdEtapas([]); setShowDeleteItemConfirm(false)
+      await fetchProdItems()
+    } catch { /* silent */ }
+    finally { setDeleteItemLoading(false) }
+  }
+
+  async function saveItemName() {
+    if (!selectedProdItem || !editItemName.trim()) return
+    try {
+      await supabase.from('prod_items').update({ nome: editItemName.trim() }).eq('id', selectedProdItem.id)
+      const updated = { ...selectedProdItem, nome: editItemName.trim() }
+      setSelectedProdItem(updated)
+      setProdItems(prev => prev.map(i => i.id === selectedProdItem.id ? updated : i))
+      setEditItemMode(false)
+    } catch { /* silent */ }
   }
 
   // ── Computed maps ─────────────────────────────────────────────────────────
@@ -562,21 +540,11 @@ export default function AdminPanel() {
     return m
   }, [fichas])
 
-
   const pedidoMap = useMemo(() => {
     const m = new Map<string, PedidoRow>()
     for (const p of orders) { const k = asText(p.CODIGO).trim(); if (k) m.set(k, p) }
     return m
   }, [orders])
-
-  const setorMap = useMemo(() => {
-    const m = new Map<string, { CODIGO: string; NOME: string }>()
-    for (const ts of talsetor) {
-      const k = asText(ts.SETOR).trim()
-      if (k && !m.has(k)) m.set(k, { CODIGO: k, NOME: asText(ts.NOMESET) || k })
-    }
-    return m
-  }, [talsetor])
 
   const taloesByPedido = useMemo(() => {
     const m = new Map<string, TalaoRow[]>()
@@ -731,23 +699,6 @@ export default function AdminPanel() {
       scannerControlsRef.current = null
     }
   }, [scannerOpen])
-
-  // ── Sectors assign ────────────────────────────────────────────────────────
-
-  const assignFilteredPedidos = useMemo(() => {
-    const q = assignQuery.trim().toLowerCase(); if (!q) return orders.slice(0, 30)
-    return orders.filter(p => {
-      const cli = cliMap.get(asText(p.CLIENTE).trim())
-      const cliNome = asText(cli?.FANTASIA || cli?.NOME)
-      return [asText(p.CODIGO), asText(p.NOME), asText(p.CLIENTE), cliNome].some(v => v.toLowerCase().includes(q))
-    }).slice(0, 30)
-  }, [orders, assignQuery, cliMap])
-
-  const assignSelectedTalao = assignOpenTalao
-  const assignTaloes = useMemo(
-    () => assignSelectedPedido ? (taloesByPedido.get(asText(assignSelectedPedido.CODIGO).trim()) ?? []) : [],
-    [assignSelectedPedido, taloesByPedido]
-  )
 
   // ─────────────────────────────────────────────────────────────────────────
   return (
@@ -1470,298 +1421,283 @@ export default function AdminPanel() {
           </div>
         )}
 
-        {/* ── SECTORS ── */}
-        {selectedModule === 'sectors' && (
-          <>
-            {/* List panel */}
-            <div className="w-[300px] shrink-0 border-r border-[var(--th-border)] flex flex-col bg-[var(--th-card)]">
-              <div className="px-4 py-4 border-b border-[var(--th-border)] shrink-0">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-[var(--th-txt-1)]">Setores</span>
-                    <span className="text-xs bg-[var(--th-subtle)] px-2 py-0.5 rounded-full text-[var(--th-txt-4)]">{setoresDb.length}</span>
+        {/* ── SECTORS (Production Flow) ── */}
+        {selectedModule === 'sectors' && (() => {
+          const q = prodItemsQuery.trim().toLowerCase()
+          const filtered = q ? prodItems.filter(i => i.nome.toLowerCase().includes(q)) : prodItems
+          return (
+            <>
+              {/* List panel */}
+              <div className="w-[300px] shrink-0 border-r border-[var(--th-border)] flex flex-col bg-[var(--th-card)]">
+                <div className="px-4 py-4 border-b border-[var(--th-border)] shrink-0">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-[var(--th-txt-1)]">Itens</span>
+                      <span className="text-xs bg-[var(--th-subtle)] px-2 py-0.5 rounded-full text-[var(--th-txt-4)]">{filtered.length}</span>
+                    </div>
+                    <div className="flex items-center gap-0.5">
+                      <button type="button" onClick={() => void fetchProdItems()}
+                        className="p-1.5 rounded text-[var(--th-txt-4)] hover:bg-[var(--th-hover)] transition-colors">
+                        <RefreshCw strokeWidth={1.5} className={`w-3.5 h-3.5 ${prodItemsLoading ? 'animate-spin' : ''}`} />
+                      </button>
+                      <button type="button" onClick={() => { setShowNewItemForm(v => !v); setNewItemName(''); setNewItemError(null) }}
+                        className={`p-1.5 rounded transition-colors ${showNewItemForm ? 'bg-orange-500/15 text-orange-400' : 'text-[var(--th-txt-4)] hover:bg-[var(--th-hover)]'}`}>
+                        <Plus strokeWidth={1.5} className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-0.5">
-                    <button type="button" onClick={() => { void fetchSectorsDb() }} className="p-1.5 rounded text-[var(--th-txt-4)] hover:bg-[var(--th-hover)] transition-colors">
-                      <RefreshCw strokeWidth={1.5} className={`w-3.5 h-3.5 ${sectorsDbLoading ? 'animate-spin' : ''}`} />
-                    </button>
-                    <button type="button" onClick={() => { setShowNewSectorForm(v => !v); setNewSectorError(null) }}
-                      className={`p-1.5 rounded transition-colors ${showNewSectorForm ? 'bg-orange-500/15 text-orange-400' : 'text-[var(--th-txt-4)] hover:bg-[var(--th-hover)]'}`}>
-                      <Plus strokeWidth={1.5} className="w-3.5 h-3.5" />
-                    </button>
+                  {showNewItemForm && (
+                    <div className="rounded-lg border border-[var(--th-border)] p-3 space-y-2 bg-[var(--th-subtle)] mb-3">
+                      <input
+                        value={newItemName}
+                        onChange={e => setNewItemName(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter') void createProdItem() }}
+                        placeholder="Nome do item *"
+                        autoFocus
+                        className="w-full rounded-lg border border-[var(--th-border)] bg-[var(--th-card)] px-2.5 py-1.5 text-xs text-[var(--th-txt-1)] placeholder:text-[var(--th-txt-4)] focus:outline-none focus:ring-1 focus:ring-orange-500/50"
+                      />
+                      {newItemError && <p className="text-[11px] text-red-400">{newItemError}</p>}
+                      <div className="flex gap-2">
+                        <button type="button" onClick={() => void createProdItem()}
+                          disabled={newItemSaving || !newItemName.trim()}
+                          className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg bg-orange-500 text-white text-xs font-medium hover:bg-orange-600 disabled:opacity-40 transition-colors">
+                          {newItemSaving ? <RefreshCw strokeWidth={2} className="w-3 h-3 animate-spin" /> : <Check strokeWidth={2} className="w-3 h-3" />}
+                          Criar
+                        </button>
+                        <button type="button" onClick={() => { setShowNewItemForm(false); setNewItemName(''); setNewItemError(null) }}
+                          className="px-3 py-1.5 rounded-lg border border-[var(--th-border)] text-xs text-[var(--th-txt-3)] hover:bg-[var(--th-hover)]">
+                          Cancelar
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  <div className="relative">
+                    <Search strokeWidth={1.5} className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--th-txt-4)]" />
+                    <input value={prodItemsQuery} onChange={e => setProdItemsQuery(e.target.value)}
+                      placeholder="Buscar item..."
+                      className="w-full rounded-lg border border-[var(--th-border)] bg-[var(--th-subtle)] pl-8 pr-3 py-1.5 text-[13px] text-[var(--th-txt-1)] placeholder:text-[var(--th-txt-4)] focus:outline-none focus:ring-1 focus:ring-orange-500/50" />
                   </div>
                 </div>
 
-                {showNewSectorForm && (
-                  <div className="rounded-lg border border-[var(--th-border)] p-3 space-y-2 bg-[var(--th-subtle)]">
-                    <input
-                      value={newSectorForm.nome}
-                      onChange={e => setNewSectorForm(f => ({ ...f, nome: e.target.value }))}
-                      placeholder="Nome do setor *"
-                      autoFocus
-                      className="w-full rounded-lg border border-[var(--th-border)] bg-[var(--th-card)] px-2.5 py-1.5 text-xs text-[var(--th-txt-1)] placeholder:text-[var(--th-txt-4)] focus:outline-none focus:ring-1 focus:ring-orange-500/50"
-                    />
-                    {newSectorError && <p className="text-[11px] text-red-400">{newSectorError}</p>}
-                    <div className="flex gap-2">
-                      <button type="button" onClick={() => { void createSector() }}
-                        disabled={newSectorSaving || !newSectorForm.nome.trim()}
-                        className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg bg-orange-500 text-white text-xs font-medium hover:bg-orange-600 disabled:opacity-40 transition-colors">
-                        {newSectorSaving ? <RefreshCw strokeWidth={2} className="w-3 h-3 animate-spin" /> : <Check strokeWidth={2} className="w-3 h-3" />}
-                        Criar
+                <div className="flex-1 overflow-y-auto p-2 space-y-1">
+                  {prodItemsError && <div className="px-3 py-2 text-xs text-red-400 bg-red-500/10 rounded-lg border border-red-500/20">{prodItemsError}</div>}
+                  {prodItemsLoading && prodItems.length === 0 && <div className="px-4 py-8 text-center text-sm text-[var(--th-txt-3)]">Carregando...</div>}
+                  {!prodItemsLoading && prodItems.length === 0 && !prodItemsError && (
+                    <div className="px-4 py-16 text-center text-sm text-[var(--th-txt-3)]">Nenhum item.<br /><span className="text-xs">Clique em + para criar.</span></div>
+                  )}
+                  {!prodItemsLoading && prodItems.length > 0 && filtered.length === 0 && (
+                    <div className="px-4 py-8 text-center text-sm text-[var(--th-txt-3)]">Sem resultados.</div>
+                  )}
+                  {filtered.map(item => {
+                    const etapaCount = item.id === selectedProdItem?.id ? prodEtapas.length : null
+                    const isSelected = selectedProdItem?.id === item.id
+                    return (
+                      <button key={item.id} type="button"
+                        onClick={() => {
+                          setSelectedProdItem(item)
+                          setEditItemMode(false)
+                          setEtapaEditId(null)
+                          if (selectedProdItem?.id !== item.id) void fetchProdEtapas(item.id)
+                        }}
+                        className={isSelected
+                          ? 'w-full text-left rounded-xl border border-orange-500/40 bg-orange-500/8 px-4 py-3 transition-all'
+                          : 'w-full text-left rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] px-4 py-3 transition-all hover:border-orange-500/30 hover:bg-orange-500/5'}>
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-[13px] font-medium text-[var(--th-txt-1)] truncate">{item.nome}</span>
+                          {etapaCount !== null && etapaCount > 0 && (
+                            <span className="text-[10px] text-orange-400 bg-orange-500/10 px-1.5 py-0.5 rounded-full shrink-0">{etapaCount} etapas</span>
+                          )}
+                        </div>
                       </button>
-                      <button type="button" onClick={() => { setShowNewSectorForm(false); setNewSectorForm({ codigo: '', nome: '', ordem: '0' }); setNewSectorError(null) }}
-                        className="px-3 py-1.5 rounded-lg border border-[var(--th-border)] text-xs text-[var(--th-txt-3)] hover:bg-[var(--th-hover)]">
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Detail panel */}
+              <div className="flex-1 overflow-y-auto p-6">
+                {!selectedProdItem && (
+                  <div className="flex flex-col items-center justify-center py-24 text-[var(--th-txt-4)]">
+                    <GitBranch strokeWidth={1} className="w-12 h-12 mb-3 opacity-30" />
+                    <p className="text-sm">Selecione um item para ver seu fluxo de produção</p>
+                  </div>
+                )}
+
+                {selectedProdItem && (
+                  <div className="max-w-2xl space-y-5">
+                    {/* Item header */}
+                    <div className="flex items-start justify-between gap-4 pb-5 border-b border-[var(--th-border)]">
+                      <div className="flex-1 min-w-0">
+                        {editItemMode ? (
+                          <div className="flex items-center gap-2">
+                            <input
+                              value={editItemName}
+                              onChange={e => setEditItemName(e.target.value)}
+                              onKeyDown={e => { if (e.key === 'Enter') void saveItemName(); if (e.key === 'Escape') setEditItemMode(false) }}
+                              autoFocus
+                              className="flex-1 rounded-lg border border-orange-500/40 bg-[var(--th-subtle)] px-3 py-1.5 text-lg font-bold text-[var(--th-txt-1)] focus:outline-none focus:ring-1 focus:ring-orange-500/50"
+                            />
+                            <button type="button" onClick={() => void saveItemName()}
+                              className="p-1.5 rounded-lg bg-orange-500 text-white hover:bg-orange-600 transition-colors">
+                              <Check strokeWidth={2} className="w-4 h-4" />
+                            </button>
+                            <button type="button" onClick={() => setEditItemMode(false)}
+                              className="p-1.5 rounded-lg border border-[var(--th-border)] hover:bg-[var(--th-hover)] text-[var(--th-txt-4)]">
+                              <X strokeWidth={2} className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2.5">
+                            <h2 className="text-xl font-bold text-[var(--th-txt-1)] leading-snug">{selectedProdItem.nome}</h2>
+                            <button type="button"
+                              onClick={() => { setEditItemMode(true); setEditItemName(selectedProdItem.nome) }}
+                              className="p-1 rounded hover:bg-[var(--th-hover)] text-[var(--th-txt-4)] transition-colors">
+                              <Pencil strokeWidth={1.5} className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        )}
+                        <p className="text-xs text-[var(--th-txt-4)] mt-1">{prodEtapas.length} etapa(s) de produção</p>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button type="button" onClick={() => setShowDeleteItemConfirm(true)}
+                          className="p-1.5 rounded-lg hover:bg-red-500/10 hover:text-red-400 text-[var(--th-txt-4)] transition-colors">
+                          <Trash2 strokeWidth={1.5} className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Etapas section */}
+                    <div className="rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] overflow-hidden">
+                      <div className="px-4 py-3 border-b border-[var(--th-border)] bg-[var(--th-subtle)] flex items-center justify-between">
+                        <p className="text-xs font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Fluxo de Produção</p>
+                        <span className="text-[10px] text-[var(--th-txt-4)]">{prodEtapas.length} etapas</span>
+                      </div>
+
+                      {prodEtapasLoading && (
+                        <div className="px-4 py-8 text-center text-sm text-[var(--th-txt-3)]">Carregando...</div>
+                      )}
+                      {!prodEtapasLoading && prodEtapas.length === 0 && (
+                        <div className="px-4 py-10 text-center">
+                          <GitBranch strokeWidth={1} className="w-8 h-8 mx-auto mb-2 opacity-20 text-[var(--th-txt-4)]" />
+                          <p className="text-sm text-[var(--th-txt-3)]">Nenhuma etapa definida.</p>
+                          <p className="text-xs text-[var(--th-txt-4)] mt-0.5">Adicione as etapas abaixo para montar o fluxo.</p>
+                        </div>
+                      )}
+                      {!prodEtapasLoading && prodEtapas.map((etapa, idx) => (
+                        <div key={etapa.id}>
+                          <div className="flex items-center gap-3 px-4 py-3 group hover:bg-[var(--th-hover)] transition-colors">
+                            {/* Step number */}
+                            <div className="w-7 h-7 rounded-full border border-orange-500/30 bg-orange-500/10 flex items-center justify-center shrink-0">
+                              <span className="text-[11px] font-bold text-orange-400">{String(idx + 1).padStart(2, '0')}</span>
+                            </div>
+                            {/* Name / edit */}
+                            <div className="flex-1 min-w-0">
+                              {etapaEditId === etapa.id ? (
+                                <div className="flex items-center gap-2">
+                                  <input
+                                    value={etapaEditName}
+                                    onChange={e => setEtapaEditName(e.target.value)}
+                                    onKeyDown={e => { if (e.key === 'Enter') void saveEtapaName(etapa.id); if (e.key === 'Escape') setEtapaEditId(null) }}
+                                    autoFocus
+                                    className="flex-1 rounded border border-orange-500/40 bg-[var(--th-subtle)] px-2 py-1 text-sm text-[var(--th-txt-1)] focus:outline-none focus:ring-1 focus:ring-orange-500/50"
+                                  />
+                                  <button type="button" onClick={() => void saveEtapaName(etapa.id)}
+                                    className="p-1 rounded bg-orange-500 text-white hover:bg-orange-600">
+                                    <Check strokeWidth={2} className="w-3 h-3" />
+                                  </button>
+                                  <button type="button" onClick={() => setEtapaEditId(null)}
+                                    className="p-1 rounded border border-[var(--th-border)] hover:bg-[var(--th-hover)] text-[var(--th-txt-4)]">
+                                    <X strokeWidth={2} className="w-3 h-3" />
+                                  </button>
+                                </div>
+                              ) : (
+                                <span className="text-sm font-medium text-[var(--th-txt-1)]">{etapa.nome}</span>
+                              )}
+                            </div>
+                            {/* Actions */}
+                            {etapaEditId !== etapa.id && (
+                              <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button type="button" onClick={() => { setEtapaEditId(etapa.id); setEtapaEditName(etapa.nome) }}
+                                  className="p-1 rounded hover:bg-[var(--th-hover)] text-[var(--th-txt-4)] transition-colors">
+                                  <Pencil strokeWidth={1.5} className="w-3.5 h-3.5" />
+                                </button>
+                                <button type="button" onClick={() => void moveEtapa(etapa.id, 'up')}
+                                  disabled={idx === 0}
+                                  className="p-1 rounded hover:bg-[var(--th-hover)] text-[var(--th-txt-4)] disabled:opacity-20 transition-colors">
+                                  <ChevronUp strokeWidth={2} className="w-3.5 h-3.5" />
+                                </button>
+                                <button type="button" onClick={() => void moveEtapa(etapa.id, 'down')}
+                                  disabled={idx === prodEtapas.length - 1}
+                                  className="p-1 rounded hover:bg-[var(--th-hover)] text-[var(--th-txt-4)] disabled:opacity-20 transition-colors">
+                                  <ChevronDown strokeWidth={2} className="w-3.5 h-3.5" />
+                                </button>
+                                <button type="button" onClick={() => void deleteProdEtapa(etapa.id)}
+                                  className="p-1 rounded hover:bg-red-500/10 hover:text-red-400 text-[var(--th-txt-4)] transition-colors">
+                                  <X strokeWidth={2} className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                          {idx < prodEtapas.length - 1 && (
+                            <div className="flex items-center pl-8 py-0">
+                              <div className="w-px h-4 bg-orange-500/20 ml-3" />
+                            </div>
+                          )}
+                        </div>
+                      ))}
+
+                      {/* Add etapa row */}
+                      <div className="px-4 py-3 border-t border-[var(--th-border)] bg-[var(--th-subtle)]">
+                        <div className="flex items-center gap-2">
+                          <input
+                            value={newEtapaName}
+                            onChange={e => setNewEtapaName(e.target.value)}
+                            onKeyDown={e => { if (e.key === 'Enter') void createProdEtapa() }}
+                            placeholder="Nome da nova etapa..."
+                            className="flex-1 rounded-lg border border-[var(--th-border)] bg-[var(--th-card)] px-3 py-1.5 text-[13px] text-[var(--th-txt-1)] placeholder:text-[var(--th-txt-4)] focus:outline-none focus:ring-1 focus:ring-orange-500/50"
+                          />
+                          <button type="button" onClick={() => void createProdEtapa()}
+                            disabled={newEtapaSaving || !newEtapaName.trim()}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-orange-500 hover:bg-orange-600 disabled:opacity-40 text-white text-xs font-medium transition-colors">
+                            {newEtapaSaving ? <RefreshCw strokeWidth={2} className="w-3 h-3 animate-spin" /> : <Plus strokeWidth={2} className="w-3 h-3" />}
+                            Adicionar
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Delete item confirm modal */}
+              {showDeleteItemConfirm && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center">
+                  <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowDeleteItemConfirm(false)} />
+                  <div className="relative bg-[var(--th-card)] border border-[var(--th-border)] rounded-2xl shadow-2xl p-6 w-[340px] flex flex-col gap-4">
+                    <div>
+                      <h3 className="text-base font-semibold text-[var(--th-txt-1)] mb-1">Excluir item</h3>
+                      <p className="text-sm text-[var(--th-txt-3)]">
+                        Tem certeza que deseja excluir <span className="font-semibold text-[var(--th-txt-1)]">"{selectedProdItem?.nome}"</span> e todas as suas etapas? Esta ação não pode ser desfeita.
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <button type="button" onClick={() => void deleteProdItem()}
+                        disabled={deleteItemLoading}
+                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 disabled:opacity-50 text-white text-sm font-medium transition-colors">
+                        {deleteItemLoading ? <RefreshCw strokeWidth={2} className="w-4 h-4 animate-spin" /> : <Trash2 strokeWidth={1.5} className="w-4 h-4" />}
+                        Excluir permanentemente
+                      </button>
+                      <button type="button" onClick={() => setShowDeleteItemConfirm(false)}
+                        className="px-4 py-2.5 rounded-xl border border-[var(--th-border)] text-sm text-[var(--th-txt-2)] hover:bg-[var(--th-hover)] transition-colors">
                         Cancelar
                       </button>
                     </div>
                   </div>
-                )}
-              </div>
-
-              <div className="flex-1 overflow-y-auto p-2 space-y-1">
-                {sectorsDbError && <div className="px-3 py-2 text-xs text-red-400 bg-red-500/10 rounded-lg border border-red-500/20">{sectorsDbError}</div>}
-                {sectorsDbLoading && setoresDb.length === 0 && (
-                  <div className="px-4 py-8 text-center text-sm text-[var(--th-txt-3)]">Carregando...</div>
-                )}
-                {!sectorsDbLoading && setoresDb.length === 0 && !sectorsDbError && (
-                  <div className="px-4 py-16 text-center text-sm text-[var(--th-txt-3)]">Nenhum setor cadastrado.<br /><span className="text-xs">Clique em + para criar.</span></div>
-                )}
-                {setoresDb.map(sector => {
-                  const assignedCount = pedidoSetores.filter(ps => ps.setor_codigo === sector.codigo).length
-                  const isSelected = selectedSectorCodigo === sector.codigo
-                  return (
-                    <button key={sector.codigo} type="button" onClick={() => { setSelectedSectorCodigo(sector.codigo); setSectorDetailTab('ficha') }}
-                      className={isSelected ? 'w-full text-left rounded-xl border border-orange-500/40 bg-orange-500/8 px-4 py-3 transition-all' : 'w-full text-left rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] px-4 py-3 transition-all hover:border-orange-500/30 hover:bg-orange-500/5'}>
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2 mb-0.5">
-                            <span className="text-[13px] font-medium text-[var(--th-txt-1)] truncate">{sector.nome}</span>
-                          </div>
-                          <span className="text-[11px] font-mono text-[var(--th-txt-3)]">{sector.codigo}</span>
-                        </div>
-                        {assignedCount > 0 && (
-                          <span className="text-[10px] text-[var(--th-txt-4)] bg-[var(--th-subtle)] px-1.5 py-0.5 rounded-full shrink-0 mt-0.5">{assignedCount}</span>
-                        )}
-                      </div>
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-
-            {/* Detail panel */}
-            <div className="flex-1 overflow-hidden flex flex-col">
-              {!selectedSectorCodigo && (
-                <div className="flex flex-col items-center justify-center py-16 text-[var(--th-txt-4)]">
-                  <Layers strokeWidth={1} className="w-12 h-12 mb-3 opacity-30" />
-                  <p className="text-sm">Selecione um setor para atribuir pedidos</p>
                 </div>
               )}
-
-              {selectedSectorCodigo && (() => {
-                const sector = setoresDb.find(s => s.codigo === selectedSectorCodigo)
-                if (!sector) return null
-                const assignedRows = pedidoSetores.filter(ps => ps.setor_codigo === sector.codigo)
-                const assignedPedidos = assignedRows.map(ps => ({ ps, pedido: pedidoMap.get(ps.pedido_codigo) })).filter(x => x.pedido)
-                const searchQ = sectorPedidoSearch.trim().toLowerCase()
-                const alreadyAssigned = new Set(assignedRows.map(r => r.pedido_codigo))
-                const availablePedidos = searchQ
-                  ? orders.filter(p => {
-                      if (alreadyAssigned.has(asText(p.CODIGO).trim())) return false
-                      const cli = cliMap.get(asText(p.CLIENTE).trim())
-                      const cliNome = asText(cli?.FANTASIA || cli?.NOME)
-                      return [asText(p.CODIGO), asText(p.NOME), asText(p.CLIENTE), cliNome].some(v => v.toLowerCase().includes(searchQ))
-                    }).slice(0, 8)
-                  : []
-                return (
-                  <div className="flex flex-col h-full">
-                    {/* Header */}
-                    <div className="px-6 pt-6 pb-0 shrink-0">
-                      <div className="flex items-start justify-between gap-4 mb-4">
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-3 flex-wrap mb-1">
-                            <h2 className="text-lg font-bold text-[var(--th-txt-1)]">{sector.nome}</h2>
-                            <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium border ${sector.ativo ? 'bg-green-500/15 text-green-400 border-green-500/30' : 'bg-[var(--th-subtle)] text-[var(--th-txt-4)] border-[var(--th-border)]'}`}>
-                              {sector.ativo ? 'Ativo' : 'Inativo'}
-                            </span>
-                          </div>
-                          <p className="text-xs text-[var(--th-txt-4)]">Código <span className="font-mono text-[var(--th-txt-2)]">{sector.codigo}</span></p>
-                        </div>
-                        <button type="button" onClick={() => setSelectedSectorCodigo(null)} className="p-1.5 rounded hover:bg-[var(--th-hover)] text-[var(--th-txt-4)] shrink-0">
-                          <X strokeWidth={1.5} className="w-4 h-4" />
-                        </button>
-                      </div>
-                      {/* Tabs */}
-                      <div className="flex gap-1 border-b border-[var(--th-border)]">
-                        {(['ficha', 'pedidos'] as const).map(tab => (
-                          <button key={tab} type="button" onClick={() => setSectorDetailTab(tab)}
-                            className={`px-4 py-2 text-xs font-medium border-b-2 -mb-px transition-colors capitalize ${sectorDetailTab === tab ? 'border-orange-500 text-orange-400' : 'border-transparent text-[var(--th-txt-4)] hover:text-[var(--th-txt-2)]'}`}>
-                            {tab === 'ficha' ? 'Ficha' : `Pedidos${assignedPedidos.length > 0 ? ` (${assignedPedidos.length})` : ''}`}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Tab content */}
-                    <div className="flex-1 overflow-y-auto p-6">
-
-                      {/* ── FICHA TAB ── */}
-                      {sectorDetailTab === 'ficha' && (
-                        <div className="space-y-5 max-w-lg">
-                          {/* Text fields */}
-                          <div className="grid grid-cols-2 gap-3">
-                            <div className="col-span-2">
-                              <label className="block text-xs text-[var(--th-txt-4)] mb-1">Nome</label>
-                              <input value={fichaForm.nome ?? ''} onChange={e => setFichaForm(f => ({ ...f, nome: e.target.value }))}
-                                className="w-full rounded-lg border border-[var(--th-border)] bg-[var(--th-card)] px-3 py-2 text-sm text-[var(--th-txt-1)] focus:outline-none focus:ring-1 focus:ring-orange-500/50" />
-                            </div>
-                            <div>
-                              <label className="block text-xs text-[var(--th-txt-4)] mb-1">Abreviação</label>
-                              <input value={fichaForm.abreviat ?? ''} onChange={e => setFichaForm(f => ({ ...f, abreviat: e.target.value }))} maxLength={20}
-                                className="w-full rounded-lg border border-[var(--th-border)] bg-[var(--th-card)] px-3 py-2 text-sm text-[var(--th-txt-1)] focus:outline-none focus:ring-1 focus:ring-orange-500/50" />
-                            </div>
-                            <div>
-                              <label className="block text-xs text-[var(--th-txt-4)] mb-1">Qtd / Dia</label>
-                              <input type="number" min="0" value={fichaForm.qtde_dia ?? ''} onChange={e => setFichaForm(f => ({ ...f, qtde_dia: e.target.value ? Number(e.target.value) : null }))}
-                                className="w-full rounded-lg border border-[var(--th-border)] bg-[var(--th-card)] px-3 py-2 text-sm text-[var(--th-txt-1)] focus:outline-none focus:ring-1 focus:ring-orange-500/50" />
-                            </div>
-                            <div>
-                              <label className="block text-xs text-[var(--th-txt-4)] mb-1">Horas</label>
-                              <input type="number" min="0" value={fichaForm.horas ?? ''} onChange={e => setFichaForm(f => ({ ...f, horas: e.target.value ? Number(e.target.value) : null }))}
-                                className="w-full rounded-lg border border-[var(--th-border)] bg-[var(--th-card)] px-3 py-2 text-sm text-[var(--th-txt-1)] focus:outline-none focus:ring-1 focus:ring-orange-500/50" />
-                            </div>
-                          </div>
-
-                          {/* Boolean flags */}
-                          <div>
-                            <p className="text-xs font-semibold uppercase tracking-widest text-[var(--th-txt-4)] mb-3">Opções</p>
-                            <div className="grid grid-cols-2 gap-2">
-                              {([
-                                ['imprimir', 'Imprimir'], ['sda_ent', 'Sda/Ent'], ['prefabric', 'Pré-fabricar'],
-                                ['ibama', 'IBAMA'], ['usar_iwd', 'Usar IWD'], ['usar_graf', 'Usar Gráfico'],
-                                ['palmilha', 'Palmilha'], ['cabedal', 'Cabedal'], ['sola', 'Sola'], ['embalagem', 'Embalagem'],
-                              ] as [keyof SetorDbRow, string][]).map(([key, label]) => (
-                                <label key={key} className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg border border-[var(--th-border)] bg-[var(--th-card)] cursor-pointer hover:bg-[var(--th-hover)] transition-colors">
-                                  <input type="checkbox" checked={!!(fichaForm[key])}
-                                    onChange={e => setFichaForm(f => ({ ...f, [key]: e.target.checked }))}
-                                    className="w-3.5 h-3.5 rounded accent-orange-500" />
-                                  <span className="text-xs text-[var(--th-txt-2)]">{label}</span>
-                                </label>
-                              ))}
-                            </div>
-                          </div>
-
-                          {fichaFormError && <p className="text-xs text-red-400 bg-red-500/10 px-3 py-2 rounded-lg">{fichaFormError}</p>}
-                          {fichaFormSuccess && (
-                            <p className="text-xs text-green-400 bg-green-500/10 px-3 py-2 rounded-lg flex items-center gap-2">
-                              <Check strokeWidth={2} className="w-3.5 h-3.5" /> Ficha salva com sucesso!
-                            </p>
-                          )}
-                          <button type="button" onClick={() => { void saveFicha() }} disabled={fichaFormSaving}
-                            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-orange-500 text-white text-sm font-medium hover:bg-orange-600 disabled:opacity-40 transition-colors">
-                            <Save strokeWidth={1.5} className="w-4 h-4" />
-                            {fichaFormSaving ? 'Salvando...' : 'Salvar ficha'}
-                          </button>
-                        </div>
-                      )}
-
-                      {/* ── PEDIDOS TAB ── */}
-                      {sectorDetailTab === 'pedidos' && (
-                        <div className="space-y-5">
-                          {/* Search to assign */}
-                          <div>
-                            <p className="text-xs font-semibold uppercase tracking-widest text-[var(--th-txt-4)] mb-3">Atribuir Pedido</p>
-                            <div className="relative">
-                              <Search strokeWidth={1.5} className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--th-txt-4)]" />
-                              <input value={sectorPedidoSearch} onChange={e => setSectorPedidoSearch(e.target.value)}
-                                placeholder="Buscar por código, nome ou cliente..."
-                                className="w-full rounded-lg border border-[var(--th-border)] bg-[var(--th-subtle)] pl-8 pr-3 py-2 text-sm text-[var(--th-txt-1)] placeholder:text-[var(--th-txt-4)] focus:outline-none focus:ring-1 focus:ring-orange-500/50" />
-                            </div>
-                            {availablePedidos.length > 0 && (
-                              <div className="mt-1 rounded-lg border border-[var(--th-border)] bg-[var(--th-card)] overflow-hidden shadow-sm">
-                                {availablePedidos.map(p => {
-                                  const pc = asText(p.CODIGO).trim()
-                                  const cli = cliMap.get(asText(p.CLIENTE).trim())
-                                  const cliNome = asText(cli?.FANTASIA || cli?.NOME) || '—'
-                                  return (
-                                    <button key={pc} type="button"
-                                      onClick={() => { void assignPedidoToSector(pc, sector.codigo); setSectorPedidoSearch('') }}
-                                      className="w-full text-left px-3 py-2.5 hover:bg-[var(--th-hover)] border-b border-[var(--th-border)] last:border-0 flex items-center justify-between gap-2">
-                                      <div>
-                                        <span className="text-xs font-mono text-[var(--th-txt-2)]">{pc}</span>
-                                        <span className="text-xs text-[var(--th-txt-4)] ml-2">{cliNome}</span>
-                                      </div>
-                                      <Plus strokeWidth={2} className="w-3.5 h-3.5 text-orange-400 shrink-0" />
-                                    </button>
-                                  )
-                                })}
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Assigned pedidos */}
-                          <div>
-                            <p className="text-xs font-semibold uppercase tracking-widest text-[var(--th-txt-4)] mb-3">
-                              Pedidos Atribuídos{assignedPedidos.length > 0 ? ` (${assignedPedidos.length})` : ''}
-                            </p>
-                            {assignedPedidos.length === 0 && (
-                              <div className="rounded-xl border border-[var(--th-border)] border-dashed px-4 py-10 text-center text-[var(--th-txt-4)]">
-                                <p className="text-sm">Nenhum pedido atribuído.</p>
-                                <p className="text-xs mt-1">Use o campo acima para buscar e atribuir.</p>
-                              </div>
-                            )}
-                            {assignedPedidos.length > 0 && (
-                              <div className="rounded-xl border border-[var(--th-border)] overflow-hidden">
-                                <table className="w-full text-xs">
-                                  <thead>
-                                    <tr className="border-b border-[var(--th-border)] bg-[var(--th-subtle)]">
-                                      <th className="px-3 py-2.5 text-left text-[10px] font-medium text-[var(--th-txt-4)] uppercase tracking-widest">Pedido</th>
-                                      <th className="px-3 py-2.5 text-left text-[10px] font-medium text-[var(--th-txt-4)] uppercase tracking-widest">Cliente</th>
-                                      <th className="px-3 py-2.5 text-left text-[10px] font-medium text-[var(--th-txt-4)] uppercase tracking-widest">Previsão</th>
-                                      <th className="px-3 py-2.5 text-left text-[10px] font-medium text-[var(--th-txt-4)] uppercase tracking-widest">Status</th>
-                                      <th className="px-3 py-2.5 w-8"></th>
-                                    </tr>
-                                  </thead>
-                                  <tbody className="divide-y divide-[var(--th-border)]">
-                                    {assignedPedidos.map(({ ps, pedido }) => {
-                                      const pc = asText(pedido!.CODIGO).trim()
-                                      const cli = cliMap.get(asText(pedido!.CLIENTE).trim())
-                                      const cliNome = asText(cli?.FANTASIA || cli?.NOME) || '—'
-                                      const saldo = toNumber(pedido!.SALDO)
-                                      return (
-                                        <tr key={ps.id} className="hover:bg-[var(--th-hover)]">
-                                          <td className="px-3 py-2.5 font-mono text-[var(--th-txt-2)]">{pc}</td>
-                                          <td className="px-3 py-2.5 text-[var(--th-txt-2)] max-w-[200px] truncate">{cliNome}</td>
-                                          <td className="px-3 py-2.5 text-[var(--th-txt-3)]">{fmtDate(pedido!.PREVISAO)}</td>
-                                          <td className="px-3 py-2.5">
-                                            {saldo === 0
-                                              ? <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium border bg-green-500/15 text-green-400 border-green-500/30">Finalizado</span>
-                                              : <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium border bg-orange-500/15 text-orange-400 border-orange-500/30">Saldo {fmtNumber(saldo)}</span>
-                                            }
-                                          </td>
-                                          <td className="px-3 py-2.5">
-                                            <button type="button" onClick={() => { void removePedidoFromSector(ps.id) }}
-                                              className="p-1 rounded hover:bg-red-500/15 text-[var(--th-txt-4)] hover:text-red-400 transition-colors">
-                                              <X strokeWidth={2} className="w-3.5 h-3.5" />
-                                            </button>
-                                          </td>
-                                        </tr>
-                                      )
-                                    })}
-                                  </tbody>
-                                </table>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )
-              })()}
-            </div>
-          </>
-        )}
+            </>
+          )
+        })()}
 
         {/* ── Full-width modules ── */}
         {selectedModule !== 'orders' && selectedModule !== 'logs' && selectedModule !== 'sectors' && (
@@ -1806,193 +1742,6 @@ export default function AdminPanel() {
                         </div>
                       </div>
                     ))}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {false && (
-              <div className="space-y-5">
-                <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
-                  <div>
-                    <h1 className="text-2xl font-bold text-[var(--th-txt-1)] mb-1">Setores</h1>
-                    <p className="text-sm text-[var(--th-txt-3)]">Atribuir pedidos a setores</p>
-                  </div>
-                  <button onClick={() => { void fetchAllOrders() }}
-                    className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-[var(--th-border)] hover:bg-[var(--th-hover)] text-sm text-[var(--th-txt-2)]" type="button">
-                    <RefreshCw strokeWidth={1.5} className={`w-4 h-4 ${ordersLoading ? 'animate-spin' : ''}`} /> Atualizar
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-4">
-                  <div className="space-y-3">
-                    <div className="rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] overflow-hidden">
-                      <div className="p-3 border-b border-[var(--th-border)]">
-                        <div className="relative">
-                          <Search strokeWidth={1.5} className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--th-txt-4)]" />
-                          <input value={assignQuery} onChange={e => setAssignQuery(e.target.value)} placeholder="Buscar pedido..."
-                            className="w-full rounded-lg border border-[var(--th-border)] bg-transparent pl-9 pr-3 py-2 text-sm text-[var(--th-txt-1)] placeholder:text-[var(--th-txt-4)] focus:outline-none focus:ring-2 focus:ring-orange-500/40" />
-                        </div>
-                      </div>
-                      <div className="divide-y divide-[var(--th-border)] max-h-[400px] overflow-y-auto">
-                        {ordersLoading && orders.length === 0 && <div className="px-4 py-6 text-center text-sm text-[var(--th-txt-3)]">Carregando...</div>}
-                        {!ordersLoading && assignFilteredPedidos.length === 0 && <div className="px-4 py-6 text-center text-sm text-[var(--th-txt-3)]">Nenhum pedido.</div>}
-                        {assignFilteredPedidos.map(pedido => {
-                          const pc = asText(pedido.CODIGO).trim()
-                          const cli = cliMap.get(asText(pedido.CLIENTE).trim())
-                          const cliNome = asText(cli?.FANTASIA || cli?.NOME) || '—'
-                          const isSelected = assignSelectedPedido?.CODIGO === pedido.CODIGO
-                          return (
-                            <button key={pc} type="button"
-                              onClick={() => { setAssignSelectedPedido(pedido); setAssignOpenTalao(null); setAssignSuccess(false); setAssignError(null) }}
-                              className={`w-full text-left px-3 py-2.5 transition-colors hover:bg-[var(--th-hover)] ${isSelected ? 'bg-orange-500/10 border-l-2 border-orange-400' : ''}`}>
-                              <div className="font-mono text-sm text-[var(--th-txt-1)]">{pc}</div>
-                              <div className="text-xs text-[var(--th-txt-4)] truncate">{asText(pedido.NOME) || '—'} · {cliNome}</div>
-                            </button>
-                          )
-                        })}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    {!assignSelectedPedido && (
-                      <div className="rounded-xl border border-[var(--th-border)] border-dashed px-6 py-12 text-center text-[var(--th-txt-4)]">
-                        <Layers strokeWidth={1} className="w-10 h-10 mx-auto mb-3 opacity-40" />
-                        <p className="text-sm">Selecione um pedido para atribuir setores</p>
-                      </div>
-                    )}
-
-                    {assignSelectedPedido && (
-                      <>
-                        <div className="rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] px-4 py-3 flex items-center justify-between">
-                          <div>
-                            <span className="font-mono font-semibold text-[var(--th-txt-1)]">{asText(assignSelectedPedido?.CODIGO)}</span>
-                            <span className="ml-2 text-sm text-[var(--th-txt-3)]">{asText(assignSelectedPedido?.NOME) || '—'}</span>
-                          </div>
-                          <button type="button" onClick={() => { setAssignSelectedPedido(null); setAssignOpenTalao(null) }}
-                            className="p-1.5 rounded-lg hover:bg-[var(--th-hover)] text-[var(--th-txt-4)]">
-                            <X strokeWidth={1.5} className="w-4 h-4" />
-                          </button>
-                        </div>
-
-                        {assignTaloes.length === 0 && (
-                          <div className="rounded-xl border border-[var(--th-border)] px-4 py-6 text-center text-sm text-[var(--th-txt-3)]">Nenhum talão para este pedido.</div>
-                        )}
-
-                        {assignTaloes.map(talao => {
-                          const tc = asText(talao.CODIGO).trim()
-                          const isOpen = assignOpenTalao === tc
-                          const movs = (talsetorByTalao.get(tc) ?? []).sort((a, b) => asText(b.DATA).localeCompare(asText(a.DATA), 'pt-BR'))
-                          const fc = asText(talao.REFERENCIA).trim()
-                          const fn = asText(fichaMap.get(fc)?.NOME)
-                          const canc = isTruthy(talao.CANCELADO), fat = isTruthy(talao.FATURADO)
-                          return (
-                            <div key={tc} className="rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] overflow-hidden">
-                              <button type="button"
-                                onClick={() => { setAssignOpenTalao(isOpen ? null : tc); setAssignSuccess(false); setAssignError(null); setAssignForm(f => ({ ...f, remessa: asText(talao.REMESSA), qtde: '' })) }}
-                                className="w-full text-left px-4 py-3 hover:bg-[var(--th-hover)] flex items-center justify-between gap-3">
-                                <div className="min-w-0 flex items-center gap-2 flex-wrap">
-                                  {isOpen ? <ChevronDown strokeWidth={1.5} className="w-4 h-4 text-[var(--th-txt-4)] shrink-0" /> : <ChevronRight strokeWidth={1.5} className="w-4 h-4 text-[var(--th-txt-4)] shrink-0" />}
-                                  <span className="font-mono text-[var(--th-txt-1)]">{tc}</span>
-                                  {canc && <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-500/15 text-red-400">Cancelado</span>}
-                                  {fat && !canc && <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-500/15 text-green-400">Faturado</span>}
-                                  <span className="text-xs text-[var(--th-txt-4)]">Item {asText(talao.ITEM) || '—'} · {fc}{fn ? ` · ${fn}` : ''} · Remessa {asText(talao.REMESSA) || '—'}</span>
-                                </div>
-                                <span className="text-xs text-[var(--th-txt-4)] shrink-0">{movs.length} movimentos</span>
-                              </button>
-
-                              {isOpen && (
-                                <div className="border-t border-[var(--th-border)]">
-                                  {movs.length > 0 && (
-                                    <div className="overflow-auto border-b border-[var(--th-border)]">
-                                      <table className="w-full text-xs min-w-[480px]">
-                                        <thead><tr className="text-left text-[var(--th-txt-4)] bg-[var(--th-subtle)]">
-                                          <th className="px-3 py-2">Data</th><th className="px-3 py-2">Setor</th><th className="px-3 py-2">Nome Setor</th><th className="px-3 py-2">Qtd</th><th className="px-3 py-2">Remessa</th>
-                                        </tr></thead>
-                                        <tbody className="divide-y divide-[var(--th-border)]">
-                                          {movs.map((mv, i) => (
-                                            <tr key={i} className="hover:bg-[var(--th-hover)]">
-                                              <td className="px-3 py-2 text-[var(--th-txt-2)]">{fmtDate(mv.DATA)}</td>
-                                              <td className="px-3 py-2 font-mono text-[var(--th-txt-2)]">{asText(mv.SETOR) || '—'}</td>
-                                              <td className="px-3 py-2 text-[var(--th-txt-2)]">{asText(mv.NOMESET) || '—'}</td>
-                                              <td className="px-3 py-2 text-[var(--th-txt-2)]">{fmtNumber(mv.QTDE)}</td>
-                                              <td className="px-3 py-2 text-[var(--th-txt-3)]">{asText(mv.REMESSA) || '—'}</td>
-                                            </tr>
-                                          ))}
-                                        </tbody>
-                                      </table>
-                                    </div>
-                                  )}
-
-                                  <div className="px-4 py-4 space-y-4">
-                                    <p className="text-xs font-semibold text-[var(--th-txt-4)] uppercase tracking-widest flex items-center gap-2">
-                                      <Plus strokeWidth={2} className="w-3.5 h-3.5 text-orange-400" /> Novo movimento de setor
-                                    </p>
-
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                      <div>
-                                        <label className="block text-xs text-[var(--th-txt-4)] mb-1">Setor <span className="text-red-400">*</span></label>
-                                        <select value={assignForm.setor} onChange={e => handleSetorFormChange(e.target.value)}
-                                          className="w-full rounded-lg border border-[var(--th-border)] bg-[var(--th-card)] px-3 py-2 text-sm text-[var(--th-txt-1)] focus:outline-none focus:ring-2 focus:ring-orange-500/40">
-                                          <option value="">Selecionar setor...</option>
-                                          {[...setorMap.values()].sort((a, b) => a.NOME.localeCompare(b.NOME, 'pt-BR')).map(s => (
-                                            <option key={s.CODIGO} value={s.CODIGO}>{s.CODIGO} — {s.NOME}</option>
-                                          ))}
-                                        </select>
-                                      </div>
-                                      <div>
-                                        <label className="block text-xs text-[var(--th-txt-4)] mb-1">Nome do Setor</label>
-                                        <input value={assignForm.nomeset} onChange={e => setAssignForm(f => ({ ...f, nomeset: e.target.value }))}
-                                          placeholder="Auto-preenchido ao selecionar setor"
-                                          className="w-full rounded-lg border border-[var(--th-border)] bg-[var(--th-card)] px-3 py-2 text-sm text-[var(--th-txt-1)] placeholder:text-[var(--th-txt-4)] focus:outline-none focus:ring-2 focus:ring-orange-500/40" />
-                                      </div>
-                                      <div>
-                                        <label className="block text-xs text-[var(--th-txt-4)] mb-1">Data <span className="text-red-400">*</span></label>
-                                        <input type="date" value={assignForm.data} onChange={e => setAssignForm(f => ({ ...f, data: e.target.value }))}
-                                          className="w-full rounded-lg border border-[var(--th-border)] bg-[var(--th-card)] px-3 py-2 text-sm text-[var(--th-txt-1)] focus:outline-none focus:ring-2 focus:ring-orange-500/40" />
-                                      </div>
-                                      <div>
-                                        <label className="block text-xs text-[var(--th-txt-4)] mb-1">Quantidade <span className="text-red-400">*</span></label>
-                                        <input type="number" min="1" value={assignForm.qtde} onChange={e => setAssignForm(f => ({ ...f, qtde: e.target.value }))}
-                                          placeholder="0"
-                                          className="w-full rounded-lg border border-[var(--th-border)] bg-[var(--th-card)] px-3 py-2 text-sm text-[var(--th-txt-1)] placeholder:text-[var(--th-txt-4)] focus:outline-none focus:ring-2 focus:ring-orange-500/40" />
-                                      </div>
-                                      <div className="sm:col-span-2">
-                                        <label className="block text-xs text-[var(--th-txt-4)] mb-1">Remessa</label>
-                                        <input value={assignForm.remessa} onChange={e => setAssignForm(f => ({ ...f, remessa: e.target.value }))}
-                                          placeholder="Código da remessa (opcional)"
-                                          className="w-full rounded-lg border border-[var(--th-border)] bg-[var(--th-card)] px-3 py-2 text-sm text-[var(--th-txt-1)] placeholder:text-[var(--th-txt-4)] focus:outline-none focus:ring-2 focus:ring-orange-500/40" />
-                                      </div>
-                                    </div>
-
-                                    {assignError && <p className="text-xs text-red-400 bg-red-500/10 px-3 py-2 rounded-lg">{assignError}</p>}
-                                    {assignSuccess && (
-                                      <p className="text-xs text-green-400 bg-green-500/10 px-3 py-2 rounded-lg flex items-center gap-2">
-                                        <Check strokeWidth={2} className="w-3.5 h-3.5" /> Movimento salvo com sucesso!
-                                      </p>
-                                    )}
-
-                                    <div className="flex gap-2">
-                                      <button type="button" onClick={() => { void saveAssignment() }}
-                                        disabled={assignSaving || !assignForm.setor || !assignForm.data || !assignForm.qtde}
-                                        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-orange-500 text-white text-sm font-medium hover:bg-orange-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
-                                        <Save strokeWidth={1.5} className="w-4 h-4" />
-                                        {assignSaving ? 'Salvando...' : 'Salvar movimento'}
-                                      </button>
-                                      <button type="button" onClick={() => { setAssignOpenTalao(null); setAssignSuccess(false); setAssignError(null) }}
-                                        className="flex items-center gap-2 px-4 py-2 rounded-lg border border-[var(--th-border)] text-sm text-[var(--th-txt-3)] hover:bg-[var(--th-hover)]">
-                                        <X strokeWidth={1.5} className="w-4 h-4" /> Cancelar
-                                      </button>
-                                    </div>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          )
-                        })}
-                      </>
-                    )}
                   </div>
                 </div>
               </div>
