@@ -634,12 +634,18 @@ on conflict (username) do nothing;
 
 -- ── login_sessions ────────────────────────────────────────────
 create table if not exists public.login_sessions (
-  id         uuid primary key default gen_random_uuid(),
-  user_id    uuid not null references public.usuarios(id) on delete cascade,
-  token_hash text not null,
-  expires_at timestamptz not null,
-  revoked_at timestamptz,
-  created_at timestamptz not null default now()
+  id          uuid primary key default gen_random_uuid(),
+  user_id     uuid not null references public.usuarios(id) on delete cascade,
+  token_hash  text not null,
+  expires_at  timestamptz not null,
+  revoked_at  timestamptz,
+  created_at  timestamptz not null default now(),
+  -- device info (preenchido via RPC registrar_device_sessao após login)
+  ip          text,
+  user_agent  text,
+  device_type text,
+  os          text,
+  browser     text
 );
 create index if not exists idx_login_sessions_user_id    on public.login_sessions(user_id);
 create index if not exists idx_login_sessions_expires_at on public.login_sessions(expires_at);
@@ -699,10 +705,50 @@ language sql security definer as $$
     and token_hash = crypt(p_token, token_hash);
 $$;
 
+-- ── funções de device / logs ──────────────────────────────────
+
+-- Atualiza device info na sessão após login
+create or replace function public.registrar_device_sessao(
+  p_token text, p_ip text, p_user_agent text, p_device_type text, p_os text, p_browser text
+)
+returns void language sql security definer as $$
+  update public.login_sessions
+  set ip = p_ip, user_agent = p_user_agent, device_type = p_device_type, os = p_os, browser = p_browser
+  where token_hash = crypt(p_token, token_hash)
+    and revoked_at is null and expires_at > now();
+$$;
+
+-- Retorna histórico de acessos para o painel (sem token_hash)
+create or replace function public.get_login_activity()
+returns table (
+  id uuid, username text, nome text, ip text, user_agent text,
+  device_type text, os text, browser text,
+  created_at timestamptz, expires_at timestamptz, revoked_at timestamptz, status text
+)
+language sql security definer as $$
+  select ls.id, u.username, u.nome, ls.ip, ls.user_agent, ls.device_type, ls.os, ls.browser,
+    ls.created_at, ls.expires_at, ls.revoked_at,
+    case when ls.revoked_at is not null then 'logout'
+         when ls.expires_at < now()     then 'expirado'
+         else 'ativo' end as status
+  from public.login_sessions ls
+  join public.usuarios u on u.id = ls.user_id
+  order by ls.created_at desc;
+$$;
+
+-- Limpa todo o histórico de sessões
+create or replace function public.limpar_historico_sessoes()
+returns void language sql security definer as $$
+  delete from public.login_sessions where id is not null;
+$$;
+
 -- ── permissões RPC para anon ──────────────────────────────────
 revoke all on table public.usuarios       from anon;
 revoke all on table public.login_sessions from anon;
 
-grant execute on function public.criar_sessao_login(text, text) to anon;
-grant execute on function public.validar_sessao_login(text)     to anon;
-grant execute on function public.revogar_sessao_login(text)     to anon;
+grant execute on function public.criar_sessao_login(text, text)                          to anon;
+grant execute on function public.validar_sessao_login(text)                              to anon;
+grant execute on function public.revogar_sessao_login(text)                              to anon;
+grant execute on function public.registrar_device_sessao(text,text,text,text,text,text)  to anon;
+grant execute on function public.get_login_activity()                                    to anon, authenticated;
+grant execute on function public.limpar_historico_sessoes()                              to anon, authenticated;
