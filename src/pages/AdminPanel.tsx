@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react'
 import {
   Sun, Moon, LogOut, Settings, Users, Database, Package, Home, Box,
   ScrollText, RefreshCw, Search, ChevronDown, ChevronRight,
-  Layers, Plus, Save, X, Check, Monitor, Smartphone, ScanLine,
+  Layers, Plus, Save, X, Check, Monitor, Smartphone, ScanLine, Trash2,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
@@ -152,6 +152,8 @@ export default function AdminPanel() {
   const [logsLastSync, setLogsLastSync] = useState<Date | null>(null)
   const [selectedLog, setSelectedLog] = useState<DeviceLogRow | null>(null)
   const [logsQuery, setLogsQuery] = useState('')
+  const [showClearLogsConfirm, setShowClearLogsConfirm] = useState(false)
+  const [clearLogsLoading, setClearLogsLoading] = useState(false)
 
   // ── Clients state ─────────────────────────────────────────────────────────
   const [clientesAll, setClientesAll] = useState<ClienteRow[]>([])
@@ -374,6 +376,18 @@ export default function AdminPanel() {
       setPedidoSetores((ps ?? []) as PedidoSetorRow[])
     } catch (err) { setSectorsDbError(err instanceof Error ? err.message : 'Erro ao carregar setores.') }
     finally { setSectorsDbLoading(false) }
+  }
+
+  async function clearLogs() {
+    setClearLogsLoading(true)
+    try {
+      const { error } = await supabase.from('device_logs').delete().gte('id', 0)
+      if (error) throw new Error(error.message)
+      setLogs([])
+      setSelectedLog(null)
+      setShowClearLogsConfirm(false)
+    } catch (err) { setLogsError(err instanceof Error ? err.message : 'Erro ao limpar logs.') }
+    finally { setClearLogsLoading(false) }
   }
 
   async function fetchLogs() {
@@ -1190,6 +1204,9 @@ export default function AdminPanel() {
                       <button type="button" onClick={() => { void fetchLogs() }} className="p-1.5 rounded text-[var(--th-txt-4)] hover:bg-[var(--th-hover)] transition-colors">
                         <RefreshCw strokeWidth={1.5} className={`w-3.5 h-3.5 ${logsLoading ? 'animate-spin' : ''}`} />
                       </button>
+                      <button type="button" onClick={() => setShowClearLogsConfirm(true)} className="p-1.5 rounded text-[var(--th-txt-4)] hover:bg-red-500/10 hover:text-red-400 transition-colors">
+                        <Trash2 strokeWidth={1.5} className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   </div>
                   <div className="relative">
@@ -1380,6 +1397,44 @@ export default function AdminPanel() {
             </>
           )
         })()}
+
+        {/* ── CLEAR LOGS MODAL ── */}
+        {showClearLogsConfirm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center">
+            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowClearLogsConfirm(false)} />
+            <div className="relative bg-[var(--th-card)] border border-[var(--th-border)] rounded-2xl shadow-2xl p-6 w-[340px] flex flex-col gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center shrink-0">
+                  <Trash2 strokeWidth={1.5} className="w-5 h-5 text-red-400" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-[var(--th-txt-1)]">Limpar histórico</p>
+                  <p className="text-xs text-[var(--th-txt-4)] mt-0.5">Esta ação não pode ser desfeita</p>
+                </div>
+              </div>
+              <p className="text-sm text-[var(--th-txt-3)] leading-relaxed">
+                Todos os registros de acesso serão <span className="text-red-400 font-medium">deletados permanentemente</span>. Deseja continuar?
+              </p>
+              <div className="flex gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowClearLogsConfirm(false)}
+                  className="flex-1 py-2 rounded-lg border border-[var(--th-border)] text-sm text-[var(--th-txt-2)] hover:bg-[var(--th-hover)] transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { void clearLogs() }}
+                  disabled={clearLogsLoading}
+                  className="flex-1 py-2 rounded-lg bg-red-500 hover:bg-red-600 disabled:opacity-50 text-sm font-medium text-white transition-colors"
+                >
+                  {clearLogsLoading ? 'Deletando...' : 'Deletar tudo'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* ── SECTORS ── */}
         {selectedModule === 'sectors' && (
