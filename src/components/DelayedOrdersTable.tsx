@@ -8,7 +8,7 @@ interface Props {
 }
 
 export default function DelayedOrdersTable({ orders, loading = false }: Props) {
-  const [sortKey, setSortKey] = useState<'id' | 'client' | 'colorModel' | 'qty' | 'expDate' | 'daysLate'>('daysLate')
+  const [sortKey, setSortKey] = useState<'id' | 'remessa' | 'client' | 'colorModel' | 'qty' | 'expDate' | 'daysLate'>('daysLate')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
 
   const sortedOrders = useMemo(() => {
@@ -25,6 +25,10 @@ export default function DelayedOrdersTable({ orders, loading = false }: Props) {
         case 'id':
           va = a.id
           vb = b.id
+          break
+        case 'remessa':
+          va = a.remessa
+          vb = b.remessa
           break
         case 'client':
           va = a.client
@@ -114,6 +118,12 @@ export default function DelayedOrdersTable({ orders, loading = false }: Props) {
                   {sortLabel('Pedido')}
                 </th>
                 <th
+                  onClick={() => toggleSort('remessa')}
+                  className="px-3 sm:px-5 py-3 sm:py-3.5 text-left text-[10px] sm:text-sm font-medium text-[var(--th-txt-4)] uppercase tracking-widest"
+                >
+                  {sortLabel('Remessa')}
+                </th>
+                <th
                   onClick={() => toggleSort('client')}
                   className="px-3 sm:px-5 py-3 sm:py-3.5 text-left text-[10px] sm:text-sm font-medium text-[var(--th-txt-4)] uppercase tracking-widest"
                 >
@@ -150,6 +160,7 @@ export default function DelayedOrdersTable({ orders, loading = false }: Props) {
                 ? Array.from({ length: 10 }).map((_, idx) => (
                   <tr key={`skeleton-delayed-${idx}`} className={`border-b border-[var(--th-border-soft)]${idx >= 2 ? ' hidden sm:table-row' : ''}`}>
                     <td className="px-3 sm:px-5 py-2.5 sm:py-3.5"><div className="h-4 w-12 sm:w-16 rounded bg-[var(--th-subtle)] animate-pulse" /></td>
+                    <td className="px-3 sm:px-5 py-2.5 sm:py-3.5"><div className="h-4 w-12 sm:w-16 rounded bg-[var(--th-subtle)] animate-pulse" /></td>
                     <td className="px-3 sm:px-5 py-2.5 sm:py-3.5"><div className="h-4 w-24 sm:w-32 rounded bg-[var(--th-subtle)] animate-pulse" /></td>
                     <td className="px-3 sm:px-5 py-2.5 sm:py-3.5"><div className="h-4 w-28 sm:w-36 rounded bg-[var(--th-subtle)] animate-pulse" /></td>
                     <td className="px-3 sm:px-5 py-2.5 sm:py-3.5"><div className="h-4 w-10 sm:w-12 rounded bg-[var(--th-subtle)] animate-pulse" /></td>
@@ -168,6 +179,7 @@ export default function DelayedOrdersTable({ orders, loading = false }: Props) {
                         <PriorityBadge value={o.priority} />
                       </div>
                     </td>
+                    <td className="px-3 sm:px-5 py-2.5 sm:py-3.5 text-xs sm:text-sm text-[var(--th-txt-3)]">{o.remessa || '—'}</td>
                     <td className="px-3 sm:px-5 py-2.5 sm:py-3.5 text-xs sm:text-sm text-[var(--th-txt-3)]">{o.client}</td>
                     <td className="px-3 sm:px-5 py-2.5 sm:py-3.5 text-xs sm:text-sm text-[var(--th-txt-3)]">{o.colorModel}</td>
                     <td className="px-3 sm:px-5 py-2.5 sm:py-3.5 text-xs sm:text-sm font-semibold text-[var(--th-txt-1)]">{o.qty}</td>

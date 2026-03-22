@@ -151,6 +151,55 @@ export default function App() {
     { day: 'DOM', produced: 0, goal: 1, pct: 0 },
   ]
 
+  const todayProgrammedFiltered = filteredToday.filter((order) => order.isTodayProgrammed)
+  const dailyGoalUnits = todayProgrammedFiltered.reduce((sum, order) => sum + order.qty, 0)
+  const dailyGoal = dailyGoalUnits > 0 ? dailyGoalUnits : null
+  const dailyProgress = todayProgrammedFiltered
+    .filter((order) => order.status === 'Finalizado')
+    .reduce((sum, order) => sum + order.qty, 0)
+
+  const now = new Date()
+  now.setHours(0, 0, 0, 0)
+  const weekDay = (now.getDay() + 6) % 7
+  const weekStart = new Date(now)
+  weekStart.setDate(now.getDate() - weekDay)
+  const nextWeekStart = new Date(weekStart)
+  nextWeekStart.setDate(weekStart.getDate() + 7)
+
+  const isInCurrentWeek = (dateIso: string | null) => {
+    if (!dateIso) return false
+    const date = new Date(`${dateIso}T00:00:00`)
+    if (Number.isNaN(date.getTime())) return false
+    return date >= weekStart && date < nextWeekStart
+  }
+
+  const weeklyTodayProgrammed = todayProgrammedFiltered.filter((order) => isInCurrentWeek(order.scheduledDateIso))
+  const weeklyDelayedInWeek = filteredDelayed.filter((order) => isInCurrentWeek(order.scheduledDateIso))
+  const weeklyGoalUnits = [...weeklyTodayProgrammed, ...weeklyDelayedInWeek]
+    .reduce((sum, order) => sum + order.qty, 0)
+  const weeklyGoal = weeklyGoalUnits > 0 ? weeklyGoalUnits : null
+  const weeklyProgress = weeklyTodayProgrammed
+    .filter((order) => order.status === 'Finalizado')
+    .reduce((sum, order) => sum + order.qty, 0)
+
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+  const nextMonthStart = new Date(now.getFullYear(), now.getMonth() + 1, 1)
+  const isInCurrentMonth = (dateIso: string | null) => {
+    if (!dateIso) return false
+    const date = new Date(`${dateIso}T00:00:00`)
+    if (Number.isNaN(date.getTime())) return false
+    return date >= monthStart && date < nextMonthStart
+  }
+
+  const monthlyOrdersInMonth = [...filteredToday, ...filteredDelayed]
+    .filter((order) => isInCurrentMonth(order.scheduledDateIso))
+  const monthlyGoalUnits = monthlyOrdersInMonth.reduce((sum, order) => sum + order.qty, 0)
+  const monthlyGoal = monthlyGoalUnits > 0 ? monthlyGoalUnits : null
+  const monthlyProgress = filteredToday
+    .filter((order) => isInCurrentMonth(order.scheduledDateIso))
+    .filter((order) => order.status === 'Finalizado')
+    .reduce((sum, order) => sum + order.qty, 0)
+
   return (
     <div className="min-h-screen bg-[var(--th-page)] text-[var(--th-txt-1)] p-3 pt-[52px] sm:pt-6 sm:p-6 lg:p-8 pb-6">
       <div className="max-w-[1920px] mx-auto space-y-5">
@@ -193,8 +242,8 @@ export default function App() {
             </div>
             <div className="sm:col-span-3 lg:col-span-2">
               <ProductionCard
-                goal={data?.weekly_data?.[new Date().getDay() === 0 ? 6 : new Date().getDay() - 1]?.goal ?? 10000}
-                produced={data?.weekly_data?.[new Date().getDay() === 0 ? 6 : new Date().getDay() - 1]?.produced ?? 0}
+                goal={dailyGoal}
+                produced={dailyProgress}
               />
             </div>
           </div>
@@ -217,15 +266,15 @@ export default function App() {
             <div className="order-first lg:order-last flex flex-col gap-3 sm:gap-5">
               <GoalCard
                 title="Meta Semanal"
-                goal={data?.weekly_goal ?? 7000}
+                goal={weeklyGoal}
                 unit="unidades"
-                progress={data?.weekly_progress ?? 0}
+                progress={weeklyProgress}
               />
               <GoalCard
                 title={`Meta de ${currentMonth}`}
-                goal={data?.monthly_goal ?? 28000}
+                goal={monthlyGoal}
                 unit="unidades"
-                progress={data?.monthly_progress ?? 0}
+                progress={monthlyProgress}
                 period={currentMonth}
               />
             </div>

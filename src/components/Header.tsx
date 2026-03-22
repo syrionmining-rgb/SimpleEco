@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
-import { Calendar, Clock, Sun, Moon, LogOut, Database, Menu, X, LayoutDashboard, TriangleAlert, ClipboardList, BarChart2 } from 'lucide-react'
+import { Calendar, Clock, Sun, Moon, LogOut, Database, Menu, X, LayoutDashboard, TriangleAlert, ClipboardList, BarChart2, Settings } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 
 function formatDate(date: Date): string {
   return date.toLocaleDateString('pt-BR', {
@@ -39,6 +39,10 @@ export default function Header({ toggleTheme, isDark, lastSync }: HeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false)
   const { logout } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
+  
+  const isAdminPage = location.pathname === '/admin'
+  const currentPageText = isAdminPage ? 'Administrador' : 'Produção'
 
   async function handleLogout() {
     await logout()
@@ -63,10 +67,10 @@ export default function Header({ toggleTheme, isDark, lastSync }: HeaderProps) {
         <div className="px-4 py-3">
           {/* Bar: logo + hamburger */}
           <div className="flex items-center justify-between">
-            <h1 className="text-xl font-bold leading-tight">
-              <span className="text-[var(--th-txt-1)]">Simple&Eco</span>{' '}
-              <span className="bg-gradient-to-r from-[#FF8C00] to-[#D81B60] bg-clip-text text-transparent">Produção</span>
-            </h1>
+            <div className="flex items-center gap-1 text-xl font-bold leading-tight">
+                <span className="text-[var(--th-txt-1)]">Simple&Eco</span>{' '}
+                <span className="bg-gradient-to-r from-[#FF8C00] to-[#D81B60] bg-clip-text text-transparent">{currentPageText}</span>
+            </div>
             <button
               onClick={() => setMenuOpen(o => !o)}
               className="p-2 text-[var(--th-txt-1)]"
@@ -116,6 +120,14 @@ export default function Header({ toggleTheme, isDark, lastSync }: HeaderProps) {
                   {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
                   <span className="text-sm">{isDark ? 'Tema claro' : 'Tema escuro'}</span>
                 </button>
+                {/* Admin */}
+                <button
+                  onClick={() => { navigate('/admin'); setMenuOpen(false) }}
+                  className="p-2 rounded-lg flex items-center gap-3 text-[var(--th-txt-3)] hover:text-[var(--th-txt-1)] hover:bg-[var(--th-hover)] transition-colors"
+                >
+                  <Settings className="w-4 h-4" />
+                  <span className="text-sm">Administrador</span>
+                </button>
                 {/* Logout */}
                 <button
                   onClick={() => { void handleLogout(); setMenuOpen(false) }}
@@ -133,13 +145,13 @@ export default function Header({ toggleTheme, isDark, lastSync }: HeaderProps) {
       {/* ── DESKTOP: inline header ── */}
       <header className="hidden sm:block pb-5 sm:pb-6 border-b border-[var(--th-border)]">
         <div className="flex items-center justify-between gap-4">
-          <div className="flex flex-col gap-2">
-            <h1 className="text-3xl font-bold">
-              <span className="text-[var(--th-txt-1)]">Simple&Eco</span>{' '}
-              <span className="bg-gradient-to-r from-[#FF8C00] to-[#D81B60] bg-clip-text text-transparent">Produção</span>
-            </h1>
-            <p className="text-base text-[var(--th-txt-3)] flex items-center gap-2">
-              <Calendar className="w-5 h-5" aria-hidden="true" />
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-1 text-2xl font-bold">
+                <span className="text-[var(--th-txt-1)]">Simple&Eco</span>{' '}
+                <span className="bg-gradient-to-r from-[#FF8C00] to-[#D81B60] bg-clip-text text-transparent">{currentPageText}</span>
+            </div>
+            <p className="text-sm text-[var(--th-txt-3)] flex items-center gap-1.5">
+              <Calendar className="w-4 h-4" aria-hidden="true" />
               {formatDate(now)}
             </p>
           </div>
@@ -154,6 +166,13 @@ export default function Header({ toggleTheme, isDark, lastSync }: HeaderProps) {
               aria-label="Alternar tema"
             >
               {isDark ? <Sun className="w-5 h-5 text-[var(--th-txt-4)]" /> : <Moon className="w-5 h-5 text-[var(--th-txt-4)]" />}
+            </button>
+            <button
+              onClick={() => navigate('/admin')}
+              className="w-11 h-11 rounded-lg bg-[var(--th-card)] border border-[var(--th-border)] flex items-center justify-center transition-colors hover:bg-[var(--th-hover)]"
+              aria-label="Ir para Administrador"
+            >
+              <Settings className="w-5 h-5 text-[var(--th-txt-4)]" />
             </button>
             <button
               onClick={() => { void handleLogout() }}

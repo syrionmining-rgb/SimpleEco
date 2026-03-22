@@ -5,10 +5,17 @@ import type { TodayOrder } from '../types'
 interface Props {
   orders: TodayOrder[]
   loading?: boolean
+  onlyTodayFilterActive?: boolean
+  onToggleTodayFilter?: () => void
 }
 
-export default function ScheduledOrdersTable({ orders, loading = false }: Props) {
-  const [sortKey, setSortKey] = useState<'id' | 'client' | 'colorModel' | 'qty' | 'expDate' | 'status'>('id')
+export default function ScheduledOrdersTable({
+  orders,
+  loading = false,
+  onlyTodayFilterActive = false,
+  onToggleTodayFilter,
+}: Props) {
+  const [sortKey, setSortKey] = useState<'id' | 'remessa' | 'client' | 'colorModel' | 'qty' | 'expDate' | 'status'>('id')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
 
   const sortedOrders = useMemo(() => {
@@ -23,6 +30,7 @@ export default function ScheduledOrdersTable({ orders, loading = false }: Props)
       let vb: string | number = ''
       switch (sortKey) {
         case 'id': va = a.id; vb = b.id; break
+        case 'remessa': va = a.remessa; vb = b.remessa; break
         case 'client': va = a.client; vb = b.client; break
         case 'colorModel': va = a.colorModel; vb = b.colorModel; break
         case 'qty': va = a.qty; vb = b.qty; break
@@ -66,9 +74,17 @@ export default function ScheduledOrdersTable({ orders, loading = false }: Props)
       {/* Header */}
       <div className="rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
         <div className="flex items-center gap-3 sm:gap-4">
-          <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-lg bg-[var(--th-subtle)] border border-[var(--th-border)] flex items-center justify-center">
+          <button
+            type="button"
+            onClick={onToggleTodayFilter}
+            disabled={!onToggleTodayFilter}
+            aria-label={onToggleTodayFilter ? 'Alternar filtro para produção de hoje' : undefined}
+            className={`w-9 h-9 sm:w-12 sm:h-12 rounded-lg bg-[var(--th-subtle)] border flex items-center justify-center ${
+              onToggleTodayFilter ? 'cursor-pointer hover:border-[#FF8C00]/60 transition-colors' : ''
+            } ${onlyTodayFilterActive ? 'ring-2 ring-[#FF8C00]/60 border-[#FF8C00]/60' : 'border-[var(--th-border)]'}`}
+          >
             <Package className="w-4 h-4 sm:w-6 sm:h-6 text-[var(--th-txt-4)]" aria-hidden="true" />
-          </div>
+          </button>
           <div>
             <p className="text-[10px] sm:text-sm text-[var(--th-txt-4)] uppercase tracking-widest font-medium">Programados para Hoje</p>
             <h3 className="text-sm sm:text-lg font-semibold text-[var(--th-txt-1)]">Pedidos de Produção</h3>
@@ -86,6 +102,7 @@ export default function ScheduledOrdersTable({ orders, loading = false }: Props)
             <thead>
               <tr className="border-b border-[var(--th-border-soft)]">
                 <th onClick={() => toggleSort('id')} className="px-3 sm:px-5 py-3 sm:py-3.5 text-left text-[10px] sm:text-sm font-medium text-[var(--th-txt-4)] uppercase tracking-widest">{sortLabel('Pedido')}</th>
+                <th onClick={() => toggleSort('remessa')} className="px-3 sm:px-5 py-3 sm:py-3.5 text-left text-[10px] sm:text-sm font-medium text-[var(--th-txt-4)] uppercase tracking-widest">{sortLabel('Remessa')}</th>
                 <th onClick={() => toggleSort('client')} className="px-3 sm:px-5 py-3 sm:py-3.5 text-left text-[10px] sm:text-sm font-medium text-[var(--th-txt-4)] uppercase tracking-widest">{sortLabel('Cliente')}</th>
                 <th onClick={() => toggleSort('colorModel')} className="px-3 sm:px-5 py-3 sm:py-3.5 text-left text-[10px] sm:text-sm font-medium text-[var(--th-txt-4)] uppercase tracking-widest">{sortLabel('Cor / Modelo')}</th>
                 <th onClick={() => toggleSort('qty')} className="px-3 sm:px-5 py-3 sm:py-3.5 text-left text-[10px] sm:text-sm font-medium text-[var(--th-txt-4)] uppercase tracking-widest">{sortLabel('Und')}</th>
@@ -97,6 +114,7 @@ export default function ScheduledOrdersTable({ orders, loading = false }: Props)
               {loading || sortedOrders.length === 0
                 ? Array.from({ length: 10 }).map((_, idx) => (
                   <tr key={`skeleton-${idx}`} className={`border-b border-[var(--th-border-soft)]${idx >= 2 ? ' hidden sm:table-row' : ''}`}>
+                    <td className="px-3 sm:px-5 py-2.5 sm:py-3.5"><div className="h-4 w-12 sm:w-16 rounded bg-[var(--th-subtle)] animate-pulse" /></td>
                     <td className="px-3 sm:px-5 py-2.5 sm:py-3.5"><div className="h-4 w-12 sm:w-16 rounded bg-[var(--th-subtle)] animate-pulse" /></td>
                     <td className="px-3 sm:px-5 py-2.5 sm:py-3.5"><div className="h-4 w-24 sm:w-32 rounded bg-[var(--th-subtle)] animate-pulse" /></td>
                     <td className="px-3 sm:px-5 py-2.5 sm:py-3.5"><div className="h-4 w-28 sm:w-36 rounded bg-[var(--th-subtle)] animate-pulse" /></td>
@@ -116,6 +134,7 @@ export default function ScheduledOrdersTable({ orders, loading = false }: Props)
                         <PriorityBadge value={o.priority} />
                       </div>
                     </td>
+                    <td className="px-3 sm:px-5 py-2.5 sm:py-3.5 text-xs sm:text-sm text-[var(--th-txt-3)]">{o.remessa || '—'}</td>
                     <td className="px-3 sm:px-5 py-2.5 sm:py-3.5 text-xs sm:text-sm text-[var(--th-txt-3)]">{o.client}</td>
                     <td className="px-3 sm:px-5 py-2.5 sm:py-3.5 text-xs sm:text-sm text-[var(--th-txt-3)]">{o.colorModel}</td>
                     <td className="px-3 sm:px-5 py-2.5 sm:py-3.5 text-xs sm:text-sm font-semibold text-[var(--th-txt-1)]">{o.qty}</td>

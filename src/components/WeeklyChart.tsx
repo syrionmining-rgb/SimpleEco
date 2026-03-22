@@ -8,13 +8,15 @@ interface WeeklyChartProps {
 const CHART_HEIGHT = 160
 
 export default function WeeklyChart({ data }: WeeklyChartProps) {
-  const maxVal = Math.max(...data.flatMap(d => [d.produced, d.goal]), 1)
+  // Remove sábado e domingo (últimos 2 dias)
+  const weekdayData = data.slice(0, 5)
+  const maxVal = Math.max(...weekdayData.flatMap(d => [d.produced, d.goal]), 1)
 
   function getBarHeight(value: number): number {
     return (value / maxVal) * CHART_HEIGHT
   }
 
-  const avgPct = Math.round(data.reduce((sum, d) => sum + d.pct, 0) / data.length)
+  const avgPct = Math.round(weekdayData.reduce((sum, d) => sum + d.pct, 0) / weekdayData.length)
   const isAvgUp = avgPct >= 100
 
   return (
@@ -56,8 +58,8 @@ export default function WeeklyChart({ data }: WeeklyChartProps) {
         </div>
 
         {/* Bars */}
-        <div className="relative z-10 grid grid-cols-7 gap-3" style={{ height: `${CHART_HEIGHT}px`, alignItems: 'flex-end' }}>
-          {data.map((d) => {
+        <div className="relative z-10 grid grid-cols-5 gap-3" style={{ height: `${CHART_HEIGHT}px`, alignItems: 'flex-end' }}>
+          {weekdayData.map((d) => {
             const goalH = getBarHeight(d.goal)
             const prodH = getBarHeight(d.produced)
             const isUp = d.pct >= 100
@@ -81,8 +83,8 @@ export default function WeeklyChart({ data }: WeeklyChartProps) {
       </div>
 
       {/* Labels */}
-      <div className="grid grid-cols-7 gap-1 sm:gap-3 mt-3 sm:mt-4">
-        {data.map((d) => {
+      <div className="grid grid-cols-5 gap-1 sm:gap-3 mt-3 sm:mt-4">
+        {weekdayData.map((d) => {
           const isUp = d.pct >= 100
           return (
             <div key={d.day} className="flex flex-col items-center gap-0.5 sm:gap-1.5">
