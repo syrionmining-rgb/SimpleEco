@@ -307,15 +307,15 @@ export default function AdminPanel() {
 
   // ── Sidebar modules ───────────────────────────────────────────────────────
 
-  const sidebarModules: Array<{ id: AdminModuleId; title: string; icon: LucideIcon; badge?: number | null }> = [
+  const sidebarModules: Array<{ id: AdminModuleId; title: string; icon: LucideIcon }> = [
     { id: 'dashboard', title: 'Dashboard', icon: Home },
-    { id: 'orders', title: 'Pedidos', icon: Box, badge: totalOrders },
+    { id: 'orders', title: 'Pedidos', icon: Box },
     { id: 'sectors', title: 'Setores', icon: Layers },
     { id: 'products', title: 'Produtos', icon: Package },
     { id: 'clients', title: 'Clientes', icon: Users },
     { id: 'database', title: 'Banco de Dados', icon: Database },
     { id: 'settings', title: 'Configuração', icon: Settings },
-    { id: 'logs', title: 'Logs', icon: ScrollText, badge: logs.length > 0 ? logs.length : null },
+    { id: 'logs', title: 'Logs', icon: ScrollText },
   ]
 
   const recentActivities = [
@@ -757,7 +757,7 @@ export default function AdminPanel() {
         {/* Nav */}
         <nav className="flex-1 overflow-y-auto py-1">
           {sidebarModules.map(m => (
-            <SidebarItem key={m.id} title={m.title} icon={m.icon} active={selectedModule === m.id} badge={m.badge} onClick={() => setSelectedModule(m.id)} />
+            <SidebarItem key={m.id} title={m.title} icon={m.icon} active={selectedModule === m.id} onClick={() => setSelectedModule(m.id)} />
           ))}
         </nav>
       </aside>
