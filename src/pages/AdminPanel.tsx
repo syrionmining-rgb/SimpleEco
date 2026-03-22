@@ -20,24 +20,28 @@ function isValidAdminModule(value: string | null): value is AdminModuleId {
 
 // ── Sidebar item ──────────────────────────────────────────────────────────────
 
-interface SidebarItemProps { title: string; icon: LucideIcon; active?: boolean; badge?: number | null; onClick: () => void }
-function SidebarItem({ title, icon: Icon, active, badge, onClick }: SidebarItemProps) {
+interface SidebarItemProps { title: string; icon: LucideIcon; active?: boolean; onClick: () => void }
+function SidebarItem({ title, icon: Icon, active, onClick }: SidebarItemProps) {
   return (
     <button
       onClick={onClick}
-      className={`relative w-full flex items-center gap-3 px-4 py-2.5 text-left text-sm transition-colors ${
-        active ? 'bg-[var(--th-hover)] text-[var(--th-txt-1)]' : 'text-[var(--th-txt-3)] hover:text-[var(--th-txt-1)] hover:bg-[var(--th-hover)]'
+      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-sm font-medium transition-all ${
+        active
+          ? 'bg-[#FF8C00] text-white shadow-sm'
+          : 'text-[var(--th-txt-3)] hover:bg-[var(--th-hover)] hover:text-[var(--th-txt-1)]'
       }`}
     >
-      {active && <span className="absolute left-0 top-0 h-full w-0.5 bg-[#FF8C00] rounded-r" />}
-      <Icon strokeWidth={1.5} className={`w-4 h-4 shrink-0 ${active ? 'text-[#FF8C00]' : ''}`} />
-      <span className="flex-1 font-medium">{title}</span>
-      {badge != null && badge > 0 && (
-        <span className="text-[11px] text-[var(--th-txt-4)] bg-[var(--th-subtle)] px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
-          {badge > 9999 ? '9k+' : badge}
-        </span>
-      )}
+      <Icon strokeWidth={1.5} className="w-4 h-4 shrink-0" />
+      <span className="flex-1">{title}</span>
     </button>
+  )
+}
+
+function SidebarSection({ label }: { label: string }) {
+  return (
+    <p className="px-3 pt-5 pb-1.5 text-[10px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">
+      {label}
+    </p>
   )
 }
 
@@ -307,15 +311,30 @@ export default function AdminPanel() {
 
   // ── Sidebar modules ───────────────────────────────────────────────────────
 
-  const sidebarModules: Array<{ id: AdminModuleId; title: string; icon: LucideIcon }> = [
-    { id: 'dashboard', title: 'Dashboard', icon: Home },
-    { id: 'orders', title: 'Pedidos', icon: Box },
-    { id: 'sectors', title: 'Setores', icon: Layers },
-    { id: 'products', title: 'Produtos', icon: Package },
-    { id: 'clients', title: 'Clientes', icon: Users },
-    { id: 'database', title: 'Banco de Dados', icon: Database },
-    { id: 'settings', title: 'Configuração', icon: Settings },
-    { id: 'logs', title: 'Logs', icon: ScrollText },
+  const sidebarSections: Array<{ label: string; items: Array<{ id: AdminModuleId; title: string; icon: LucideIcon }> }> = [
+    {
+      label: 'Operações',
+      items: [
+        { id: 'dashboard', title: 'Dashboard', icon: Home },
+        { id: 'orders',    title: 'Pedidos',   icon: Box },
+        { id: 'sectors',   title: 'Setores',   icon: Layers },
+        { id: 'clients',   title: 'Clientes',  icon: Users },
+      ],
+    },
+    {
+      label: 'Produtos',
+      items: [
+        { id: 'products', title: 'Produtos', icon: Package },
+      ],
+    },
+    {
+      label: 'Sistema',
+      items: [
+        { id: 'database', title: 'Banco de Dados', icon: Database },
+        { id: 'logs',     title: 'Logs',           icon: ScrollText },
+        { id: 'settings', title: 'Configuração',   icon: Settings },
+      ],
+    },
   ]
 
   const recentActivities = [
@@ -736,30 +755,45 @@ export default function AdminPanel() {
     <div className="flex h-screen overflow-hidden bg-[var(--th-page)] text-[var(--th-txt-1)]">
 
       {/* ── Sidebar ── */}
-      <aside className="w-[220px] shrink-0 border-r border-[var(--th-border)] flex flex-col bg-[var(--th-card)]">
-        {/* Header */}
-        <div className="px-4 py-3.5 border-b border-[var(--th-border)] flex items-center justify-between shrink-0">
+      <aside className="w-[230px] shrink-0 border-r border-[var(--th-border)] flex flex-col bg-[var(--th-card)]">
+        {/* Logo */}
+        <div className="px-4 py-4 border-b border-[var(--th-border)] shrink-0">
           <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-[#FF8C00] flex items-center justify-center shrink-0">
+              <span className="text-white text-[13px] font-bold leading-none">S</span>
+            </div>
             <div>
-              <p className="text-[13px] font-semibold text-[var(--th-txt-1)] leading-none">Simple&amp;Eco</p>
-              <p className="text-[11px] text-[var(--th-txt-4)] leading-none mt-0.5">Admin</p>
+              <p className="text-[13px] font-bold text-[var(--th-txt-1)] leading-none">Simple&amp;Eco</p>
+              <p className="text-[10px] text-[var(--th-txt-4)] leading-none mt-0.5">Painel Admin</p>
             </div>
           </div>
-          <div className="flex items-center gap-0.5">
-            <button onClick={toggleTheme} className="p-1.5 rounded hover:bg-[var(--th-hover)] text-[var(--th-txt-4)] transition-colors">
-              {isDark ? <Sun strokeWidth={1.5} className="w-4 h-4" /> : <Moon strokeWidth={1.5} className="w-4 h-4" />}
-            </button>
-            <button onClick={() => { void handleLogout() }} className="p-1.5 rounded hover:bg-[var(--th-hover)] text-[var(--th-txt-4)] transition-colors">
-              <LogOut strokeWidth={1.5} className="w-4 h-4" />
-            </button>
-          </div>
         </div>
+
         {/* Nav */}
-        <nav className="flex-1 overflow-y-auto py-1">
-          {sidebarModules.map(m => (
-            <SidebarItem key={m.id} title={m.title} icon={m.icon} active={selectedModule === m.id} onClick={() => setSelectedModule(m.id)} />
+        <nav className="flex-1 overflow-y-auto px-3 pb-3">
+          {sidebarSections.map(section => (
+            <div key={section.label}>
+              <SidebarSection label={section.label} />
+              <div className="space-y-0.5">
+                {section.items.map(m => (
+                  <SidebarItem key={m.id} title={m.title} icon={m.icon} active={selectedModule === m.id} onClick={() => setSelectedModule(m.id)} />
+                ))}
+              </div>
+            </div>
           ))}
         </nav>
+
+        {/* Footer */}
+        <div className="px-3 py-3 border-t border-[var(--th-border)] shrink-0 space-y-0.5">
+          <button onClick={toggleTheme} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[var(--th-txt-3)] hover:bg-[var(--th-hover)] hover:text-[var(--th-txt-1)] transition-all">
+            {isDark ? <Sun strokeWidth={1.5} className="w-4 h-4 shrink-0" /> : <Moon strokeWidth={1.5} className="w-4 h-4 shrink-0" />}
+            <span>{isDark ? 'Modo Claro' : 'Modo Escuro'}</span>
+          </button>
+          <button onClick={() => { void handleLogout() }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[var(--th-txt-3)] hover:bg-red-500/10 hover:text-red-400 transition-all">
+            <LogOut strokeWidth={1.5} className="w-4 h-4 shrink-0" />
+            <span>Sair</span>
+          </button>
+        </div>
       </aside>
 
       {/* ── Main area ── */}
