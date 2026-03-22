@@ -1044,6 +1044,32 @@ export default function AdminPanel() {
                                 </div>
                               </div>
                             )}
+                            {/* Histórico de setores */}
+                            {(() => {
+                              const movs = [...(talsetorByTalao.get(tc) ?? [])].sort((a, b) => asText(b.DATA).localeCompare(asText(a.DATA), 'pt-BR'))
+                              if (movs.length === 0) return null
+                              return (
+                                <div className="border-t border-[var(--th-border)]">
+                                  <div className="px-4 py-2 bg-[var(--th-subtle)] flex items-center justify-between">
+                                    <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Histórico</p>
+                                    <span className="text-[10px] text-[var(--th-txt-4)]">{movs.length} registro(s)</span>
+                                  </div>
+                                  <div className="divide-y divide-[var(--th-border)]">
+                                    {movs.map((mv, i) => (
+                                      <div key={i} className="flex items-center gap-3 px-4 py-2 hover:bg-[var(--th-hover)] transition-colors">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-orange-500/50 shrink-0" />
+                                        <span className="text-[11px] font-mono text-[var(--th-txt-4)] shrink-0 w-[72px]">{fmtDate(mv.DATA)}</span>
+                                        <span className="text-[11px] font-medium text-[var(--th-txt-2)] flex-1 truncate">{asText(mv.NOMESET) || asText(mv.SETOR) || '—'}</span>
+                                        <span className="text-[11px] font-mono text-orange-400 shrink-0">{fmtNumber(mv.QTDE)}</span>
+                                        {asText(mv.REMESSA) && (
+                                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--th-subtle)] text-[var(--th-txt-4)] border border-[var(--th-border)] shrink-0 font-mono">{asText(mv.REMESSA)}</span>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )
+                            })()}
                           </div>
                         )
                       })}
