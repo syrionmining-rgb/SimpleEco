@@ -61,11 +61,15 @@ src/
 |--------|---------|
 | `taloes` | Lotes de produção: CODIGO, PEDIDO, ITEM, REFERENCIA, REMESSA, NUMEROS, CANCELADO, FATURADO, TOTAL |
 | `talsetor` | Histórico de setores por talão: TALAO, SETOR, NOMESET, DATA, REMESSA, QTDE |
-| `pedidos` | Pedidos: CODIGO, CLIENTE, PREVISAO (entrega), SALDO, PEDCLIENTE (O.C.) |
-| `clientes` | Cadastro: CODIGO, FANTASIA, NOME |
-| `peditens` | Itens de pedido (opcional): CODIGO, ITEM, REFERENCIA → liga talão à ficha |
-| `fichas` | Ficha do produto: CODIGO, NOME, REFER, MATRIZ, NAVALHA, NOMECOR, OBS |
-| `setores` | Setores de produção: CODIGO, NOME |
+| `pedidos` | Pedidos: CODIGO, CLIENTE, PREVISAO, SALDO, OC, PEDCLIENTE |
+| `clientes` | Cadastro: CODIGO, FANTASIA, NOME, CNPJ, CIDADE, ESTADO |
+| `peditens` | Itens de pedido: CODIGO, ITEM, REFERENCIA, GRADE, NUMEROS, MATERIAL, COR, MARCA, FORMA, SALTO |
+| `fichas` | Ficha do produto: CODIGO, NOME, MATRIZ, NAVALHA, FORMA, CONSTRUC, SOLA, PALMILHA, LINHA |
+| `setores` | Setores de produção: CODIGO, NOME, ORDEM, ABREVIAT |
+| `pedimate` | Materiais por pedido/item: CODIGO, ITEM, ORDEM, MATERIAL, NOMEMAT, UNI, CONSUMO, SETOR, COR |
+| `material` | Cadastro mestre de materiais: CODIGO, NOME, UNIDADE, GRUPO, TIPOK, QUANT, VALOR |
+| `grades` | Definição de grades de numeração: CODIGO, NOME, GRADE (rótulos dos tamanhos) |
+| `talaoaux` | Sub-grupos de talão: CODIGO, NOME (CABEDAL, SOLADO, PALMILHA INTERNA...) |
 | `sync_log` | Controle de sincronização: id, ultima_sync |
 
 ### Tabelas Nativas (criadas no Supabase)
@@ -81,15 +85,23 @@ src/
 ### Cadeia de Resolução de Dados do Talão
 
 ```
-TALOES.CODIGO
+TALOES.CODIGO (= código de barras do talão)
   ├─ TALOES.PEDIDO → PEDIDOS.CODIGO
-  │    ├─ PEDIDOS.PEDCLIENTE = "O.C." (ordem do cliente)
+  │    ├─ PEDIDOS.OC / PEDIDOS.PEDCLIENTE  = "O.C." (ordem do cliente)
   │    └─ PEDIDOS.CLIENTE → CLIENTES
   ├─ TALOES.REMESSA (código da remessa)
-  ├─ TALOES.REFERENCIA → FICHAS.CODIGO (direto, quando preenchido)
-  │    OU
-  │    TALOES.PEDIDO + TALOES.ITEM → PEDITENS.REFERENCIA → FICHAS.CODIGO
-  │         └─ FICHAS: MATRIZ, NAVALHA, NOMECOR, OBS
+  ├─ TALOES.PEDIDO + TALOES.ITEM → PEDITENS
+  │    ├─ PEDITENS.REFERENCIA → FICHAS.CODIGO
+  │    │    ├─ FICHAS.NOME      = Modelo
+  │    │    ├─ FICHAS.NAVALHA   = Navalha
+  │    │    ├─ FICHAS.MATRIZ    = Matriz
+  │    │    └─ FICHAS.FORMA / CONSTRUC / SOLA / PALMILHA
+  │    ├─ PEDITENS.GRADE → GRADES.CODIGO (decodifica tamanhos do NUMEROS)
+  │    ├─ PEDITENS.MATERIAL + PEDITENS.COR = material/cor principal
+  │    └─ PEDITENS.MARCA = marca do cliente
+  ├─ PEDIDOS.CODIGO + PEDITENS.ITEM → PEDIMATE
+  │    └─ Lista de materiais: MATERIAL, NOMEMAT, UNI, CONSUMO, SETOR
+  │         └─ PEDIMATE.MATERIAL → MATERIAL.CODIGO (detalhes do material)
   └─ TALSETOR (histórico de setores passados)
        └─ NOMESET contém "expedi" → talão finalizado
 ```
@@ -197,10 +209,12 @@ CSS Variables em `src/index.css`, alternadas via classe `.dark` no `<html>`:
 
 | Item | Status |
 |------|--------|
-| Tabela `peditens` populada no Supabase | ⏳ Aguardando sync |
-| Tabela `fichmat` (M1/M2/M3 materiais) | ⏳ Aguardando criação + sync |
-| Materiais do talão (M1/M2/M3) | 🔶 Mock atualmente |
-| Script sync DBF → `peditens` e `fichmat` | ⏳ Pendente |
+| Tabelas `pedimate`, `material`, `grades`, `talaoaux` criadas no schema.sql | ✅ Feito |
+| SE Link configurado para sincronizar as 4 novas tabelas | ✅ Feito |
+| Aplicar schema.sql no Supabase (SQL Editor) | ⏳ Pendente |
+| Exibir materiais do pedido no card do talão (via `pedimate` + `material`) | ⏳ Pendente |
+| Exibir Modelo, Navalha, Matriz no card do talão (via `fichas`) | ⏳ Pendente |
+| Decodificar grade de numeração via tabela `grades` | ⏳ Pendente |
 
 ---
 
@@ -233,6 +247,8 @@ CSS Variables em `src/index.css`, alternadas via classe `.dark` no `<html>`:
 
 ## Arquivos de Referência Rápida
 
+### Dashboard Web
+
 | Propósito | Arquivo |
 |-----------|---------|
 | Layout principal | [src/App.tsx](src/App.tsx) |
@@ -244,3 +260,59 @@ CSS Variables em `src/index.css`, alternadas via classe `.dark` no `<html>`:
 | Autenticação | [src/context/AuthContext.tsx](src/context/AuthContext.tsx) |
 | Estilos globais | [src/index.css](src/index.css) |
 | Schema completo | [schema.sql](schema.sql) |
+
+### SE Link (Sincronizador DBF)
+
+| Propósito | Arquivo |
+|-----------|---------|
+| Início rápido (usuário) | [SE Link/README.md](SE Link/README.md) |
+| Detalhes técnicos | [SE Link/COMO_FUNCIONA.md](SE Link/COMO_FUNCIONA.md) |
+| Interface desktop | [SE Link/link.py](SE Link/link.py) |
+| Engine de sync | [SE Link/sync_supabase.py](SE Link/sync_supabase.py) |
+| Interface HTML | [SE Link/gui/index.html](SE Link/gui/index.html) |
+| Compilar .exe | [SE Link/CONSTRUIR_EXE.bat](SE Link/CONSTRUIR_EXE.bat) |
+| Rodar sem compilar | [SE Link/LINK.bat](SE Link/LINK.bat) |
+| Config PyInstaller | [SE Link/link.spec](SE Link/link.spec) |
+
+---
+
+## SE Link — Guia Rápido
+
+### Usar o executável (sem Python)
+
+1. Abra `SE Link/App/`
+2. Confirme que `.env` está presente (credenciais Supabase)
+3. Execute `SimpleEcoLink.exe`
+4. Clique **Iniciar** e aponte para a pasta com os `.dbf`
+
+**Requisitos:** Windows 10+ 64-bit, Microsoft Edge / WebView2 Runtime, acesso à internet.
+
+### Recompilar o executável
+
+Após qualquer alteração no código-fonte:
+
+```
+Clique duas vezes em SE Link/CONSTRUIR_EXE.bat
+```
+
+Gera `SE Link/App/SimpleEcoLink.exe` (~2–5 min). O script instala dependências, limpa build anterior e empacota com PyInstaller.
+
+### Como funciona a sincronização
+
+| Situação | Comportamento |
+|----------|---------------|
+| Clica "Iniciar" | Sync completo de todas as 11 tabelas (3 threads paralelas) |
+| Arquivo `.dbf` modificado | Sync automático só daquela tabela (watchdog + debounce 2s) |
+| Painel web envia "Force Sync" | Sync completo disparado via WebSocket Realtime (sem polling) |
+
+### Dependências Python
+
+| Pacote | Função |
+|--------|--------|
+| `pywebview` | Janela desktop HTML/Edge |
+| `dbfread` | Leitura de arquivos .dbf |
+| `supabase` | Client REST Supabase |
+| `realtime` | WebSocket Supabase Realtime |
+| `watchdog` | Monitoramento de arquivos |
+| `python-dotenv` | Leitura do `.env` |
+| `pyinstaller` | Empacota em .exe standalone |

@@ -57,15 +57,19 @@ O arquivo `App\SimpleEcoLink.exe` será gerado automaticamente (~2–5 min).
 
 ## Tabelas sincronizadas
 
-| Arquivo DBF   | Tabela Supabase | Chave primária |
-|---------------|-----------------|----------------|
-| clientes.dbf  | clientes        | CODIGO         |
-| pedidos.dbf   | pedidos         | CODIGO         |
-| fichas.dbf    | fichas          | CODIGO         |
-| taloes.dbf    | taloes          | CODIGO         |
-| setores.dbf   | setores         | CODIGO         |
-| peditens.dbf  | peditens        | composta       |
-| talsetor.dbf  | talsetor        | composta       |
+| Arquivo DBF   | Tabela Supabase | Chave primária | Registros aprox. |
+|---------------|-----------------|----------------|------------------|
+| clientes.dbf  | clientes        | CODIGO         | ~2.000           |
+| pedidos.dbf   | pedidos         | CODIGO         | ~7.800           |
+| fichas.dbf    | fichas          | CODIGO         | ~3.100           |
+| taloes.dbf    | taloes          | CODIGO         | ~95.000          |
+| setores.dbf   | setores         | CODIGO         | 44               |
+| peditens.dbf  | peditens        | composta       | ~18.800          |
+| talsetor.dbf  | talsetor        | composta       | ~202.000         |
+| pedimate.dbf  | pedimate        | composta       | ~45.000          |
+| material.dbf  | material        | CODIGO         | ~1.900           |
+| grades.dbf    | grades          | CODIGO         | 154              |
+| talaoaux.dbf  | talaoaux        | CODIGO         | 15               |
 
 ---
 
