@@ -502,10 +502,16 @@ export default function AdminPanel() {
   async function fetchTableRows<T extends Record<string, unknown>>(tableName: string): Promise<T[]> {
     const PAGE = 1000; let from = 0; const allRows: T[] = []
     while (true) {
-      const { data, error } = await supabase.from(tableName).select('*').range(from, from + PAGE - 1)
-      if (error) throw new Error(error.message)
-      if (!data || data.length === 0) break
-      allRows.push(...(data as T[]))
+      let data: T[] | null = null; let lastError = ''
+      for (let attempt = 0; attempt < 3; attempt++) {
+        if (attempt > 0) await new Promise(r => setTimeout(r, attempt * 4000))
+        const res = await supabase.from(tableName).select('*').range(from, from + PAGE - 1)
+        if (!res.error) { data = res.data as T[]; break }
+        lastError = res.error.message
+      }
+      if (data === null) throw new Error(lastError)
+      if (data.length === 0) break
+      allRows.push(...data)
       if (data.length < PAGE) break
       from += PAGE
     }
