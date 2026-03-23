@@ -47,7 +47,7 @@ export default function MetricCard({
         {/* Título */}
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-[var(--th-txt-1)] truncate">{title}</p>
-          {subtitle && <p className="text-[10px] text-[var(--th-txt-4)] uppercase tracking-widest font-medium truncate">{subtitle}</p>}
+          {subtitle && <p className="text-[11px] text-[var(--th-txt-4)] uppercase tracking-widest font-medium truncate">{subtitle}</p>}
         </div>
         {/* Valor: número em cima, unidade embaixo — alinhados à direita */}
         <div className="flex flex-col items-end shrink-0">

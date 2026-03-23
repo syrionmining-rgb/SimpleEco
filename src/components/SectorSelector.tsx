@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { ChevronDown, Factory, X } from 'lucide-react'
 import type { Sector } from '../types'
 
@@ -18,42 +19,62 @@ export default function SectorSelector({
   delayedCount,
   todayCount,
 }: SectorSelectorProps) {
+  const [open, setOpen] = useState(false)
+  const selectedLabel = selected === allValue ? 'Todos' : (sectors.find(s => s.cod === selected)?.nome ?? 'Todos')
+  const isFiltered = selected !== allValue
+
+  function select(cod: string) {
+    onChange(cod)
+    setOpen(false)
+  }
+
+  const options = [{ cod: allValue, nome: 'Todos' }, ...sectors]
+
+  const triggerClass = [
+    'flex items-center justify-between gap-2 pl-4 pr-3 py-2.5 rounded-xl border text-sm font-semibold transition-all',
+    'bg-[var(--th-card)] text-[var(--th-txt-1)]',
+    open || isFiltered
+      ? 'border-[#FF8C00]/60 shadow-[0_0_0_3px_rgba(255,140,0,0.12)]'
+      : 'border-[var(--th-border)] hover:border-orange-500/30',
+  ].join(' ')
+
   return (
     <div className="rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] px-4 sm:px-6 py-3 sm:py-4 sm:w-full">
 
-      {/* ── MOBILE: linha única ── */}
+      {/* ── MOBILE ── */}
       <div className="flex sm:hidden items-center gap-3">
         <div className="w-9 h-9 rounded-lg bg-[var(--th-subtle)] border border-[var(--th-border)] flex items-center justify-center shrink-0">
           <Factory className="w-4 h-4 text-[var(--th-txt-4)]" />
         </div>
         <div className="shrink-0">
           <p className="text-sm font-semibold text-[var(--th-txt-1)]">Área de Produção</p>
-          <p className="text-[10px] text-[var(--th-txt-4)] uppercase tracking-widest font-medium">Filtro de setor</p>
+          <p className="text-[11px] text-[var(--th-txt-4)] uppercase tracking-widest font-medium">Filtro de setor</p>
         </div>
         <div className="relative flex-1">
-          <select
-            value={selected}
-            onChange={e => onChange(e.target.value)}
-            className={[
-              'w-full appearance-none pl-4 pr-10 py-2.5 rounded-xl border text-sm font-semibold cursor-pointer transition-all',
-              'bg-[var(--th-card)] text-[var(--th-txt-1)]',
-              selected !== allValue
-                ? 'border-[#FF8C00]/60 shadow-[0_0_0_3px_rgba(255,140,0,0.12)]'
-                : 'border-[var(--th-border)]',
-              'focus:outline-none focus:border-[#FF8C00]/80 focus:shadow-[0_0_0_3px_rgba(255,140,0,0.2)]',
-            ].join(' ')}
-            style={{ color: 'var(--th-txt-1)', backgroundColor: 'var(--th-card)' }}
-          >
-            <option value={allValue}>Todos</option>
-            {sectors.map(s => (
-              <option key={s.cod} value={s.cod}>{s.nome}</option>
-            ))}
-          </select>
-          <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--th-txt-4)]" />
+          <button type="button" onClick={() => setOpen(o => !o)} className={triggerClass + ' w-full'}>
+            <span>{selectedLabel}</span>
+            <ChevronDown className={`w-4 h-4 text-[var(--th-txt-4)] transition-transform shrink-0 ${open ? 'rotate-180' : ''}`} />
+          </button>
+          {open && (
+            <div className="absolute z-50 top-full mt-1 left-0 right-0 rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] shadow-lg overflow-hidden">
+              {options.map(s => (
+                <button
+                  key={s.cod}
+                  type="button"
+                  onClick={() => select(s.cod)}
+                  className={`w-full text-left px-4 py-2.5 text-sm transition-colors hover:bg-[var(--th-hover)] ${
+                    selected === s.cod ? 'text-orange-400 bg-orange-500/8 font-semibold' : 'text-[var(--th-txt-1)]'
+                  }`}
+                >
+                  {s.nome}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* ── DESKTOP (sm+): linha única ── */}
+      {/* ── DESKTOP ── */}
       <div className="hidden sm:flex items-center gap-4 w-full">
         <div className="w-12 h-12 rounded-lg bg-[var(--th-subtle)] border border-[var(--th-border)] flex items-center justify-center shrink-0">
           <Factory className="w-6 h-6 text-[var(--th-txt-4)]" />
@@ -63,33 +84,34 @@ export default function SectorSelector({
         </span>
         <div className="h-5 w-px bg-[var(--th-border)] shrink-0" />
         <div className="relative">
-          <select
-            value={selected}
-            onChange={e => onChange(e.target.value)}
-            className={[
-              'appearance-none pl-4 pr-10 py-2.5 rounded-xl border text-sm font-semibold cursor-pointer transition-all shadow-sm',
-              'bg-[var(--th-card)] text-[var(--th-txt-1)] hover:border-[var(--th-border-soft)] hover:bg-[var(--th-hover)]',
-              selected !== allValue
-                ? 'border-[#FF8C00]/60 shadow-[0_0_0_3px_rgba(255,140,0,0.12)]'
-                : 'border-[var(--th-border)]',
-              'focus:outline-none focus:border-[#FF8C00]/80 focus:shadow-[0_0_0_3px_rgba(255,140,0,0.2)]',
-            ].join(' ')}
-            style={{ color: 'var(--th-txt-1)', backgroundColor: 'var(--th-card)' }}
-          >
-            <option value={allValue}>Todos</option>
-            {sectors.map(s => (
-              <option key={s.cod} value={s.cod}>{s.nome}</option>
-            ))}
-          </select>
-          <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--th-txt-4)]" />
+          <button type="button" onClick={() => setOpen(o => !o)} className={triggerClass}>
+            <span>{selectedLabel}</span>
+            <ChevronDown className={`w-4 h-4 text-[var(--th-txt-4)] transition-transform shrink-0 ${open ? 'rotate-180' : ''}`} />
+          </button>
+          {open && (
+            <div className="absolute z-50 top-full mt-1 left-0 min-w-full rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] shadow-lg overflow-hidden">
+              {options.map(s => (
+                <button
+                  key={s.cod}
+                  type="button"
+                  onClick={() => select(s.cod)}
+                  className={`w-full text-left px-4 py-2.5 text-sm transition-colors hover:bg-[var(--th-hover)] ${
+                    selected === s.cod ? 'text-orange-400 bg-orange-500/8 font-semibold' : 'text-[var(--th-txt-1)]'
+                  }`}
+                >
+                  {s.nome}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
         <button
           onClick={() => onChange(allValue)}
           aria-label="Limpar filtro"
-          disabled={selected === allValue}
+          disabled={!isFiltered}
           className={[
             'shrink-0 w-8 h-8 rounded-lg flex items-center justify-center border transition-colors',
-            selected !== allValue
+            isFiltered
               ? 'border-[var(--th-border)] bg-[var(--th-subtle)] text-[var(--th-txt-4)] hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-400 cursor-pointer'
               : 'border-transparent bg-transparent text-transparent pointer-events-none',
           ].join(' ')}

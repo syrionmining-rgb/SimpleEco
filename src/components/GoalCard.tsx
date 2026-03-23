@@ -24,7 +24,7 @@ export default function GoalCard({ title, goal, unit, progress }: GoalCardProps)
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-[var(--th-txt-1)] tracking-widest leading-tight truncate">{title}</p>
-            <p className="text-[10px] text-[var(--th-txt-4)] uppercase tracking-widest font-medium">{unit}</p>
+            <p className="text-[11px] text-[var(--th-txt-4)] uppercase tracking-widest font-medium">{unit}</p>
           </div>
           <div className="flex items-baseline gap-0.5 shrink-0">
             {hasGoal ? (

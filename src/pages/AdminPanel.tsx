@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import {
   Sun, Moon, LogOut, Settings, Users, Database, Package, Home, Box,
-  ScrollText, RefreshCw, Search, ChevronDown, ChevronUp,
-  GitBranch, Plus, X, Check, Monitor, Smartphone, ScanLine, Trash2, Pencil,
+  ScrollText, RefreshCw, Search, ChevronDown, ChevronUp, ChevronLeft,
+  GitBranch, Plus, X, Check, Monitor, Smartphone, ScanLine, Trash2, Pencil, Menu,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
@@ -39,7 +39,7 @@ function SidebarItem({ title, icon: Icon, active, onClick }: SidebarItemProps) {
 
 function SidebarSection({ label }: { label: string }) {
   return (
-    <p className="px-3 pt-5 pb-1.5 text-[10px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">
+    <p className="px-3 pt-5 pb-1.5 text-[11px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">
       {label}
     </p>
   )
@@ -52,6 +52,7 @@ interface PedidoRow {
   CODIGO?: string; NOME?: string; CLIENTE?: string; PREVISAO?: string; VENDA?: string
   SALDO?: number | string | null; TOTAL?: number | string | null
   PRODUCAO?: number | string | null; FATURADOS?: number | string | null
+  OC?: string; PEDCLIENTE?: string | number | null
 }
 interface TalaoRow {
   [key: string]: unknown
@@ -78,7 +79,16 @@ interface DeviceLogRow {
   created_at: string | null; expires_at: string | null; revoked_at: string | null
   user_agent: string | null; status: string | null
 }
-interface FichaRow { [key: string]: unknown; CODIGO?: string; NOME?: string }
+interface FichaRow {
+  [key: string]: unknown
+  CODIGO?: string; NOME?: string; REFER?: string; NOMECOR?: string
+  MATRIZ?: string | number | null; NAVALHA?: string | number | null
+  COR01?: string; COR02?: string; COR03?: string; OBS?: string
+}
+interface PeditenRow {
+  [key: string]: unknown
+  CODIGO?: string; ITEM?: string; REFERENCIA?: string; REMESSA?: string; LOTE?: string
+}
 
 interface RemessaNode { codigo: string; movimentos: TalsetorRow[]; qtdeTotal: number }
 interface TalaoNode { talao: TalaoRow; remessas: RemessaNode[] }
@@ -92,6 +102,9 @@ interface ProdItem {
 }
 interface ProdEtapa {
   id: number; item_id: number; nome: string; ordem: number; created_at: string
+}
+interface PedidoFluxo {
+  id: number; pedido_codigo: string; item_id: number; created_at: string
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -133,12 +146,14 @@ export default function AdminPanel() {
 
   // ── Orders state ─────────────────────────────────────────────────────────
   const [ordersSubTab, setOrdersSubTab] = useState<'pedidos' | 'remessas'>('pedidos')
+  const [ordersSubTabOpen, setOrdersSubTabOpen] = useState(false)
   const [totalOrders, setTotalOrders] = useState<number | null>(null)
   const [orders, setOrders] = useState<PedidoRow[]>([])
   const [taloes, setTaloes] = useState<TalaoRow[]>([])
   const [talsetor, setTalsetor] = useState<TalsetorRow[]>([])
   const [clientes, setClientes] = useState<ClienteRow[]>([])
   const [fichas, setFichas] = useState<FichaRow[]>([])
+  const [peditens, setPeditens] = useState<PeditenRow[]>([])
   const [ordersLoading, setOrdersLoading] = useState(false)
   const [ordersError, setOrdersError] = useState<string | null>(null)
   const [ordersQuery, setOrdersQuery] = useState('')
@@ -146,6 +161,14 @@ export default function AdminPanel() {
   const [ordersLastSync, setOrdersLastSync] = useState<Date | null>(null)
   const [selectedPedidoDetail, setSelectedPedidoDetail] = useState<PedidoNode | null>(null)
   const [selectedRemessaDetail, setSelectedRemessaDetail] = useState<RemessaTreeNode | null>(null)
+  const [talaoSearch, setTalaoSearch] = useState('')
+  const [talaoStatusFilter, setTalaoStatusFilter] = useState<'todos' | 'em_producao' | 'finalizado' | 'cancelado'>('todos')
+  const [pedidoStatusFilter, setPedidoStatusFilter] = useState<'todos' | 'em_producao' | 'atrasado' | 'finalizado'>('todos')
+  const [pedidoFluxoMap, setPedidoFluxoMap] = useState<Map<string, PedidoFluxo>>(new Map())
+  const [pedidoFluxoSaving, setPedidoFluxoSaving] = useState(false)
+  const [pedidoFluxoSelect, setPedidoFluxoSelect] = useState<number | ''>('')
+  const [fluxoDropdownOpen, setFluxoDropdownOpen] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   // ── Logs state ────────────────────────────────────────────────────────────
   const [logs, setLogs] = useState<DeviceLogRow[]>([])
@@ -163,6 +186,7 @@ export default function AdminPanel() {
   const [clientesError, setClientesError] = useState<string | null>(null)
   const [clientesQuery, setClientesQuery] = useState('')
   const [clientesEstado, setClientesEstado] = useState('')
+  const [clientesEstadoOpen, setClientesEstadoOpen] = useState(false)
   const [selectedCliente, setSelectedCliente] = useState<ClienteRow | null>(null)
 
   async function fetchClientes() {
@@ -370,6 +394,15 @@ export default function AdminPanel() {
       })
       setOrders(pedidosRows); setTaloes(taloesRows); setTalsetor(talsetorRows)
       setClientes(clientesRows); setFichas(fichasRows); setOrdersLastSync(new Date())
+
+      // peditens — tabela opcional, conecta talão → ficha via PEDIDO+ITEM
+      try {
+        const peditensRows = await fetchTableRows<PeditenRow>('peditens')
+        setPeditens(peditensRows)
+      } catch { /* tabela ainda não disponível no Supabase, ignora silenciosamente */ }
+
+      // pedido_fluxo — tabela opcional, vínculo de fluxo de produção por pedido
+      void fetchPedidoFluxo()
     } catch (err) {
       setOrdersError(err instanceof Error ? err.message : 'Erro ao carregar.')
     } finally { setOrdersLoading(false) }
@@ -414,7 +447,10 @@ export default function AdminPanel() {
   }, [selectedModule])
 
   useEffect(() => {
-    if (selectedModule === 'sectors') void fetchProdItems()
+    if (selectedModule === 'sectors' || selectedModule === 'orders') {
+      void fetchProdItems()
+      void fetchAllProdEtapas()
+    }
   }, [selectedModule])
 
   useEffect(() => {
@@ -423,6 +459,39 @@ export default function AdminPanel() {
   }, [selectedModule])
 
   // ── Production Flow operations ────────────────────────────────────────────
+
+  async function fetchPedidoFluxo() {
+    try {
+      const { data, error } = await supabase.from('pedido_fluxo').select('*')
+      if (error) return // tabela ainda não existe
+      const m = new Map<string, PedidoFluxo>()
+      for (const row of (data ?? []) as PedidoFluxo[]) m.set(row.pedido_codigo, row)
+      setPedidoFluxoMap(m)
+    } catch { /* silent */ }
+  }
+
+  async function savePedidoFluxo(pedidoCodigo: string, itemId: number) {
+    setPedidoFluxoSaving(true)
+    try {
+      const existing = pedidoFluxoMap.get(pedidoCodigo)
+      if (existing) {
+        await supabase.from('pedido_fluxo').update({ item_id: itemId }).eq('id', existing.id)
+      } else {
+        await supabase.from('pedido_fluxo').insert({ pedido_codigo: pedidoCodigo, item_id: itemId })
+      }
+      await fetchPedidoFluxo()
+    } catch { /* silent */ }
+    finally { setPedidoFluxoSaving(false) }
+  }
+
+  async function removePedidoFluxo(pedidoCodigo: string) {
+    const existing = pedidoFluxoMap.get(pedidoCodigo)
+    if (!existing) return
+    try {
+      await supabase.from('pedido_fluxo').delete().eq('id', existing.id)
+      await fetchPedidoFluxo()
+    } catch { /* silent */ }
+  }
 
   async function fetchProdItems() {
     setProdItemsLoading(true); setProdItemsError(null)
@@ -442,6 +511,14 @@ export default function AdminPanel() {
       setProdEtapas((data ?? []) as ProdEtapa[])
     } catch { /* silent */ }
     finally { setProdEtapasLoading(false) }
+  }
+
+  async function fetchAllProdEtapas() {
+    try {
+      const { data, error } = await supabase.from('prod_etapas').select('*').order('ordem')
+      if (error) return
+      setProdEtapas((data ?? []) as ProdEtapa[])
+    } catch { /* silent */ }
   }
 
   async function createProdItem() {
@@ -539,6 +616,17 @@ export default function AdminPanel() {
     for (const f of fichas) { const k = asText(f.CODIGO).trim(); if (k) m.set(k, f) }
     return m
   }, [fichas])
+
+  // peditemMap: "PEDIDO|ITEM" → REFERENCIA da ficha (via tabela peditens)
+  const peditemMap = useMemo(() => {
+    const m = new Map<string, string>()
+    for (const p of peditens) {
+      const key = `${asText(p.CODIGO).trim()}|${asText(p.ITEM).trim()}`
+      const ref = asText(p.REFERENCIA).trim()
+      if (key && ref) m.set(key, ref)
+    }
+    return m
+  }, [peditens])
 
   const pedidoMap = useMemo(() => {
     const m = new Map<string, PedidoRow>()
@@ -703,10 +791,58 @@ export default function AdminPanel() {
   // ─────────────────────────────────────────────────────────────────────────
   return (
     <>
-    <div className="flex h-screen overflow-hidden bg-[var(--th-page)] text-[var(--th-txt-1)]">
+    {/* ── Mobile top navbar ── */}
+    <nav className="sm:hidden fixed top-0 left-0 right-0 z-50 bg-[var(--th-card)]/90 backdrop-blur-xl border-b border-[var(--th-border)]">
+      <div className="px-4 h-[54px] flex items-center justify-between">
+        <div className="flex items-center gap-1 text-lg font-bold leading-tight">
+          <span className="text-[var(--th-txt-1)]">Simple&amp;Eco</span>{' '}
+          <span className="bg-gradient-to-r from-[#FF8C00] to-[#D81B60] bg-clip-text text-transparent">Admin</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <button onClick={() => navigate('/')} className="p-2 rounded-lg text-[var(--th-txt-3)] hover:bg-[var(--th-hover)] transition-colors" aria-label="Produção">
+            <Home className="w-5 h-5" />
+          </button>
+          <button onClick={() => setMobileMenuOpen(o => !o)} className="p-2 text-[var(--th-txt-1)]" aria-label="Menu">
+            {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
+        </div>
+      </div>
+      {mobileMenuOpen && (
+        <div className="border-t border-[var(--th-border)] px-4 pb-4 bg-[var(--th-card)] overflow-y-auto max-h-[calc(100vh-54px)]">
+          {sidebarSections.map(section => (
+            <div key={section.label}>
+              <p className="px-1 pt-4 pb-1 text-[11px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">{section.label}</p>
+              <div className="space-y-0.5">
+                {section.items.map(m => (
+                  <button key={m.id} onClick={() => { setSelectedModule(m.id); setMobileMenuOpen(false) }}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-sm font-medium transition-all ${
+                      selectedModule === m.id ? 'bg-[#FF8C00] text-white shadow-sm' : 'text-[var(--th-txt-3)] hover:bg-[var(--th-hover)] hover:text-[var(--th-txt-1)]'
+                    }`}>
+                    <m.icon strokeWidth={1.5} className="w-4 h-4 shrink-0" />
+                    <span>{m.title}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+          <div className="border-t border-[var(--th-border)] pt-3 mt-4 space-y-0.5">
+            <button onClick={() => { toggleTheme(); setMobileMenuOpen(false) }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[var(--th-txt-3)] hover:bg-[var(--th-hover)] hover:text-[var(--th-txt-1)] transition-all">
+              {isDark ? <Sun strokeWidth={1.5} className="w-4 h-4 shrink-0" /> : <Moon strokeWidth={1.5} className="w-4 h-4 shrink-0" />}
+              <span>{isDark ? 'Modo Claro' : 'Modo Escuro'}</span>
+            </button>
+            <button onClick={() => { void handleLogout(); setMobileMenuOpen(false) }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[var(--th-txt-3)] hover:bg-red-500/10 hover:text-red-400 transition-all">
+              <LogOut strokeWidth={1.5} className="w-4 h-4 shrink-0" />
+              <span>Sair</span>
+            </button>
+          </div>
+        </div>
+      )}
+    </nav>
+
+    <div className="flex h-screen overflow-hidden bg-[var(--th-page)] text-[var(--th-txt-1)] pt-[54px] sm:pt-0">
 
       {/* ── Sidebar ── */}
-      <aside className="w-[230px] shrink-0 border-r border-[var(--th-border)] flex flex-col bg-[var(--th-card)]">
+      <aside className="hidden sm:flex w-[260px] shrink-0 border-r border-[var(--th-border)] flex-col bg-[var(--th-card)]">
         {/* Logo */}
         <div className="px-4 py-4 border-b border-[var(--th-border)] shrink-0">
           <div className="flex items-center gap-2.5">
@@ -715,7 +851,7 @@ export default function AdminPanel() {
             </div>
             <div>
               <p className="text-[13px] font-bold text-[var(--th-txt-1)] leading-none">Simple&amp;Eco</p>
-              <p className="text-[10px] text-[var(--th-txt-4)] leading-none mt-0.5">Painel Admin</p>
+              <p className="text-[11px] text-[var(--th-txt-4)] leading-none mt-0.5">Painel Admin</p>
             </div>
           </div>
         </div>
@@ -744,6 +880,7 @@ export default function AdminPanel() {
             <LogOut strokeWidth={1.5} className="w-4 h-4 shrink-0" />
             <span>Sair</span>
           </button>
+          <p className="px-3 pt-1 text-[11px] text-[var(--th-txt-4)] tracking-wide">Versão 2.0</p>
         </div>
       </aside>
 
@@ -754,20 +891,39 @@ export default function AdminPanel() {
         {selectedModule === 'orders' && (
           <>
             {/* List panel */}
-            <div className="w-[300px] shrink-0 border-r border-[var(--th-border)] flex flex-col bg-[var(--th-card)]">
+            <div className={`shrink-0 border-r border-[var(--th-border)] flex-col bg-[var(--th-card)] w-full sm:w-[380px] ${(selectedPedidoDetail || selectedRemessaDetail) ? 'hidden sm:flex' : 'flex'}`}>
               <div className="px-4 py-4 border-b border-[var(--th-border)] shrink-0">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <div className="relative">
-                      <select
-                        value={ordersSubTab}
-                        onChange={e => setOrdersSubTab(e.target.value as 'pedidos' | 'remessas')}
-                        className="appearance-none pl-2.5 pr-6 py-1 rounded-lg border border-[var(--th-border)] bg-[var(--th-card)] text-sm font-semibold text-[var(--th-txt-1)] focus:outline-none focus:ring-2 focus:ring-orange-500/40 cursor-pointer"
+                      <button
+                        type="button"
+                        onClick={() => setOrdersSubTabOpen(o => !o)}
+                        className={`flex items-center gap-1.5 pl-2.5 pr-2 py-1 rounded-lg border text-sm font-semibold transition-colors ${
+                          ordersSubTabOpen
+                            ? 'border-orange-500/50 bg-[var(--th-card)] ring-2 ring-orange-500/20 text-[var(--th-txt-1)]'
+                            : 'border-[var(--th-border)] bg-[var(--th-card)] text-[var(--th-txt-1)] hover:border-orange-500/30'
+                        }`}
                       >
-                        <option value="pedidos">Pedidos</option>
-                        <option value="remessas">Remessas</option>
-                      </select>
-                      <ChevronDown strokeWidth={2} className="w-3 h-3 absolute right-1.5 top-1/2 -translate-y-1/2 text-[var(--th-txt-4)] pointer-events-none" />
+                        {ordersSubTab === 'pedidos' ? 'Pedidos' : 'Remessas'}
+                        <ChevronDown strokeWidth={2} className={`w-3 h-3 text-[var(--th-txt-4)] transition-transform ${ordersSubTabOpen ? 'rotate-180' : ''}`} />
+                      </button>
+                      {ordersSubTabOpen && (
+                        <div className="absolute z-50 top-full mt-1 left-0 min-w-[120px] rounded-lg border border-[var(--th-border)] bg-[var(--th-card)] shadow-lg overflow-hidden">
+                          {(['pedidos', 'remessas'] as const).map(tab => (
+                            <button
+                              key={tab}
+                              type="button"
+                              onClick={() => { setOrdersSubTab(tab); setOrdersSubTabOpen(false) }}
+                              className={`w-full text-left px-3 py-2 text-sm transition-colors hover:bg-[var(--th-hover)] ${
+                                ordersSubTab === tab ? 'text-orange-400 bg-orange-500/8 font-semibold' : 'text-[var(--th-txt-1)]'
+                              }`}
+                            >
+                              {tab === 'pedidos' ? 'Pedidos' : 'Remessas'}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
                     <span className="text-xs bg-[var(--th-subtle)] px-2 py-0.5 rounded-full text-[var(--th-txt-4)]">
                       {ordersSubTab === 'pedidos' ? filteredOrders.length : remessaTree.length}
@@ -793,10 +949,31 @@ export default function AdminPanel() {
                     className="w-full rounded-lg border border-[var(--th-border)] bg-[var(--th-subtle)] pl-8 pr-3 py-1.5 text-[13px] text-[var(--th-txt-1)] placeholder:text-[var(--th-txt-4)] focus:outline-none focus:ring-1 focus:ring-orange-500/50"
                   />
                 </div>
-                {ordersLastSync && (
-                  <p className="text-[10px] text-[var(--th-txt-4)] mt-1.5 text-right">
-                    Sync {ordersLastSync.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
-                  </p>
+                {ordersSubTab === 'pedidos' && (
+                  <div className="flex gap-1 flex-wrap mt-2">
+                    {([
+                      { key: 'todos',      label: 'Todos' },
+                      { key: 'em_producao',label: 'Em produção' },
+                      { key: 'atrasado',   label: 'Atrasado' },
+                      { key: 'finalizado', label: 'Finalizado' },
+                    ] as const).map(({ key, label }) => {
+                      const active = pedidoStatusFilter === key
+                      return (
+                        <button key={key} type="button" onClick={() => setPedidoStatusFilter(key)}
+                          className={`text-[11px] px-2.5 py-1 rounded-full border font-medium transition-all ${
+                            active
+                              ? key === 'atrasado'
+                                ? 'bg-red-500/15 text-red-400 border-red-500/30'
+                                : key === 'finalizado'
+                                  ? 'bg-green-500/15 text-green-400 border-green-500/30'
+                                  : 'bg-orange-500/15 text-orange-400 border-orange-500/30'
+                              : 'bg-[var(--th-subtle)] text-[var(--th-txt-4)] border-[var(--th-border)] hover:text-[var(--th-txt-1)]'
+                          }`}>
+                          {label}
+                        </button>
+                      )
+                    })}
+                  </div>
                 )}
               </div>
 
@@ -810,38 +987,110 @@ export default function AdminPanel() {
                 {ordersSubTab === 'pedidos' && !ordersLoading && pedidoTree.length === 0 && (
                   <div className="px-4 py-16 text-center text-sm text-[var(--th-txt-3)]">Nenhum pedido.</div>
                 )}
-                {ordersSubTab === 'pedidos' && pedidoTree.map(pNode => {
-                  const pc = asText(pNode.pedido.CODIGO).trim() || 'SEM-CODIGO'
-                  const cli = cliMap.get(asText(pNode.pedido.CLIENTE).trim())
-                  const cliNome = asText(cli?.FANTASIA || cli?.NOME) || asText(pNode.pedido.CLIENTE) || '—'
-                  const saldo = toNumber(pNode.pedido.SALDO)
-                  const isSelected = selectedPedidoDetail?.pedido.CODIGO === pNode.pedido.CODIGO
-                  return (
-                    <button
-                      key={pc}
-                      type="button"
-                      onClick={() => setSelectedPedidoDetail(pNode)}
-                      className={isSelected ? 'w-full text-left rounded-xl border border-orange-500/40 bg-orange-500/8 px-4 py-3 transition-all' : 'w-full text-left rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] px-4 py-3 transition-all hover:border-orange-500/30 hover:bg-orange-500/5'}
-                    >
-                      <div className="flex items-start gap-2.5">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between gap-2 mb-0.5">
-                            <span className="text-[13px] font-medium text-[var(--th-txt-1)] truncate">{cliNome}</span>
-                            <span className="text-[11px] text-[var(--th-txt-4)] shrink-0">{fmtDate(pNode.pedido.PREVISAO)}</span>
+                {ordersSubTab === 'pedidos' && (() => {
+                  const calcFinalizado = (pNode: PedidoNode) => {
+                    const active = pNode.taloes.filter(t => !isTruthy(t.talao.CANCELADO))
+                    return active.length > 0 && active.every(tNode => {
+                      const tc = asText(tNode.talao.CODIGO).trim()
+                      return isTruthy(tNode.talao.FATURADO) || (talsetorByTalao.get(tc) ?? []).some(mv => /expedi/i.test(asText(mv.NOMESET) + asText(mv.SETOR)))
+                    })
+                  }
+                  const calcAtrasado = (pNode: PedidoNode, finalizado: boolean) => {
+                    if (finalizado) return false
+                    const raw = asText(pNode.pedido.PREVISAO).trim()
+                    if (!raw) return false
+                    const d = new Date(raw); if (isNaN(d.getTime())) return false
+                    const hoje = new Date(); hoje.setHours(0, 0, 0, 0)
+                    return d < hoje
+                  }
+                  const todosEmProd = pedidoTree.filter(p => !calcFinalizado(p))
+                  const todosFinalizados = pedidoTree.filter(p => calcFinalizado(p))
+                  const atrasados = todosEmProd.filter(p => calcAtrasado(p, false))
+                  const emProdSemAtraso = todosEmProd.filter(p => !calcAtrasado(p, false))
+                  const emProd = pedidoStatusFilter === 'todos'       ? todosEmProd
+                               : pedidoStatusFilter === 'em_producao' ? emProdSemAtraso
+                               : pedidoStatusFilter === 'atrasado'    ? atrasados
+                               : []
+                  const finalizados = (pedidoStatusFilter === 'todos' || pedidoStatusFilter === 'finalizado') ? todosFinalizados : []
+                  const renderCard = (pNode: PedidoNode) => {
+                    const pc = asText(pNode.pedido.CODIGO).trim() || 'SEM-CODIGO'
+                    const cli = cliMap.get(asText(pNode.pedido.CLIENTE).trim())
+                    const cliNome = asText(cli?.FANTASIA || cli?.NOME) || asText(pNode.pedido.CLIENTE) || '—'
+                    const saldo = toNumber(pNode.pedido.SALDO)
+                    const isSelected = selectedPedidoDetail?.pedido.CODIGO === pNode.pedido.CODIGO
+                    const pedidoFinalizado = calcFinalizado(pNode)
+                    const atrasado = calcAtrasado(pNode, pedidoFinalizado)
+                    return (
+                      <button
+                        key={pc}
+                        type="button"
+                        onClick={() => { setSelectedPedidoDetail(pNode); setTalaoSearch(''); setTalaoStatusFilter('todos') }}
+                        className={isSelected
+                          ? `w-full text-left rounded-xl border px-4 py-3 transition-all ${atrasado ? 'border-red-500/40 bg-red-500/8' : 'border-orange-500/40 bg-orange-500/8'}`
+                          : `w-full text-left rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] px-4 py-3 transition-all ${atrasado ? 'hover:border-red-500/30 hover:bg-red-500/5' : 'hover:border-orange-500/30 hover:bg-orange-500/5'}`}
+                      >
+                        <div className="flex items-start gap-3 min-w-0 w-full">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5 mb-1">
+                              <span className="text-[11px] font-mono font-semibold text-[var(--th-txt-2)]">{pc}</span>
+                              <span className="text-[var(--th-txt-4)] select-none">·</span>
+                              <span className={`text-[11px] font-medium ${atrasado ? 'text-red-400' : 'text-[var(--th-txt-4)]'}`}>{fmtDate(pNode.pedido.PREVISAO)}</span>
+                            </div>
+                            <p className="text-[13px] font-medium text-[var(--th-txt-1)] truncate mb-0.5">{cliNome}</p>
+                            {asText(pNode.pedido.PEDCLIENTE) && (
+                              <p className="text-[11px] text-[var(--th-txt-4)] mb-1.5">O.C. <span className="font-mono text-[var(--th-txt-3)]">{asText(pNode.pedido.PEDCLIENTE)}</span></p>
+                            )}
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[var(--th-subtle)] border border-[var(--th-border)] text-[11px] font-medium text-[var(--th-txt-4)]">
+                                {pNode.taloes.length} Talões
+                              </span>
+                              {saldo > 0 && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[var(--th-subtle)] border border-[var(--th-border)] text-[11px] font-medium text-[var(--th-txt-4)]">Unidades {fmtNumber(saldo)}</span>
+                              )}
+                            </div>
                           </div>
-                          <div className="flex items-center gap-1.5 mb-0.5">
-                            <span className="text-[11px] font-mono text-[var(--th-txt-3)]">{pc}</span>
-                            {saldo === 0
-                              ? <span className="text-[10px] px-1 py-px rounded bg-green-500/15 text-green-400 border border-green-500/20">Finalizado</span>
-                              : <span className="text-[10px] px-1 py-px rounded bg-orange-500/15 text-orange-400 border border-orange-500/20">Saldo {fmtNumber(saldo)}</span>
+                          <div className="shrink-0 flex flex-col items-end gap-1.5 pt-0.5">
+                            {pedidoFinalizado
+                              ? <span className="text-[11px] px-1.5 py-0.5 rounded-full bg-green-500/15 text-green-400 border border-green-500/20 font-medium">Finalizado</span>
+                              : atrasado
+                                ? <span className="text-[11px] px-1.5 py-0.5 rounded-full bg-red-500/15 text-red-400 border border-red-500/20 font-medium">Atrasado</span>
+                                : <span className="text-[11px] px-1.5 py-0.5 rounded-full bg-orange-500/15 text-orange-400 border border-orange-500/20 font-medium">Em produção</span>
                             }
                           </div>
-                          <p className="text-[11px] text-[var(--th-txt-4)] truncate">{pNode.taloes.length} talão(ões)</p>
                         </div>
-                      </div>
-                    </button>
+                      </button>
+                    )
+                  }
+                  return (
+                    <>
+                      {emProd.length > 0 && (
+                        <>
+                          {pedidoStatusFilter === 'todos' && (
+                            <div className="px-2 pt-2 pb-1 text-[11px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">
+                              Em Produção · {todosEmProd.length - atrasados.length}{atrasados.length > 0 ? ` · Atrasados ${atrasados.length}` : ''}
+                            </div>
+                          )}
+                          {pedidoStatusFilter === 'em_producao' && (
+                            <div className="px-2 pt-2 pb-1 text-[11px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Em Produção · {emProd.length}</div>
+                          )}
+                          {pedidoStatusFilter === 'atrasado' && (
+                            <div className="px-2 pt-2 pb-1 text-[11px] font-semibold uppercase tracking-widest text-red-400">Atrasados · {emProd.length}</div>
+                          )}
+                          {emProd.map(renderCard)}
+                        </>
+                      )}
+                      {finalizados.length > 0 && (
+                        <>
+                          <div className="px-2 pt-3 pb-1 text-[11px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Finalizados · {finalizados.length}</div>
+                          {finalizados.map(renderCard)}
+                        </>
+                      )}
+                      {emProd.length === 0 && finalizados.length === 0 && (
+                        <div className="px-4 py-16 text-center text-sm text-[var(--th-txt-3)]">Nenhum pedido.</div>
+                      )}
+                    </>
                   )
-                })}
+                })()}
 
                 {/* Remessas list */}
                 {ordersSubTab === 'remessas' && !ordersLoading && remessaTree.length === 0 && (
@@ -867,7 +1116,7 @@ export default function AdminPanel() {
                             <span className="text-[11px] text-[var(--th-txt-4)] shrink-0">{fmtNumber(rNode.totalQtde)} un</span>
                           </div>
                           <div className="flex items-center gap-1.5 mb-0.5">
-                            <span className="text-[10px] px-1 py-px rounded bg-[var(--th-subtle)] text-[var(--th-txt-4)] border border-[var(--th-border)]">{rNode.taloes.length} talões</span>
+                            <span className="text-[11px] px-1 py-px rounded bg-[var(--th-subtle)] text-[var(--th-txt-4)] border border-[var(--th-border)]">{rNode.taloes.length} talões</span>
                           </div>
                           <p className="text-[11px] text-[var(--th-txt-4)] truncate">
                             Pedido(s): {pedUnicos.slice(0, 3).join(', ')}{pedUnicos.length > 3 ? ` +${pedUnicos.length - 3}` : ''}
@@ -881,7 +1130,7 @@ export default function AdminPanel() {
             </div>
 
             {/* Detail panel */}
-            <div className="flex-1 overflow-y-auto p-5">
+            <div className={`overflow-y-auto sm:flex-1 sm:p-5 ${(selectedPedidoDetail || selectedRemessaDetail) ? 'fixed inset-0 top-[54px] z-40 bg-[var(--th-page)] p-4 sm:static sm:inset-auto sm:z-auto sm:bg-transparent' : 'hidden sm:block'}`}>
 
               {/* Pedido detail — empty state */}
               {ordersSubTab === 'pedidos' && !selectedPedidoDetail && (
@@ -922,57 +1171,225 @@ export default function AdminPanel() {
                   return agg.map((qty, i) => ({ slot: 32 + i, qty })).filter(x => x.qty > 0)
                 })()
 
+                // Fluxo de produção vinculado a este pedido
+                const fluxoVinculado = pedidoFluxoMap.get(pc)
+                const fluxoEtapas = fluxoVinculado
+                  ? prodItems.length > 0
+                    ? (() => {
+                        // Busca etapas do item em memória (já carregadas se o módulo sectors foi visitado)
+                        // senão fica vazio até o usuário visitar sectors
+                        return prodEtapas.filter(e => e.item_id === fluxoVinculado.item_id).sort((a, b) => a.ordem - b.ordem)
+                      })()
+                    : []
+                  : []
+
+                // Todos os movimentos de talsetor deste pedido
+                const allMovs = pNode.taloes.flatMap(tNode =>
+                  talsetorByTalao.get(asText(tNode.talao.CODIGO).trim()) ?? []
+                )
+                const passouExpedicaoPedido = allMovs.some(mv =>
+                  /expedi/i.test(asText(mv.NOMESET) + asText(mv.SETOR))
+                )
+                const pedidoAtrasado = (() => {
+                  if (passouExpedicaoPedido || saldo === 0) return false
+                  const raw = asText(pNode.pedido.PREVISAO).trim()
+                  if (!raw) return false
+                  const d = new Date(raw); if (isNaN(d.getTime())) return false
+                  const hoje = new Date(); hoje.setHours(0, 0, 0, 0)
+                  return d < hoje
+                })()
+                // Etapas concluídas: qualquer talão passou por um setor com nome similar à etapa
+                function etapaConcluida(etapaNome: string): boolean {
+                  const n = etapaNome.toLowerCase()
+                  return allMovs.some(mv =>
+                    asText(mv.NOMESET).toLowerCase().includes(n) || asText(mv.SETOR).toLowerCase().includes(n)
+                  )
+                }
+
+                const taloesFiltrados = pNode.taloes.filter(tNode => {
+                  const tc = asText(tNode.talao.CODIGO).trim()
+                  const fcD = asText(tNode.talao.REFERENCIA).trim()
+                  const fc = fcD || peditemMap.get(`${asText(tNode.talao.PEDIDO).trim()}|${asText(tNode.talao.ITEM).trim()}`) || ''
+                  const fn = asText(fichaMap.get(fc)?.NOME) || ''
+                  const q = talaoSearch.toLowerCase().trim()
+                  if (q && !tc.toLowerCase().includes(q) && !fc.toLowerCase().includes(q) && !fn.toLowerCase().includes(q)) return false
+                  if (talaoStatusFilter !== 'todos') {
+                    const canc = isTruthy(tNode.talao.CANCELADO)
+                    const fat = isTruthy(tNode.talao.FATURADO)
+                    const passou = (talsetorByTalao.get(tc) ?? []).some(mv => /expedi/i.test(asText(mv.NOMESET) + asText(mv.SETOR)))
+                    const fin = !canc && (fat || passou)
+                    if (talaoStatusFilter === 'cancelado' && !canc) return false
+                    if (talaoStatusFilter === 'finalizado' && !fin) return false
+                    if (talaoStatusFilter === 'em_producao' && (canc || fin)) return false
+                  }
+                  return true
+                })
+
                 return (
                   <div className="space-y-4">
-                    {/* Header */}
-                    <div className="flex items-start justify-between gap-4 pb-4 border-b border-[var(--th-border)]">
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-3 flex-wrap mb-1">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const cliRow = cliMap.get(asText(pNode.pedido.CLIENTE).trim())
-                              if (cliRow) { setSelectedCliente(cliRow); setSelectedModule('clients') }
-                            }}
-                            className="text-lg font-bold text-[var(--th-txt-1)] hover:text-orange-400 hover:underline transition-colors text-left"
-                          >{cliNome}</button>
-                          {saldo === 0
-                            ? <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium border bg-green-500/15 text-green-400 border-green-500/30">Finalizado</span>
-                            : <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium border bg-orange-500/15 text-orange-400 border-orange-500/30">Saldo {fmtNumber(saldo)}</span>
-                          }
-                        </div>
-                        <div className="flex items-center gap-4 text-xs text-[var(--th-txt-4)] flex-wrap">
-                          <span>Pedido <span className="font-mono text-[var(--th-txt-2)]">{pc}</span></span>
-                          <span>Previsão <span className="text-[var(--th-txt-2)]">{fmtDate(pNode.pedido.PREVISAO)}</span></span>
-                          <span>{pNode.taloes.length} talão(ões)</span>
-                        </div>
-                        {produtosDistintos.length > 0 && (
-                          <div className="flex flex-wrap gap-1.5 mt-2">
-                            {produtosDistintos.map(([ref, nome]) => (
-                              <span key={ref} className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs border bg-[var(--th-subtle)] border-[var(--th-border)]">
-                                <span className="font-mono text-[var(--th-txt-4)]">{ref}</span>
-                                <span className="text-[var(--th-txt-2)]">{nome !== ref ? nome : ''}</span>
+                    <button className="sm:hidden flex items-center gap-1 text-sm font-medium text-[var(--th-txt-3)] hover:text-[var(--th-txt-1)] transition-colors -ml-1 mb-1" onClick={() => setSelectedPedidoDetail(null)}>
+                      <ChevronLeft className="w-4 h-4" />Voltar
+                    </button>
+                    {/* ── Card unificado: pedido + fluxo + grade ── */}
+                    <div className="rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] overflow-hidden">
+
+                      {/* Cabeçalho do pedido */}
+                      <div className="px-4 pt-4 pb-3">
+                        {/* Linha topo: info + X (desktop) */}
+                        <div className="flex items-start gap-3">
+                          <div className="min-w-0 flex-1">
+                            {/* Nº Pedido + data */}
+                            <div className="flex items-center gap-1.5 mb-1">
+                              <span className="text-sm font-mono font-semibold text-[var(--th-txt-2)]">{pc}</span>
+                              <span className="text-[var(--th-txt-4)] select-none">·</span>
+                              <span className="text-sm text-[var(--th-txt-4)]">{fmtDate(pNode.pedido.PREVISAO)}</span>
+                            </div>
+                            {/* Nome do cliente */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const cliRow = cliMap.get(asText(pNode.pedido.CLIENTE).trim())
+                                if (cliRow) { setSelectedCliente(cliRow); setSelectedModule('clients') }
+                              }}
+                              className="text-base font-bold text-[var(--th-txt-1)] hover:text-orange-400 hover:underline transition-colors text-left leading-snug mb-0.5 block"
+                            >{cliNome}</button>
+                            {/* O.C. */}
+                            {asText(pNode.pedido.PEDCLIENTE) && (
+                              <p className="text-[11px] text-[var(--th-txt-4)] mb-1.5">O.C. <span className="font-mono text-[var(--th-txt-2)]">{asText(pNode.pedido.PEDCLIENTE)}</span></p>
+                            )}
+                            {/* Talões + Status badges */}
+                            <div className="flex items-center gap-1.5 flex-wrap mb-1.5">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[var(--th-subtle)] border border-[var(--th-border)] text-[11px] font-medium text-[var(--th-txt-4)]">
+                                {pNode.taloes.length} Talões
                               </span>
-                            ))}
+                              {saldo === 0
+                                ? <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border bg-green-500/15 text-green-400 border-green-500/30">Finalizado</span>
+                                : pedidoAtrasado
+                                  ? <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border bg-red-500/15 text-red-400 border-red-500/20">Atrasado</span>
+                                  : <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[var(--th-subtle)] border border-[var(--th-border)] text-[11px] font-medium text-[var(--th-txt-4)]">Unidades {fmtNumber(saldo)}</span>
+                              }
+                            </div>
+                            {/* Produtos */}
+                            {produtosDistintos.length > 0 && (
+                              <div className="flex flex-wrap gap-1.5">
+                                {produtosDistintos.map(([ref, nome]) => (
+                                  <span key={ref} className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] border bg-[var(--th-subtle)] border-[var(--th-border)]">
+                                    <span className="font-mono text-[var(--th-txt-4)]">{ref}</span>
+                                    {nome !== ref && <span className="text-[var(--th-txt-2)]">{nome}</span>}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          {/* X — só desktop */}
+                          <button type="button" onClick={() => setSelectedPedidoDetail(null)} className="hidden sm:flex p-1.5 rounded hover:bg-[var(--th-hover)] text-[var(--th-txt-4)] shrink-0">
+                            <X strokeWidth={1.5} className="w-4 h-4" />
+                          </button>
+                        </div>
+
+                      </div>
+
+                      {/* Fluxo de Produção */}
+                      <div className="border-t border-[var(--th-border)]">
+                        <div className="px-4 py-2 bg-[var(--th-subtle)] flex items-center justify-between">
+                          <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Fluxo de Produção</p>
+                          <div className="flex items-center gap-2">
+                            {/* Fluxo selector inline */}
+                            {(() => {
+                              const effectiveId = pedidoFluxoSelect !== '' ? pedidoFluxoSelect : (fluxoVinculado ? fluxoVinculado.item_id : '')
+                              const displayNome = effectiveId === -1 ? 'Nenhum' : prodItems.find(i => i.id === effectiveId)?.nome
+                              return (
+                                <>
+                                  <div className="relative">
+                                    <button
+                                      type="button"
+                                      onClick={() => setFluxoDropdownOpen(o => !o)}
+                                      className={`flex items-center justify-between gap-1.5 pl-2.5 pr-1.5 py-1 rounded-lg border text-xs transition-colors ${
+                                        fluxoDropdownOpen
+                                          ? 'border-orange-500/50 bg-[var(--th-card)] ring-2 ring-orange-500/20 text-[var(--th-txt-1)]'
+                                          : 'border-[var(--th-border)] bg-[var(--th-card)] text-[var(--th-txt-3)] hover:border-orange-500/30 hover:text-[var(--th-txt-1)]'
+                                      }`}
+                                    >
+                                      <span className="truncate max-w-[100px]">{displayNome ?? 'Selecionar fluxo…'}</span>
+                                      <ChevronDown strokeWidth={2} className={`w-3 h-3 transition-transform shrink-0 ${fluxoDropdownOpen ? 'rotate-180' : ''}`} />
+                                    </button>
+                                    {fluxoDropdownOpen && (
+                                      <div className="absolute z-50 top-full mt-1 right-0 min-w-[140px] rounded-lg border border-[var(--th-border)] bg-[var(--th-card)] shadow-lg overflow-hidden">
+                                        <button
+                                          type="button"
+                                          onClick={() => { setPedidoFluxoSelect(-1); setFluxoDropdownOpen(false) }}
+                                          className={`w-full text-left px-3 py-2 text-xs transition-colors hover:bg-[var(--th-hover)] ${
+                                            effectiveId === -1 ? 'text-orange-400 bg-orange-500/8 font-semibold' : 'text-[var(--th-txt-3)]'
+                                          }`}
+                                        >
+                                          Nenhum
+                                        </button>
+                                        {prodItems.map(item => (
+                                          <button
+                                            key={item.id}
+                                            type="button"
+                                            onClick={() => { setPedidoFluxoSelect(item.id); setFluxoDropdownOpen(false) }}
+                                            className={`w-full text-left px-3 py-2 text-xs transition-colors hover:bg-[var(--th-hover)] ${
+                                              effectiveId === item.id ? 'text-orange-400 bg-orange-500/8 font-semibold' : 'text-[var(--th-txt-1)]'
+                                            }`}
+                                          >
+                                            {item.nome}
+                                          </button>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                  <button
+                                    type="button"
+                                    disabled={effectiveId === '' || pedidoFluxoSaving}
+                                    onClick={() => { if (effectiveId === -1) { void removePedidoFluxo(pc); setPedidoFluxoSelect('') } else if (effectiveId !== '') void savePedidoFluxo(pc, effectiveId as number) }}
+                                    className="px-2.5 py-1 rounded-lg bg-orange-500 text-white text-[11px] font-medium disabled:opacity-40 hover:bg-orange-600 transition-colors shrink-0"
+                                  >
+                                    {pedidoFluxoSaving ? '…' : fluxoVinculado ? 'Alterar' : 'Atribuir'}
+                                  </button>
+                                </>
+                              )
+                            })()}
+                            {passouExpedicaoPedido && fluxoVinculado && (
+                              <span className="text-[11px] px-2 py-0.5 rounded-full bg-green-500/15 text-green-400 border border-green-500/30 font-medium">Finalizado</span>
+                            )}
+                          </div>
+                        </div>
+
+
+                        {fluxoVinculado && fluxoEtapas.length > 0 && (
+                          <div className="px-4 py-3 flex flex-wrap gap-1.5 items-center">
+                            {fluxoEtapas.map((etapa, idx) => {
+                              const done = passouExpedicaoPedido || etapaConcluida(etapa.nome)
+                              const isLast = idx === fluxoEtapas.length - 1
+                              return (
+                                <React.Fragment key={etapa.id}>
+                                  <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium border transition-all ${
+                                    done
+                                      ? 'bg-green-500/10 border-green-500/25 text-green-400'
+                                      : 'bg-[var(--th-subtle)] border-[var(--th-border)] text-[var(--th-txt-4)]'
+                                  }`}>
+                                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${done ? 'bg-green-400' : 'bg-[var(--th-border)]'}`} />
+                                    {etapa.nome}
+                                  </span>
+                                  {!isLast && <span className="text-[var(--th-txt-4)] text-[11px]">›</span>}
+                                </React.Fragment>
+                              )
+                            })}
                           </div>
                         )}
                       </div>
-                      <button type="button" onClick={() => setSelectedPedidoDetail(null)} className="p-1.5 rounded hover:bg-[var(--th-hover)] text-[var(--th-txt-4)] shrink-0">
-                        <X strokeWidth={1.5} className="w-4 h-4" />
-                      </button>
-                    </div>
 
-                    {/* Grade agregada do pedido */}
-                    {gradeAgregada.length > 0 && (
-                      <div className="rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] overflow-hidden">
-                        <div className="px-4 py-2.5 border-b border-[var(--th-border)] bg-[var(--th-subtle)] flex items-center justify-between">
-                          <p className="text-xs font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Grade do Pedido</p>
-                          <p className="text-[10px] text-[var(--th-txt-4)]">
-                            Total: <span className="font-mono font-bold text-orange-400">{gradeAgregada.reduce((s, x) => s + x.qty, 0).toLocaleString('pt-BR')}</span> pares
-                          </p>
-                        </div>
-                        <div className="px-4 py-4">
-                          <div className="flex flex-wrap gap-2">
+                      {/* Grade do Pedido */}
+                      {gradeAgregada.length > 0 && (
+                        <div className="border-t border-[var(--th-border)]">
+                          <div className="px-4 py-2 bg-[var(--th-subtle)] flex items-center justify-between">
+                            <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Grade do Pedido</p>
+                            <p className="text-[11px] text-[var(--th-txt-4)]">
+                              Total: <span className="font-mono font-bold text-orange-400">{gradeAgregada.reduce((s, x) => s + x.qty, 0).toLocaleString('pt-BR')}</span> pares
+                            </p>
+                          </div>
+                          <div className="px-4 py-3 flex flex-wrap gap-1.5">
                             {gradeAgregada.map(({ slot, qty }) => (
                               <div key={slot} className="flex flex-col items-center rounded-lg border border-[var(--th-border)] bg-[var(--th-subtle)] overflow-hidden" style={{ minWidth: 44 }}>
                                 <span className="px-2 py-1.5 text-[11px] font-bold font-mono text-[var(--th-txt-2)] text-center w-full leading-none">{slot}</span>
@@ -982,23 +1399,72 @@ export default function AdminPanel() {
                             ))}
                           </div>
                         </div>
+                      )}
+                    </div>
+
+                    {/* Talões — search + filter */}
+                    {pNode.taloes.length > 0 && (
+                      <div className="flex flex-col gap-2 mt-8 sm:mt-20">
+                        <div className="relative">
+                          <Search strokeWidth={1.5} className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--th-txt-4)] pointer-events-none" />
+                          <input
+                            type="text"
+                            placeholder="Buscar talão, referência ou produto…"
+                            value={talaoSearch}
+                            onChange={e => setTalaoSearch(e.target.value)}
+                            className="w-full pl-8 pr-3 py-2 rounded-lg border border-[var(--th-border)] bg-[var(--th-card)] text-sm text-[var(--th-txt-1)] placeholder:text-[var(--th-txt-4)] focus:outline-none focus:ring-2 focus:ring-orange-500/40"
+                          />
+                          {talaoSearch && (
+                            <button type="button" onClick={() => setTalaoSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--th-txt-4)] hover:text-[var(--th-txt-1)]">
+                              <X strokeWidth={1.5} className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+                        <div className="flex gap-1.5 flex-wrap">
+                          {(['todos', 'em_producao', 'finalizado', 'cancelado'] as const).map(f => {
+                            const labels = { todos: 'Todos', em_producao: 'Em produção', finalizado: 'Finalizado', cancelado: 'Cancelado' }
+                            const active = talaoStatusFilter === f
+                            return (
+                              <button key={f} type="button" onClick={() => setTalaoStatusFilter(f)}
+                                className={`text-[11px] px-2.5 py-1 rounded-full border font-medium transition-all ${active ? 'bg-orange-500/15 text-orange-400 border-orange-500/30' : 'bg-[var(--th-subtle)] text-[var(--th-txt-4)] border-[var(--th-border)] hover:text-[var(--th-txt-1)]'}`}>
+                                {labels[f]}
+                              </button>
+                            )
+                          })}
+                        </div>
                       </div>
                     )}
 
                     {/* Talões */}
                     {pNode.taloes.length === 0 && (
-                      <p className="text-sm text-center text-[var(--th-txt-3)] py-8">Sem talões para este pedido.</p>
+                      <p className="text-sm text-center text-[var(--th-txt-3)] py-8">Esse pedido ainda não possui talões.</p>
                     )}
-                    <div className="flex flex-col gap-3">
-                      {pNode.taloes.map(tNode => {
+                    {taloesFiltrados.length === 0 && pNode.taloes.length > 0 && (
+                      <p className="text-sm text-center text-[var(--th-txt-3)] py-6">Nenhum talão encontrado para os filtros aplicados.</p>
+                    )}
+                    <div className="flex flex-col gap-3 mt-8">
+                      {taloesFiltrados.map(tNode => {
                         const tc = asText(tNode.talao.CODIGO).trim() || '—'
-                        const fc = asText(tNode.talao.REFERENCIA).trim()
-                        const fn = asText(fichaMap.get(fc)?.NOME) || '—'
+                        // Resolve referência: direto do talão → fallback via peditens (PEDIDO+ITEM)
+                        const fcDireto = asText(tNode.talao.REFERENCIA).trim()
+                        const pedidoCod = asText(tNode.talao.PEDIDO).trim()
+                        const itemCod = asText(tNode.talao.ITEM).trim()
+                        const fc = fcDireto || peditemMap.get(`${pedidoCod}|${itemCod}`) || ''
+                        const ficha = fichaMap.get(fc)
+                        const fn = asText(ficha?.NOME).trim()
+                        const fMatriz = asText(ficha?.MATRIZ).trim()
+                        const fNavalha = asText(ficha?.NAVALHA).trim()
+                        const fCor = asText(ficha?.NOMECOR).trim()
+                        const fObs = asText(ficha?.OBS).trim()
                         const canc = isTruthy(tNode.talao.CANCELADO)
                         const fat = isTruthy(tNode.talao.FATURADO)
+                        const passouExpedicao = (talsetorByTalao.get(tc) ?? []).some(mv =>
+                          /expedi/i.test(asText(mv.NOMESET) + asText(mv.SETOR))
+                        )
+                        const finalizado = !canc && (fat || passouExpedicao)
                         const grade = parseNumeros(tNode.talao.NUMEROS)
-                        const statusBorder = canc ? 'border-red-500/25' : fat ? 'border-green-500/25' : 'border-[var(--th-border)]'
-                        const statusBar = canc ? 'bg-red-500' : fat ? 'bg-green-500' : 'bg-orange-500'
+                        const statusBorder = canc ? 'border-red-500/25' : finalizado ? 'border-green-500/25' : 'border-[var(--th-border)]'
+                        const statusBar = canc ? 'bg-red-500' : finalizado ? 'bg-green-500' : 'bg-[var(--th-accent)]'
                         return (
                           <div key={tc} className={`rounded-xl border ${statusBorder} bg-[var(--th-card)] overflow-hidden`}>
                             {/* Header */}
@@ -1008,28 +1474,48 @@ export default function AdminPanel() {
                               <div className="flex-1 flex items-center justify-between gap-4 px-4 py-3">
                                 <div className="min-w-0">
                                   <div className="flex items-center gap-2.5 mb-1 flex-wrap">
-                                    <span className="font-mono font-bold text-base text-[var(--th-txt-1)] tracking-wide">{tc}</span>
+                                    <span className="inline-flex items-center gap-1.5 bg-[var(--th-subtle)] border border-[var(--th-border)] px-2.5 py-1 rounded-md">
+                                      <span className="text-[11px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Talão</span>
+                                      <span className="font-mono font-bold text-sm text-[var(--th-txt-1)] tracking-wide leading-none">{tc}</span>
+                                    </span>
                                     {canc
                                       ? <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border bg-red-500/15 text-red-400 border-red-500/30">Cancelado</span>
-                                      : fat
-                                        ? <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border bg-green-500/15 text-green-400 border-green-500/30">Faturado</span>
+                                      : finalizado
+                                        ? <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border bg-green-500/15 text-green-400 border-green-500/30">{fat ? 'Faturado' : 'Finalizado'}</span>
                                         : <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border bg-orange-500/15 text-orange-400 border-orange-500/30">Em produção</span>
                                     }
                                   </div>
-                                  <p className="text-xs text-[var(--th-txt-3)] truncate max-w-[320px]">{fn}</p>
+                                  {fn && <p className="text-xs text-[var(--th-txt-3)] truncate max-w-[320px]">{fn}</p>}
                                 </div>
                                 <div className="shrink-0 text-right">
-                                  <p className="text-[10px] text-[var(--th-txt-4)] mb-0.5 uppercase tracking-widest">Total</p>
+                                  <p className="text-[11px] text-[var(--th-txt-4)] mb-0.5 uppercase tracking-widest">Total</p>
                                   <p className="text-lg font-bold font-mono text-orange-400 leading-none">{fmtNumber(tNode.talao.TOTAL)}</p>
                                 </div>
                               </div>
                             </div>
-                            {/* Meta strip */}
+                            {/* Meta strip — linha 1: identificação */}
                             <div className="flex gap-4 px-4 py-1.5 bg-[var(--th-subtle)] border-t border-[var(--th-border)] flex-wrap">
                               <span className="text-[11px] text-[var(--th-txt-4)]">Item <span className="font-mono text-[var(--th-txt-2)]">{asText(tNode.talao.ITEM) || '—'}</span></span>
                               <span className="text-[11px] text-[var(--th-txt-4)]">Ref <span className="font-mono text-[var(--th-txt-2)]">{fc || '—'}</span></span>
                               <span className="text-[11px] text-[var(--th-txt-4)]">Remessa <span className="font-mono text-[var(--th-txt-2)]">{asText(tNode.talao.REMESSA) || '—'}</span></span>
+                              {asText(pNode.pedido.PEDCLIENTE) && (
+                                <span className="text-[11px] text-[var(--th-txt-4)]">O.C. <span className="font-mono text-[var(--th-txt-2)]">{asText(pNode.pedido.PEDCLIENTE)}</span></span>
+                              )}
                             </div>
+                            {/* Meta strip — linha 2: dados da ficha (matriz, navalha, cor) */}
+                            {(fMatriz || fNavalha || fCor) && (
+                              <div className="flex gap-4 px-4 py-1.5 border-t border-[var(--th-border)] flex-wrap">
+                                {fMatriz && <span className="text-[11px] text-[var(--th-txt-4)]">Matriz <span className="font-mono text-[var(--th-txt-2)]">{fMatriz}</span></span>}
+                                {fNavalha && <span className="text-[11px] text-[var(--th-txt-4)]">Navalha <span className="font-mono text-[var(--th-txt-2)]">{fNavalha}</span></span>}
+                                {fCor && <span className="text-[11px] text-[var(--th-txt-4)]">Cor <span className="font-mono text-[var(--th-txt-2)]">{fCor}</span></span>}
+                              </div>
+                            )}
+                            {/* OBS da ficha */}
+                            {fObs && (
+                              <div className="px-4 py-1.5 border-t border-[var(--th-border)]">
+                                <span className="text-[11px] text-[var(--th-txt-4)]">Obs. <span className="text-[var(--th-txt-2)]">{fObs}</span></span>
+                              </div>
+                            )}
                             {/* Grade */}
                             {grade.length > 0 && (
                               <div className="px-4 py-3 border-t border-[var(--th-border)]">
@@ -1051,8 +1537,8 @@ export default function AdminPanel() {
                               return (
                                 <div className="border-t border-[var(--th-border)]">
                                   <div className="px-4 py-2 bg-[var(--th-subtle)] flex items-center justify-between">
-                                    <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Histórico</p>
-                                    <span className="text-[10px] text-[var(--th-txt-4)]">{movs.length} registro(s)</span>
+                                    <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Histórico</p>
+                                    <span className="text-[11px] text-[var(--th-txt-4)]">{movs.length} registro(s)</span>
                                   </div>
                                   <div className="divide-y divide-[var(--th-border)]">
                                     {movs.map((mv, i) => (
@@ -1062,7 +1548,7 @@ export default function AdminPanel() {
                                         <span className="text-[11px] font-medium text-[var(--th-txt-2)] flex-1 truncate">{asText(mv.NOMESET) || asText(mv.SETOR) || '—'}</span>
                                         <span className="text-[11px] font-mono text-orange-400 shrink-0">{fmtNumber(mv.QTDE)}</span>
                                         {asText(mv.REMESSA) && (
-                                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--th-subtle)] text-[var(--th-txt-4)] border border-[var(--th-border)] shrink-0 font-mono">{asText(mv.REMESSA)}</span>
+                                          <span className="text-[11px] px-1.5 py-0.5 rounded bg-[var(--th-subtle)] text-[var(--th-txt-4)] border border-[var(--th-border)] shrink-0 font-mono">{asText(mv.REMESSA)}</span>
                                         )}
                                       </div>
                                     ))}
@@ -1093,6 +1579,9 @@ export default function AdminPanel() {
                 const cliUnicos = [...new Set(rNode.taloes.map(t => t.clienteNome).filter(n => n !== '—'))]
                 return (
                   <div className="space-y-4">
+                    <button className="sm:hidden flex items-center gap-1.5 text-sm text-[var(--th-txt-3)] hover:text-[var(--th-txt-1)] transition-colors py-1" onClick={() => setSelectedRemessaDetail(null)}>
+                      <ChevronLeft className="w-4 h-4" />Voltar
+                    </button>
                     <div className="flex items-start gap-4 pb-4 border-b border-[var(--th-border)]">
                       <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center shrink-0">
                         <Box strokeWidth={1.5} className="w-5 h-5 text-blue-400" />
@@ -1115,14 +1604,14 @@ export default function AdminPanel() {
                       <div className="overflow-auto rounded-xl border border-[var(--th-border)]">
                         <table className="w-full text-xs min-w-[640px]">
                           <thead><tr className="border-b border-[var(--th-border)] bg-[var(--th-subtle)]">
-                            <th className="px-3 py-2 text-left text-[10px] font-medium text-[var(--th-txt-4)] uppercase tracking-widest">Talão</th>
-                            <th className="px-3 py-2 text-left text-[10px] font-medium text-[var(--th-txt-4)] uppercase tracking-widest">Pedido</th>
-                            <th className="px-3 py-2 text-left text-[10px] font-medium text-[var(--th-txt-4)] uppercase tracking-widest">Item</th>
-                            <th className="px-3 py-2 text-left text-[10px] font-medium text-[var(--th-txt-4)] uppercase tracking-widest">Produto</th>
-                            <th className="px-3 py-2 text-left text-[10px] font-medium text-[var(--th-txt-4)] uppercase tracking-widest">Cliente</th>
-                            <th className="px-3 py-2 text-left text-[10px] font-medium text-[var(--th-txt-4)] uppercase tracking-widest">Qtd</th>
-                            <th className="px-3 py-2 text-left text-[10px] font-medium text-[var(--th-txt-4)] uppercase tracking-widest">Último Setor</th>
-                            <th className="px-3 py-2 text-left text-[10px] font-medium text-[var(--th-txt-4)] uppercase tracking-widest">Status</th>
+                            <th className="px-3 py-2 text-left text-[11px] font-medium text-[var(--th-txt-4)] uppercase tracking-widest">Talão</th>
+                            <th className="px-3 py-2 text-left text-[11px] font-medium text-[var(--th-txt-4)] uppercase tracking-widest">Pedido</th>
+                            <th className="px-3 py-2 text-left text-[11px] font-medium text-[var(--th-txt-4)] uppercase tracking-widest">Item</th>
+                            <th className="px-3 py-2 text-left text-[11px] font-medium text-[var(--th-txt-4)] uppercase tracking-widest">Produto</th>
+                            <th className="px-3 py-2 text-left text-[11px] font-medium text-[var(--th-txt-4)] uppercase tracking-widest">Cliente</th>
+                            <th className="px-3 py-2 text-left text-[11px] font-medium text-[var(--th-txt-4)] uppercase tracking-widest">Qtd</th>
+                            <th className="px-3 py-2 text-left text-[11px] font-medium text-[var(--th-txt-4)] uppercase tracking-widest">Último Setor</th>
+                            <th className="px-3 py-2 text-left text-[11px] font-medium text-[var(--th-txt-4)] uppercase tracking-widest">Status</th>
                           </tr></thead>
                           <tbody className="divide-y divide-[var(--th-border)]">
                             {rNode.taloes.map((t, i) => {
@@ -1150,15 +1639,15 @@ export default function AdminPanel() {
 
                       {rNode.taloes.some(t => t.movimentos.length > 0) && (
                         <div className="rounded-xl border border-[var(--th-border)] overflow-hidden">
-                          <div className="px-3 py-2 bg-[var(--th-subtle)] border-b border-[var(--th-border)] text-[10px] font-medium text-[var(--th-txt-4)] uppercase tracking-widest">Histórico de Setores</div>
+                          <div className="px-3 py-2 bg-[var(--th-subtle)] border-b border-[var(--th-border)] text-[11px] font-medium text-[var(--th-txt-4)] uppercase tracking-widest">Histórico de Setores</div>
                           <div className="overflow-auto">
                             <table className="w-full text-xs min-w-[480px]">
                               <thead><tr className="border-b border-[var(--th-border)] bg-[var(--th-subtle)]">
-                                <th className="px-3 py-2 text-left text-[10px] font-medium text-[var(--th-txt-4)] uppercase tracking-widest">Talão</th>
-                                <th className="px-3 py-2 text-left text-[10px] font-medium text-[var(--th-txt-4)] uppercase tracking-widest">Data</th>
-                                <th className="px-3 py-2 text-left text-[10px] font-medium text-[var(--th-txt-4)] uppercase tracking-widest">Setor</th>
-                                <th className="px-3 py-2 text-left text-[10px] font-medium text-[var(--th-txt-4)] uppercase tracking-widest">Nome Setor</th>
-                                <th className="px-3 py-2 text-left text-[10px] font-medium text-[var(--th-txt-4)] uppercase tracking-widest">Qtd</th>
+                                <th className="px-3 py-2 text-left text-[11px] font-medium text-[var(--th-txt-4)] uppercase tracking-widest">Talão</th>
+                                <th className="px-3 py-2 text-left text-[11px] font-medium text-[var(--th-txt-4)] uppercase tracking-widest">Data</th>
+                                <th className="px-3 py-2 text-left text-[11px] font-medium text-[var(--th-txt-4)] uppercase tracking-widest">Setor</th>
+                                <th className="px-3 py-2 text-left text-[11px] font-medium text-[var(--th-txt-4)] uppercase tracking-widest">Nome Setor</th>
+                                <th className="px-3 py-2 text-left text-[11px] font-medium text-[var(--th-txt-4)] uppercase tracking-widest">Qtd</th>
                               </tr></thead>
                               <tbody className="divide-y divide-[var(--th-border)]">
                                 {rNode.taloes.flatMap(t => t.movimentos.map((mv, mi) => (
@@ -1203,7 +1692,7 @@ export default function AdminPanel() {
           return (
             <>
               {/* List panel */}
-              <div className="w-[300px] shrink-0 border-r border-[var(--th-border)] flex flex-col bg-[var(--th-card)]">
+              <div className={`shrink-0 border-r border-[var(--th-border)] flex-col bg-[var(--th-card)] w-full sm:w-[300px] ${selectedLog ? 'hidden sm:flex' : 'flex'}`}>
                 <div className="px-4 py-4 border-b border-[var(--th-border)] shrink-0">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
@@ -1212,7 +1701,7 @@ export default function AdminPanel() {
                     </div>
                     <div className="flex items-center gap-1">
                       {logsLastSync && (
-                        <span className="text-[10px] text-[var(--th-txt-4)]">
+                        <span className="text-[11px] text-[var(--th-txt-4)]">
                           {logsLastSync.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                         </span>
                       )}
@@ -1272,8 +1761,8 @@ export default function AdminPanel() {
                             </div>
                             <p className="text-[11px] font-mono text-[var(--th-txt-3)] truncate mb-0.5">{log.ip || '—'}</p>
                             <div className="flex items-center gap-1">
-                              <span className="text-[10px] px-1 py-px rounded bg-[var(--th-subtle)] text-[var(--th-txt-4)] border border-[var(--th-border)]">{log.os || '—'}</span>
-                              <span className="text-[10px] px-1 py-px rounded bg-[var(--th-subtle)] text-[var(--th-txt-4)] border border-[var(--th-border)]">{log.browser || '—'}</span>
+                              <span className="text-[11px] px-1 py-px rounded bg-[var(--th-subtle)] text-[var(--th-txt-4)] border border-[var(--th-border)]">{log.os || '—'}</span>
+                              <span className="text-[11px] px-1 py-px rounded bg-[var(--th-subtle)] text-[var(--th-txt-4)] border border-[var(--th-border)]">{log.browser || '—'}</span>
                             </div>
                           </div>
                         </div>
@@ -1284,7 +1773,7 @@ export default function AdminPanel() {
               </div>
 
               {/* Detail panel */}
-              <div className="flex-1 overflow-y-auto p-5">
+              <div className={`overflow-y-auto sm:flex-1 sm:p-5 ${selectedLog ? 'fixed inset-0 top-[54px] z-40 bg-[var(--th-page)] p-4 sm:static sm:inset-auto sm:z-auto sm:bg-transparent' : 'hidden sm:block'}`}>
                 {!selectedLog && (
                   <div className="flex flex-col h-full">
                     {/* Stats */}
@@ -1297,7 +1786,7 @@ export default function AdminPanel() {
                           { label: 'Último Acesso', value: lastAccess ?? '—' },
                         ].map(stat => (
                           <div key={stat.label} className="rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] px-4 py-3">
-                            <p className="text-[10px] font-medium text-[var(--th-txt-4)] uppercase tracking-widest mb-1">{stat.label}</p>
+                            <p className="text-[11px] font-medium text-[var(--th-txt-4)] uppercase tracking-widest mb-1">{stat.label}</p>
                             <p className="text-lg font-bold text-[var(--th-txt-1)]">{stat.value}</p>
                           </div>
                         ))}
@@ -1311,12 +1800,12 @@ export default function AdminPanel() {
                         <table className="w-full text-xs">
                           <thead>
                             <tr className="border-b border-[var(--th-border)] bg-[var(--th-subtle)]">
-                              <th className="px-3 py-2.5 text-left text-[10px] font-medium text-[var(--th-txt-4)] uppercase tracking-widest">Data / Hora</th>
-                              <th className="px-3 py-2.5 text-left text-[10px] font-medium text-[var(--th-txt-4)] uppercase tracking-widest">Usuário</th>
-                              <th className="px-3 py-2.5 text-left text-[10px] font-medium text-[var(--th-txt-4)] uppercase tracking-widest">IP</th>
-                              <th className="px-3 py-2.5 text-left text-[10px] font-medium text-[var(--th-txt-4)] uppercase tracking-widest">Dispositivo</th>
-                              <th className="px-3 py-2.5 text-left text-[10px] font-medium text-[var(--th-txt-4)] uppercase tracking-widest">OS</th>
-                              <th className="px-3 py-2.5 text-left text-[10px] font-medium text-[var(--th-txt-4)] uppercase tracking-widest">Browser</th>
+                              <th className="px-3 py-2.5 text-left text-[11px] font-medium text-[var(--th-txt-4)] uppercase tracking-widest">Data / Hora</th>
+                              <th className="px-3 py-2.5 text-left text-[11px] font-medium text-[var(--th-txt-4)] uppercase tracking-widest">Usuário</th>
+                              <th className="px-3 py-2.5 text-left text-[11px] font-medium text-[var(--th-txt-4)] uppercase tracking-widest">IP</th>
+                              <th className="px-3 py-2.5 text-left text-[11px] font-medium text-[var(--th-txt-4)] uppercase tracking-widest">Dispositivo</th>
+                              <th className="px-3 py-2.5 text-left text-[11px] font-medium text-[var(--th-txt-4)] uppercase tracking-widest">OS</th>
+                              <th className="px-3 py-2.5 text-left text-[11px] font-medium text-[var(--th-txt-4)] uppercase tracking-widest">Browser</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-[var(--th-border)]">
@@ -1361,6 +1850,9 @@ export default function AdminPanel() {
                     : '—'
                   return (
                     <div className="space-y-4">
+                      <button className="sm:hidden flex items-center gap-1.5 text-sm text-[var(--th-txt-3)] hover:text-[var(--th-txt-1)] transition-colors py-1" onClick={() => setSelectedLog(null)}>
+                        <ChevronLeft className="w-4 h-4" />Voltar
+                      </button>
                       <div className="flex items-start justify-between gap-4 pb-4 border-b border-[var(--th-border)]">
                         <div className="min-w-0">
                           <div className="flex items-center gap-3 flex-wrap mb-1">
@@ -1389,7 +1881,7 @@ export default function AdminPanel() {
                           { label: 'ID do Registro', value: String(log.id), mono: true },
                         ].map(({ label, value, mono }) => (
                           <div key={label} className="rounded-lg border border-[var(--th-border)] bg-[var(--th-card)] px-3 py-2.5">
-                            <p className="text-[10px] font-medium text-[var(--th-txt-4)] uppercase tracking-widest mb-1">{label}</p>
+                            <p className="text-[11px] font-medium text-[var(--th-txt-4)] uppercase tracking-widest mb-1">{label}</p>
                             <p className={`text-sm text-[var(--th-txt-1)] ${mono ? 'font-mono' : ''}`}>{value}</p>
                           </div>
                         ))}
@@ -1454,7 +1946,7 @@ export default function AdminPanel() {
           return (
             <>
               {/* List panel */}
-              <div className="w-[300px] shrink-0 border-r border-[var(--th-border)] flex flex-col bg-[var(--th-card)]">
+              <div className={`shrink-0 border-r border-[var(--th-border)] flex-col bg-[var(--th-card)] w-full sm:w-[300px] ${selectedProdItem ? 'hidden sm:flex' : 'flex'}`}>
                 <div className="px-4 py-4 border-b border-[var(--th-border)] shrink-0">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
@@ -1531,7 +2023,7 @@ export default function AdminPanel() {
                         <div className="flex items-center justify-between gap-2">
                           <span className="text-[13px] font-medium text-[var(--th-txt-1)] truncate">{item.nome}</span>
                           {etapaCount !== null && etapaCount > 0 && (
-                            <span className="text-[10px] text-orange-400 bg-orange-500/10 px-1.5 py-0.5 rounded-full shrink-0">{etapaCount} etapas</span>
+                            <span className="text-[11px] text-orange-400 bg-orange-500/10 px-1.5 py-0.5 rounded-full shrink-0">{etapaCount} etapas</span>
                           )}
                         </div>
                       </button>
@@ -1541,7 +2033,7 @@ export default function AdminPanel() {
               </div>
 
               {/* Detail panel */}
-              <div className="flex-1 overflow-y-auto p-6">
+              <div className={`overflow-y-auto sm:flex-1 sm:p-6 ${selectedProdItem ? 'fixed inset-0 top-[54px] z-40 bg-[var(--th-page)] p-4 sm:static sm:inset-auto sm:z-auto sm:bg-transparent' : 'hidden sm:block'}`}>
                 {!selectedProdItem && (
                   <div className="flex flex-col items-center justify-center py-24 text-[var(--th-txt-4)]">
                     <GitBranch strokeWidth={1} className="w-12 h-12 mb-3 opacity-30" />
@@ -1551,6 +2043,9 @@ export default function AdminPanel() {
 
                 {selectedProdItem && (
                   <div className="max-w-2xl space-y-5">
+                    <button className="sm:hidden flex items-center gap-1.5 text-sm text-[var(--th-txt-3)] hover:text-[var(--th-txt-1)] transition-colors py-1" onClick={() => setSelectedProdItem(null)}>
+                      <ChevronLeft className="w-4 h-4" />Voltar
+                    </button>
                     {/* Item header */}
                     <div className="flex items-start justify-between gap-4 pb-5 border-b border-[var(--th-border)]">
                       <div className="flex-1 min-w-0">
@@ -1596,7 +2091,7 @@ export default function AdminPanel() {
                     <div className="rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] overflow-hidden">
                       <div className="px-4 py-3 border-b border-[var(--th-border)] bg-[var(--th-subtle)] flex items-center justify-between">
                         <p className="text-xs font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Fluxo de Produção</p>
-                        <span className="text-[10px] text-[var(--th-txt-4)]">{prodEtapas.length} etapas</span>
+                        <span className="text-[11px] text-[var(--th-txt-4)]">{prodEtapas.length} etapas</span>
                       </div>
 
                       {prodEtapasLoading && (
@@ -1743,7 +2238,7 @@ export default function AdminPanel() {
                         <Box strokeWidth={1.5} className="w-5 h-5 text-[var(--th-txt-4)]" />
                       </div>
                       <div>
-                        <p className="text-[10px] text-[var(--th-txt-4)] uppercase tracking-widest font-medium mb-0.5">Pedidos Totais</p>
+                        <p className="text-[11px] text-[var(--th-txt-4)] uppercase tracking-widest font-medium mb-0.5">Pedidos Totais</p>
                         <p className="text-xl font-bold text-orange-400">{totalOrders !== null ? totalOrders.toLocaleString('pt-BR') : '—'}</p>
                       </div>
                     </div>
@@ -1762,7 +2257,7 @@ export default function AdminPanel() {
                             <p className="text-xs text-[var(--th-txt-3)] line-clamp-1">{a.description}</p>
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
-                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--th-card)] text-[var(--th-txt-4)] border border-[var(--th-border)]">{a.tag}</span>
+                            <span className="text-[11px] px-1.5 py-0.5 rounded bg-[var(--th-card)] text-[var(--th-txt-4)] border border-[var(--th-border)]">{a.tag}</span>
                             <span className="text-[11px] text-[var(--th-txt-4)]">{a.timestamp}</span>
                           </div>
                         </div>
@@ -1785,7 +2280,7 @@ export default function AdminPanel() {
               return (
                 <div className="flex h-full gap-0 -m-6">
                   {/* List panel */}
-                  <div className="w-[320px] shrink-0 flex flex-col border-r border-[var(--th-border)] bg-[var(--th-card)]">
+                  <div className={`shrink-0 flex-col border-r border-[var(--th-border)] bg-[var(--th-card)] w-full sm:w-[320px] ${selectedCliente ? 'hidden sm:flex' : 'flex'}`}>
                     {/* Header */}
                     <div className="px-4 py-4 border-b border-[var(--th-border)]">
                       <div className="flex items-center justify-between mb-3">
@@ -1808,11 +2303,47 @@ export default function AdminPanel() {
                           className="w-full rounded-lg border border-[var(--th-border)] bg-transparent pl-8 pr-3 py-1.5 text-xs text-[var(--th-txt-1)] placeholder:text-[var(--th-txt-4)] focus:outline-none focus:ring-2 focus:ring-orange-500/40" />
                       </div>
                       {/* Estado filter */}
-                      <select value={clientesEstado} onChange={e => setClientesEstado(e.target.value)}
-                        className="w-full rounded-lg border border-[var(--th-border)] bg-[var(--th-card)] px-2.5 py-1.5 text-xs text-[var(--th-txt-2)] focus:outline-none focus:ring-2 focus:ring-orange-500/40">
-                        <option value="">Todos os estados</option>
-                        {estados.map(uf => <option key={uf} value={uf}>{uf}</option>)}
-                      </select>
+                      <div className="relative">
+                        <button
+                          type="button"
+                          onClick={() => setClientesEstadoOpen(o => !o)}
+                          className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg border text-xs transition-colors ${
+                            clientesEstadoOpen
+                              ? 'border-orange-500/50 bg-[var(--th-card)] ring-2 ring-orange-500/20'
+                              : 'border-[var(--th-border)] bg-[var(--th-card)] hover:border-orange-500/30'
+                          }`}
+                        >
+                          <span className={clientesEstado ? 'text-[var(--th-txt-1)]' : 'text-[var(--th-txt-4)]'}>
+                            {clientesEstado || 'Todos os estados'}
+                          </span>
+                          <ChevronDown strokeWidth={2} className={`w-3 h-3 text-[var(--th-txt-4)] transition-transform shrink-0 ml-1 ${clientesEstadoOpen ? 'rotate-180' : ''}`} />
+                        </button>
+                        {clientesEstadoOpen && (
+                          <div className="absolute z-50 top-full mt-1 left-0 right-0 max-h-48 overflow-y-auto rounded-lg border border-[var(--th-border)] bg-[var(--th-card)] shadow-lg">
+                            <button
+                              type="button"
+                              onClick={() => { setClientesEstado(''); setClientesEstadoOpen(false) }}
+                              className={`w-full text-left px-2.5 py-1.5 text-xs transition-colors hover:bg-[var(--th-hover)] ${
+                                clientesEstado === '' ? 'text-orange-400 bg-orange-500/8 font-semibold' : 'text-[var(--th-txt-3)]'
+                              }`}
+                            >
+                              Todos os estados
+                            </button>
+                            {estados.map(uf => (
+                              <button
+                                key={uf}
+                                type="button"
+                                onClick={() => { setClientesEstado(uf); setClientesEstadoOpen(false) }}
+                                className={`w-full text-left px-2.5 py-1.5 text-xs transition-colors hover:bg-[var(--th-hover)] ${
+                                  clientesEstado === uf ? 'text-orange-400 bg-orange-500/8 font-semibold' : 'text-[var(--th-txt-1)]'
+                                }`}
+                              >
+                                {uf}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
                     {/* List */}
                     <div className="flex-1 overflow-y-auto p-2 space-y-1">
@@ -1830,7 +2361,7 @@ export default function AdminPanel() {
                             className={isSelected ? 'w-full text-left rounded-xl border border-orange-500/40 bg-orange-500/8 px-4 py-3 transition-all' : 'w-full text-left rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] px-4 py-3 transition-all hover:border-orange-500/30 hover:bg-orange-500/5'}>
                             <div className="flex items-start justify-between gap-2">
                               <p className="text-sm font-medium text-[var(--th-txt-1)] leading-snug line-clamp-2">{nome}</p>
-                              <span className="text-[10px] font-mono text-[var(--th-txt-4)] shrink-0 mt-0.5">{cod}</span>
+                              <span className="text-[11px] font-mono text-[var(--th-txt-4)] shrink-0 mt-0.5">{cod}</span>
                             </div>
                             {(cidade || uf) && (
                               <p className="text-[11px] text-[var(--th-txt-4)] mt-0.5">{[cidade, uf].filter(Boolean).join(' · ')}</p>
@@ -1842,7 +2373,7 @@ export default function AdminPanel() {
                   </div>
 
                   {/* Detail panel */}
-                  <div className="flex-1 overflow-y-auto p-5">
+                  <div className={`overflow-y-auto sm:flex-1 sm:p-5 ${selectedCliente ? 'fixed inset-0 top-[54px] z-40 bg-[var(--th-page)] p-4 sm:static sm:inset-auto sm:z-auto sm:bg-transparent' : 'hidden sm:block'}`}>
                     {!selectedCliente && (
                       <div className="flex flex-col items-center justify-center py-16 text-[var(--th-txt-4)]">
                         <Users strokeWidth={1} className="w-12 h-12 mb-3 opacity-30" />
@@ -1859,6 +2390,9 @@ export default function AdminPanel() {
                       const pedidosDoCliente = orders.filter(p => asText(p.CLIENTE).trim() === asText(c.CODIGO).trim())
                       return (
                         <div className="space-y-4">
+                          <button className="sm:hidden flex items-center gap-1.5 text-sm text-[var(--th-txt-3)] hover:text-[var(--th-txt-1)] transition-colors py-1" onClick={() => setSelectedCliente(null)}>
+                            <ChevronLeft className="w-4 h-4" />Voltar
+                          </button>
                           {/* Header */}
                           <div className="flex items-start justify-between gap-4 pb-4 border-b border-[var(--th-border)]">
                             <div className="min-w-0 flex-1">
@@ -1894,7 +2428,7 @@ export default function AdminPanel() {
                           <div className="rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] overflow-hidden">
                             <div className="px-4 py-2.5 bg-[var(--th-subtle)] border-b border-[var(--th-border)] flex items-center justify-between">
                               <p className="text-xs font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Histórico de Pedidos</p>
-                              <span className="text-[10px] text-[var(--th-txt-4)]">{pedidosDoCliente.length} pedido(s)</span>
+                              <span className="text-[11px] text-[var(--th-txt-4)]">{pedidosDoCliente.length} pedido(s)</span>
                             </div>
                             {pedidosDoCliente.length === 0
                               ? <p className="px-4 py-6 text-sm text-center text-[var(--th-txt-3)]">Nenhum pedido encontrado.</p>
@@ -1921,8 +2455,8 @@ export default function AdminPanel() {
                                                 className="font-mono font-semibold text-sm text-[var(--th-txt-1)] hover:text-orange-400 hover:underline transition-colors"
                                               >{asText(p.CODIGO)}</button>
                                               {isFinalizado
-                                                ? <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-500/15 text-green-400 border border-green-500/20">Finalizado</span>
-                                                : <span className="text-[10px] px-1.5 py-0.5 rounded bg-orange-500/15 text-orange-400 border border-orange-500/20">Em aberto</span>
+                                                ? <span className="text-[11px] px-1.5 py-0.5 rounded bg-green-500/15 text-green-400 border border-green-500/20">Finalizado</span>
+                                                : <span className="text-[11px] px-1.5 py-0.5 rounded bg-orange-500/15 text-orange-400 border border-orange-500/20">Em aberto</span>
                                               }
                                             </div>
                                             <div className="flex items-center gap-3 text-xs text-[var(--th-txt-4)] shrink-0">
@@ -2008,7 +2542,7 @@ export default function AdminPanel() {
                     {['clientes', 'pedidos', 'fichas', 'taloes', 'talsetor', 'setores'].map(t => (
                       <div key={t} className="flex items-center justify-between px-4 py-2.5">
                         <span className="font-mono text-sm text-[var(--th-txt-2)]">{t}</span>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-500/15 text-green-400 border border-green-500/20">DBF → Supabase</span>
+                        <span className="text-[11px] px-1.5 py-0.5 rounded bg-green-500/15 text-green-400 border border-green-500/20">DBF → Supabase</span>
                       </div>
                     ))}
                   </div>
