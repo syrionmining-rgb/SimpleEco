@@ -22,7 +22,7 @@ export default function MobileNavbar() {
           className="flex-1 flex flex-col items-center justify-center gap-1 py-2.5 text-[var(--th-txt-4)] hover:text-[var(--th-txt-1)] hover:bg-[var(--th-hover)] transition-colors"
         >
           <Icon className="w-5 h-5" />
-          <span className="text-[10px] font-medium uppercase tracking-wide">{label}</span>
+          <span className="text-[11px] font-medium uppercase tracking-wide">{label}</span>
         </button>
       ))}
     </nav>

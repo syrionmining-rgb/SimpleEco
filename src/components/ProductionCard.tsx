@@ -25,7 +25,7 @@ export default function ProductionCard({ goal, produced }: ProductionCardProps) 
           {/* Título + subtítulo */}
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-[var(--th-txt-1)] truncate">Meta Diária</p>
-            <p className="text-[10px] text-[var(--th-txt-4)] uppercase tracking-widest font-medium truncate">Indicador de Produção</p>
+            <p className="text-[11px] text-[var(--th-txt-4)] uppercase tracking-widest font-medium truncate">Indicador de Produção</p>
           </div>
           {/* Valor alinhado à direita */}
           <div className="flex items-baseline gap-0.5 shrink-0">

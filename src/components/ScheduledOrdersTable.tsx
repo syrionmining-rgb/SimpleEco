@@ -63,7 +63,7 @@ export default function ScheduledOrdersTable({
     if (value !== 1) return null
 
     return (
-      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide border bg-red-500/15 text-red-400 border-red-500/30">
+      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-bold uppercase tracking-wide border bg-red-500/15 text-red-400 border-red-500/30">
         ALTA
       </span>
     )
@@ -86,13 +86,13 @@ export default function ScheduledOrdersTable({
             <Package className="w-4 h-4 sm:w-6 sm:h-6 text-[var(--th-txt-4)]" aria-hidden="true" />
           </button>
           <div>
-            <p className="text-[10px] sm:text-sm text-[var(--th-txt-4)] uppercase tracking-widest font-medium">Programados para Hoje</p>
+            <p className="text-[11px] sm:text-sm text-[var(--th-txt-4)] uppercase tracking-widest font-medium">Programados para Hoje</p>
             <h3 className="text-sm sm:text-lg font-semibold text-[var(--th-txt-1)]">Pedidos de Produção</h3>
           </div>
         </div>
         <div className="flex flex-col items-end">
           <span className="text-2xl sm:text-4xl font-bold text-black dark:text-white leading-none">{orders.length}</span>
-          <span className="text-[10px] sm:text-sm text-[var(--th-txt-3)] mt-1">pedidos</span>
+          <span className="text-[11px] sm:text-sm text-[var(--th-txt-3)] mt-1">pedidos</span>
         </div>
       </div>
 
@@ -101,13 +101,13 @@ export default function ScheduledOrdersTable({
           <table className="w-full">
             <thead>
               <tr className="border-b border-[var(--th-border-soft)]">
-                <th onClick={() => toggleSort('id')} className="px-3 sm:px-5 py-3 sm:py-3.5 text-left text-[10px] sm:text-sm font-medium text-[var(--th-txt-4)] uppercase tracking-widest">{sortLabel('Pedido')}</th>
-                <th onClick={() => toggleSort('remessa')} className="px-3 sm:px-5 py-3 sm:py-3.5 text-left text-[10px] sm:text-sm font-medium text-[var(--th-txt-4)] uppercase tracking-widest">{sortLabel('Remessa')}</th>
-                <th onClick={() => toggleSort('client')} className="px-3 sm:px-5 py-3 sm:py-3.5 text-left text-[10px] sm:text-sm font-medium text-[var(--th-txt-4)] uppercase tracking-widest">{sortLabel('Cliente')}</th>
-                <th onClick={() => toggleSort('colorModel')} className="px-3 sm:px-5 py-3 sm:py-3.5 text-left text-[10px] sm:text-sm font-medium text-[var(--th-txt-4)] uppercase tracking-widest">{sortLabel('Cor / Modelo')}</th>
-                <th onClick={() => toggleSort('qty')} className="px-3 sm:px-5 py-3 sm:py-3.5 text-left text-[10px] sm:text-sm font-medium text-[var(--th-txt-4)] uppercase tracking-widest">{sortLabel('Und')}</th>
-                <th onClick={() => toggleSort('expDate')} className="px-3 sm:px-5 py-3 sm:py-3.5 text-left text-[10px] sm:text-sm font-medium text-[var(--th-txt-4)] uppercase tracking-widest whitespace-nowrap">{sortLabel('Data Exp.')}</th>
-                <th onClick={() => toggleSort('status')} className="px-3 sm:px-5 py-3 sm:py-3.5 text-left text-[10px] sm:text-sm font-medium text-[var(--th-txt-4)] uppercase tracking-widest">{sortLabel('Status')}</th>
+                <th onClick={() => toggleSort('id')} className="px-3 sm:px-5 py-3 sm:py-3.5 text-left text-[11px] sm:text-sm font-medium text-[var(--th-txt-4)] uppercase tracking-widest">{sortLabel('Pedido')}</th>
+                <th onClick={() => toggleSort('remessa')} className="px-3 sm:px-5 py-3 sm:py-3.5 text-left text-[11px] sm:text-sm font-medium text-[var(--th-txt-4)] uppercase tracking-widest">{sortLabel('Remessa')}</th>
+                <th onClick={() => toggleSort('client')} className="px-3 sm:px-5 py-3 sm:py-3.5 text-left text-[11px] sm:text-sm font-medium text-[var(--th-txt-4)] uppercase tracking-widest">{sortLabel('Cliente')}</th>
+                <th onClick={() => toggleSort('colorModel')} className="px-3 sm:px-5 py-3 sm:py-3.5 text-left text-[11px] sm:text-sm font-medium text-[var(--th-txt-4)] uppercase tracking-widest">{sortLabel('Cor / Modelo')}</th>
+                <th onClick={() => toggleSort('qty')} className="px-3 sm:px-5 py-3 sm:py-3.5 text-left text-[11px] sm:text-sm font-medium text-[var(--th-txt-4)] uppercase tracking-widest">{sortLabel('Und')}</th>
+                <th onClick={() => toggleSort('expDate')} className="px-3 sm:px-5 py-3 sm:py-3.5 text-left text-[11px] sm:text-sm font-medium text-[var(--th-txt-4)] uppercase tracking-widest whitespace-nowrap">{sortLabel('Data Exp.')}</th>
+                <th onClick={() => toggleSort('status')} className="px-3 sm:px-5 py-3 sm:py-3.5 text-left text-[11px] sm:text-sm font-medium text-[var(--th-txt-4)] uppercase tracking-widest">{sortLabel('Status')}</th>
               </tr>
             </thead>
             <tbody>

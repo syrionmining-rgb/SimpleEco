@@ -107,7 +107,7 @@ export default function MonthlyChart({ data, monthName }: MonthlyChartProps) {
               return (
                 <div key={d.day} className="flex-1 flex justify-center">
                   {show ? (
-                    <span className="text-[9px] sm:text-[10px] text-[var(--th-txt-4)] font-medium">{d.day}</span>
+                    <span className="text-[11px] text-[var(--th-txt-4)] font-medium">{d.day}</span>
                   ) : null}
                 </div>
               )
