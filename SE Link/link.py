@@ -8,6 +8,7 @@ Executar: python link.py  (dentro da pasta ETL/)
 import json
 import logging
 import os
+import queue
 import sys
 import threading
 import time
@@ -33,15 +34,56 @@ DBF_DIR_FILE = _EXE_DIR / ".dbf_dir"
 
 # Referencia global a janela — populada em main()
 _window: webview.Window = None
+# Cliente Supabase ativo — setado em _run_sync para persistir logs na nuvem
+_log_client = None
+# Fila de logs para inserção em lote no Supabase
+_log_queue: queue.Queue = queue.Queue()
 
 
 # ── Helpers para comunicar com o frontend ────────────────────────────────────
 
 def _push_log(level: str, msg: str):
-    """Envia linha de log ao frontend JS."""
+    """Envia linha de log ao frontend JS e enfileira para persistência em lote."""
     if _window:
         payload = json.dumps({"level": level, "msg": msg})
         _window.evaluate_js(f"window.appendLog({payload})")
+    if _log_client:
+        _log_queue.put({"level": level, "message": msg})
+
+
+def _log_batch_worker():
+    """Drena _log_queue e insere lotes de até 50 entradas no Supabase a cada 1 s."""
+    batch: list = []
+    deadline = time.time() + 1.0
+    while True:
+        remaining = max(0.05, deadline - time.time())
+        try:
+            item = _log_queue.get(timeout=remaining)
+            if item is None:            # sentinel: encerra
+                break
+            batch.append(item)
+        except queue.Empty:
+            pass
+
+        flush = time.time() >= deadline or len(batch) >= 50
+        if flush and batch:
+            client = _log_client
+            if client:
+                try:
+                    client.table("se_link_logs").insert(batch).execute()
+                except Exception:
+                    pass
+            batch.clear()
+            deadline = time.time() + 1.0
+
+    # flush final ao encerrar
+    if batch:
+        client = _log_client
+        if client:
+            try:
+                client.table("se_link_logs").insert(batch).execute()
+            except Exception:
+                pass
 
 
 def _push_sync_time(ts: str):
@@ -108,7 +150,7 @@ class Api:
     # -- abre dialogo de pasta nativo
     def escolher_pasta(self):
         result = _window.create_file_dialog(
-            webview.FOLDER_DIALOG,
+            webview.FileDialog.FOLDER,
             directory=self._dbf_dir,
             allow_multiple=False,
         )
@@ -141,6 +183,7 @@ class Api:
 
     # -- loop principal de sync (roda em thread separada)
     def _run_sync(self):
+        global _log_client
         try:
             load_dotenv(_EXE_DIR / '.env', override=True)
 
@@ -161,11 +204,16 @@ class Api:
                 return
 
             client = create_client(ss.SUPABASE_URL, ss.SUPABASE_KEY)
+            _log_client = client
             _push_log("INFO", f"Conectado ao Supabase: {ss.SUPABASE_URL}")
+
+            # Reporta DBFs disponíveis na pasta e lê mapa ativo do painel
+            ss.report_available_dbfs(client, ss.BASE_DIR)
+            active_map = ss.get_active_dbf_map(client)
 
             _push_state("syncing")
             _push_status("Sincronizando...", True)
-            ss.sync_all(client)
+            ss.sync_all(client, active_map)
 
             # atualiza timestamp na GUI
             try:
@@ -216,36 +264,102 @@ class Api:
             _push_status("Monitorando...", True)
             _push_log("INFO", f"Monitorando {ss.BASE_DIR} — aguardando alteracoes...")
 
-            # Polling de sync remoto: verifica a flag force_sync no Supabase a cada 15s
-            _poll_counter = 0
-            while not self._stop_event.is_set():
-                time.sleep(1)
-                _poll_counter += 1
-                if _poll_counter >= 15:
-                    _poll_counter = 0
+            # Realtime: escuta force_sync via WebSocket (sem polling)
+            import asyncio
+            from realtime import AsyncRealtimeClient
+
+            client_ref = client
+
+            async def _realtime_loop():
+                from datetime import datetime, timezone as tz
+                # A lib monta `<url>/websocket`, por isso passamos já com /realtime/v1
+                _rt_url = ss.SUPABASE_URL.rstrip("/") + "/realtime/v1"
+                rt = AsyncRealtimeClient(_rt_url, ss.SUPABASE_KEY, auto_reconnect=True)
+
+                async def _heartbeat():
+                    while not stop_ref.is_set():
+                        try:
+                            ts = datetime.now(tz.utc).isoformat()
+                            client_ref.table("sync_log").update({"last_heartbeat": ts}).eq("id", 1).execute()
+                        except Exception:
+                            pass
+                        await asyncio.sleep(30)
+
+                heartbeat_task = asyncio.create_task(_heartbeat())
+
+                def _do_remote_sync():
+                    """Executa sync remoto em thread separada — nao bloqueia o loop asyncio."""
+                    _push_log("INFO", "Sync remoto solicitado pelo painel — iniciando...")
+                    _push_state("syncing")
+                    _push_status("Sincronizando (remoto)...", True)
                     try:
-                        res = client.table("sync_log").select("force_sync").eq("id", 1).single().execute()
-                        if res.data and res.data.get("force_sync"):
-                            _push_log("INFO", "Sync remoto solicitado pelo painel — iniciando...")
-                            _push_state("syncing")
-                            _push_status("Sincronizando (remoto)...", True)
-                            # Reseta flag antes de sincronizar para evitar duplo disparo
-                            client.table("sync_log").update({"force_sync": False}).eq("id", 1).execute()
-                            ss.sync_all(client)
-                            _push_log("INFO", "Sync remoto concluido.")
+                        # Reseta a flag antes de sincronizar (evita disparo duplo)
+                        client_ref.table("sync_log").update({"force_sync": False}).eq("id", 1).execute()
+                        current_map = ss.get_active_dbf_map(client_ref)
+                        ss.sync_all(client_ref, current_map)
+                        _push_log("INFO", "Sync remoto concluido.")
+                    except Exception as exc:
+                        _push_log("ERROR", f"Erro no sync remoto: {exc}")
+                    finally:
+                        if not stop_ref.is_set():
                             _push_state("monitoring")
                             _push_status("Monitorando...", True)
-                    except Exception as _poll_err:
-                        _push_log("WARNING", f"Erro no polling remoto: {_poll_err}")
+
+                def _on_force_sync(payload):
+                    new = payload.get("new", {}) if isinstance(payload, dict) else {}
+                    if not new.get("force_sync"):
+                        return
+                    # Despacha para thread separada para nao travar o loop asyncio
+                    threading.Thread(target=_do_remote_sync, daemon=True).start()
+
+                channel = rt.channel("force_sync_watch")
+                channel.on_postgres_changes(
+                    event="UPDATE",
+                    schema="public",
+                    table="sync_log",
+                    filter="id=eq.1",
+                    callback=_on_force_sync,
+                )
+                await channel.subscribe()
+                _push_log("INFO", "Realtime ativo — aguardando comando do painel...")
+
+                while not stop_ref.is_set():
+                    await asyncio.sleep(0.5)
+
+                heartbeat_task.cancel()
+                try:
+                    await heartbeat_task
+                except asyncio.CancelledError:
+                    pass
+                await channel.unsubscribe()
+
+            def _run_realtime():
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                try:
+                    loop.run_until_complete(_realtime_loop())
+                except Exception as exc:
+                    _push_log("WARNING", f"Realtime encerrado: {exc}")
+                finally:
+                    loop.close()
+
+            rt_thread = threading.Thread(target=_run_realtime, daemon=True)
+            rt_thread.start()
+
+            # Aguarda parada (watchdog continua rodando em paralelo)
+            stop_ref.wait()
 
             observer.stop()
-            observer.join()
+            observer.join(timeout=5)
+            rt_thread.join(timeout=5)
 
         except Exception as exc:
             _push_log("ERROR", f"ERRO: {exc}")
             self._running = False
             _push_state("error")
             _push_status(f"Erro: {exc}", False)
+        finally:
+            _log_client = None
 
 
 # ── Entry point ───────────────────────────────────────────────────────────────
@@ -258,6 +372,13 @@ def main():
     handler.setFormatter(logging.Formatter("%(asctime)s  %(message)s", "%H:%M:%S"))
     logging.getLogger().addHandler(handler)
     logging.getLogger().setLevel(logging.INFO)
+
+    # Suprime logs HTTP internos (httpx / httpcore) — só WARNING ou acima
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("httpcore").setLevel(logging.WARNING)
+
+    # Inicia worker de inserção em lote de logs no Supabase
+    threading.Thread(target=_log_batch_worker, daemon=True, name="log-batch").start()
 
     api      = Api()
     html_uri = (Path(__file__).parent / "gui" / "index.html").as_uri()

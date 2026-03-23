@@ -30,7 +30,7 @@ export default function GoalCard({ title, goal, unit, progress }: GoalCardProps)
             {hasGoal ? (
               <>
                 <span className="text-2xl font-bold leading-none text-[var(--th-txt-4)]">{progress}/</span>
-                <span className="text-2xl font-bold leading-none bg-gradient-to-r from-[#FF8C00] to-[#D81B60] bg-clip-text text-transparent">{goalLabel}</span>
+                <span className="text-2xl font-bold leading-none bg-gradient-to-r from-accent to-[#D81B60] bg-clip-text text-transparent">{goalLabel}</span>
                 <span className="text-xs font-normal text-[var(--th-txt-4)]"> und.</span>
               </>
             ) : (
@@ -41,7 +41,7 @@ export default function GoalCard({ title, goal, unit, progress }: GoalCardProps)
         <div className="flex items-center gap-2">
           <div className="flex-1 h-2 rounded-full bg-[var(--th-subtle)] overflow-hidden">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-[#FF8C00] to-[#D81B60] transition-all duration-500"
+              className="h-full rounded-full bg-gradient-to-r from-accent to-[#D81B60] transition-all duration-500"
               style={{ width: `${percentage}%` }}
             />
           </div>
@@ -66,7 +66,7 @@ export default function GoalCard({ title, goal, unit, progress }: GoalCardProps)
               {hasGoal ? (
                 <>
                   <span className="text-[var(--th-txt-4)]">{progress}/</span>
-                  <span className="bg-gradient-to-r from-[#FF8C00] to-[#D81B60] bg-clip-text text-transparent">{goalLabel}</span>
+                  <span className="bg-gradient-to-r from-accent to-[#D81B60] bg-clip-text text-transparent">{goalLabel}</span>
                   <span className="text-sm sm:text-lg font-normal text-[var(--th-txt-4)]"> und.</span>
                 </>
               ) : (
@@ -83,7 +83,7 @@ export default function GoalCard({ title, goal, unit, progress }: GoalCardProps)
           </div>
           <div className="w-full h-3 rounded-full bg-[var(--th-subtle)] overflow-hidden">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-[#FF8C00] to-[#D81B60] transition-all duration-500"
+              className="h-full rounded-full bg-gradient-to-r from-accent to-[#D81B60] transition-all duration-500"
               style={{ width: `${percentage}%` }}
             />
           </div>

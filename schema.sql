@@ -593,14 +593,166 @@ alter table public.talsetor enable row level security;
 drop policy if exists "leitura_anonima" on public.talsetor;
 create policy "leitura_anonima" on public.talsetor for select using (true);
 
+-- ── pedimate ──────────────────────────────────────────────────
+-- Materiais consumidos por pedido/item (BOM aplicado ao pedido)
+drop table if exists public.pedimate cascade;
+create table public.pedimate (
+  "CODIGO"    text,          -- código do pedido
+  "ITEM"      text,          -- item dentro do pedido
+  "ORDEM"     text,          -- sequência do material
+  "TIPO"      text,          -- tipo de material (ex: TEC.TECIDO, EVA.EVA)
+  "TIPON"     bigint,        -- tipo numérico
+  "SETOR"     text,          -- código do setor onde é usado
+  "NOMESET"   text,          -- nome do setor
+  "MATERIAL"  text,          -- código do material
+  "NOMEMAT"   text,          -- nome do material
+  "INFM"      boolean,       -- flag informação material
+  "COR"       text,          -- código da cor
+  "NOMECOR"   text,          -- nome da cor
+  "INFC"      boolean,       -- flag informação cor
+  "UNI"       text,          -- unidade (M2, ML, UN, KG...)
+  "CONS_UNIT" numeric,       -- consumo por par
+  "CONSUMO"   numeric,       -- consumo total do item
+  "GRADE"     text,          -- grade de consumo
+  "CHAVE"     text,          -- chave do BOM (liga a fichamat)
+  "NPROC2451" bigint,        -- controle interno
+  "GRUPO"     text,          -- grupo do material
+  "VLR_MAT221" numeric,      -- valor do material
+  "COMPLEME"  text,          -- complemento
+  primary key ("CODIGO", "ITEM", "ORDEM")
+);
+alter table public.pedimate enable row level security;
+drop policy if exists "leitura_anonima" on public.pedimate;
+create policy "leitura_anonima" on public.pedimate for select using (true);
+
+-- ── material ───────────────────────────────────────────────────
+-- Cadastro mestre de materiais (matéria-prima, embalagens, aviamentos)
+drop table if exists public.material cascade;
+create table public.material (
+  "CODIGO"    text primary key, -- código do material
+  "NOME"      text,             -- nome completo
+  "NOME_REDUZ" text,            -- nome reduzido
+  "REFERENCIA" text,            -- referência interna
+  "UNIDADE"   text,             -- unidade de medida (M2, KG, UN, ML...)
+  "LINHA"     text,             -- linha/família
+  "FORMATO"   text,             -- formato
+  "EAN13"     text,             -- código de barras EAN-13
+  "GRUPO"     text,             -- grupo do material
+  "SUBGRUPO"  text,             -- subgrupo
+  "TIPOK"     text,             -- tipo (01-Matéria Prima, 02-Embalagens, etc.)
+  "QUANT"     numeric,          -- quantidade em estoque
+  "VALOR"     numeric,          -- valor unitário atual
+  "MEDIO"     numeric,          -- custo médio
+  "VENDA"     numeric,          -- preço de venda
+  "ULTIMAENT" date,             -- data da última entrada
+  "ULTIMASDA" date,             -- data da última saída
+  "CADASTRO"  date,             -- data de cadastro
+  "ATUALIZADO" date,            -- data de atualização
+  "HORA_ATU"  text,
+  "FORNECED"  text,             -- código do fornecedor principal
+  "MARCA"     text,             -- marca
+  "OBS"       text,             -- observações
+  "CODCOR"    text,             -- código de cor
+  "NOMECOR"   text,             -- nome da cor
+  "BLOQUEADO" boolean,          -- material bloqueado
+  "QUANT_MAX" numeric,          -- estoque máximo
+  "QUANT_MIN" numeric,          -- estoque mínimo
+  "PESO"      numeric,          -- peso líquido
+  "PESO_BRUTO" numeric,         -- peso bruto
+  "MOV_ESTOQ" bigint,           -- movimenta estoque (flag)
+  "SPEED_CODI" text             -- código Speed (integração)
+);
+alter table public.material enable row level security;
+drop policy if exists "leitura_anonima" on public.material;
+create policy "leitura_anonima" on public.material for select using (true);
+
+-- ── grades ────────────────────────────────────────────────────
+-- Definição das grades de numeração (tamanhos)
+drop table if exists public.grades cascade;
+create table public.grades (
+  "CODIGO"     text primary key, -- código da grade (MI, IN, ET...)
+  "NOME"       text,             -- nome (MERCADO INTERNO, INFANTIL...)
+  "GRADE"      text,             -- rótulos dos tamanhos separados por espaço (32  33  34...)
+  "NUMEROS"    text,             -- equivalentes numéricos
+  "RELACIONAL" text,             -- grade relacionada
+  "SOMAR_231"  text              -- flag de soma
+);
+alter table public.grades enable row level security;
+drop policy if exists "leitura_anonima" on public.grades;
+create policy "leitura_anonima" on public.grades for select using (true);
+
+-- ── talaoaux ──────────────────────────────────────────────────
+-- Sub-grupos de talão (categorias de materiais por talão)
+drop table if exists public.talaoaux cascade;
+create table public.talaoaux (
+  "CODIGO" text primary key, -- código (001, 002...)
+  "NOME"   text              -- nome (CABEDAL, SOLADO, PALMILHA INTERNA...)
+);
+alter table public.talaoaux enable row level security;
+drop policy if exists "leitura_anonima" on public.talaoaux;
+create policy "leitura_anonima" on public.talaoaux for select using (true);
+
+-- ============================================================
+-- SYNC CONFIG (configuração dinâmica das tabelas a sincronizar)
+-- ============================================================
+create table if not exists public.sync_config (
+  dbf_name    text primary key,
+  table_name  text,
+  pk_field    text,
+  enabled     boolean not null default true,
+  discovered  boolean not null default false,
+  found_at    timestamptz,
+  updated_at  timestamptz not null default now()
+);
+alter table public.sync_config enable row level security;
+drop policy if exists "sync_config_select" on public.sync_config;
+create policy "sync_config_select" on public.sync_config for select using (true);
+drop policy if exists "sync_config_upsert" on public.sync_config;
+create policy "sync_config_upsert" on public.sync_config for all to anon, authenticated using (true) with check (true);
+
+-- Dados iniciais
+insert into public.sync_config (dbf_name, table_name, pk_field, enabled) values
+  ('clientes', 'clientes', 'CODIGO', true),
+  ('pedidos',  'pedidos',  'CODIGO', true),
+  ('fichas',   'fichas',   'CODIGO', true),
+  ('taloes',   'taloes',   'CODIGO', true),
+  ('peditens', 'peditens', null,     true),
+  ('talsetor', 'talsetor', null,     true),
+  ('setores',  'setores',  'CODIGO', true),
+  ('pedimate', 'pedimate', null,     true),
+  ('material', 'material', 'CODIGO', true),
+  ('grades',   'grades',   'CODIGO', true),
+  ('talaoaux', 'talaoaux', 'CODIGO', true)
+on conflict (dbf_name) do nothing;
+
+-- ============================================================
+-- SE LINK LOGS (console do SE Link persistido na nuvem)
+-- ============================================================
+create table if not exists public.se_link_logs (
+  id         bigserial primary key,
+  created_at timestamptz not null default now(),
+  level      text not null default 'INFO',
+  message    text not null
+);
+alter table public.se_link_logs enable row level security;
+drop policy if exists "se_link_logs_select" on public.se_link_logs;
+create policy "se_link_logs_select" on public.se_link_logs for select using (true);
+drop policy if exists "se_link_logs_insert" on public.se_link_logs;
+create policy "se_link_logs_insert" on public.se_link_logs for insert to anon, authenticated with check (true);
+drop policy if exists "se_link_logs_delete" on public.se_link_logs;
+create policy "se_link_logs_delete" on public.se_link_logs for delete using (true);
+
 -- ============================================================
 -- SYNC LOG (controle de sincronização SE Link)
 -- ============================================================
 create table if not exists public.sync_log (
-  id          integer primary key,
-  ultima_sync timestamptz not null default now(),
-  force_sync  boolean not null default false
+  id             integer primary key,
+  ultima_sync    timestamptz not null default now(),
+  force_sync     boolean not null default false,
+  last_heartbeat timestamptz
 );
+-- Migration (se a tabela já existir):
+alter table public.sync_log add column if not exists last_heartbeat timestamptz;
 alter table public.sync_log enable row level security;
 drop policy if exists "leitura_anonima_sync" on public.sync_log;
 create policy "leitura_anonima_sync" on public.sync_log for select using (true);

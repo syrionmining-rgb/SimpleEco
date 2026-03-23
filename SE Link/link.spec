@@ -32,6 +32,11 @@ a = Analysis(
         'postgrest',
         'realtime',
         'storage3',
+        # pg8000 (DDL direto + TRUNCATE)
+        'pg8000',
+        'pg8000.native',
+        'scramp',
+        'asn1crypto',
         # outros
         'dotenv',
         'dbfread',

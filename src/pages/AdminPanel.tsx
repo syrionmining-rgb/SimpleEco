@@ -47,6 +47,22 @@ function SidebarSection({ label }: { label: string }) {
 
 // ── Interfaces ────────────────────────────────────────────────────────────────
 
+interface SeLinkLog {
+  id: number
+  created_at: string
+  level: string
+  message: string
+}
+
+interface SyncConfigRow {
+  dbf_name: string
+  table_name: string | null
+  pk_field: string | null
+  enabled: boolean
+  discovered: boolean
+  found_at: string | null
+}
+
 interface PedidoRow {
   [key: string]: unknown
   CODIGO?: string; NOME?: string; CLIENTE?: string; PREVISAO?: string; VENDA?: string
@@ -209,7 +225,20 @@ export default function AdminPanel() {
   const [forceSyncStatus, setForceSyncStatus] = useState<'idle' | 'waiting' | 'done' | 'error'>('idle')
   const [forceSyncError, setForceSyncError] = useState<string | null>(null)
   const [lastSyncTime, setLastSyncTime] = useState<string | null>(null)
+  const [seLinkOnline, setSeLinkOnline] = useState<boolean | null>(null)
+  const [seLinkLogs, setSeLinkLogs] = useState<SeLinkLog[]>([])
+  const [seLinkLogsClearing, setSeLinkLogsClearing] = useState(false)
+  const [seLinkLogsFilter, setSeLinkLogsFilter] = useState<'ALL' | 'INFO' | 'WARNING' | 'ERROR'>('ALL')
+  const [syncConfig, setSyncConfig] = useState<SyncConfigRow[]>([])
+  const [syncConfigLoading, setSyncConfigLoading] = useState(false)
+  const [syncConfigToggles, setSyncConfigToggles] = useState<Record<string, boolean>>({})
+  const [syncConfigSearch, setSyncConfigSearch] = useState('')
+  const [syncConfigFilter, setSyncConfigFilter] = useState<'all' | 'active'>('all')
+  const [syncConfigSavedToggles, setSyncConfigSavedToggles] = useState<Record<string, boolean> | null>(null)
   const forceSyncPollRef = React.useRef<ReturnType<typeof setInterval> | null>(null)
+  const heartbeatIntervalRef = React.useRef<ReturnType<typeof setInterval> | null>(null)
+  const logsEndRef = React.useRef<HTMLDivElement | null>(null)
+  const logsChannelRef = React.useRef<ReturnType<typeof supabase.channel> | null>(null)
 
   // ── Scanner state ─────────────────────────────────────────────────────────
   const [scannerOpen, setScannerOpen] = useState(false)
@@ -221,7 +250,7 @@ export default function AdminPanel() {
 
   async function fetchLastSync() {
     try {
-      const { data } = await supabase.from('sync_log').select('ultima_sync').eq('id', 1).single()
+      const { data } = await supabase.from('sync_log').select('ultima_sync, last_heartbeat').eq('id', 1).single()
       if (data?.ultima_sync) {
         const d = new Date(data.ultima_sync as string)
         setLastSyncTime(d.toLocaleString('pt-BR', {
@@ -229,19 +258,31 @@ export default function AdminPanel() {
           hour: '2-digit', minute: '2-digit', second: '2-digit',
         }))
       }
+      const hb = data?.last_heartbeat as string | null | undefined
+      if (hb) {
+        setSeLinkOnline(Date.now() - new Date(hb).getTime() < 90_000)
+      } else {
+        setSeLinkOnline(false)
+      }
       return null
     } catch { return null }
   }
 
   async function fetchSyncFlags() {
     try {
-      const { data } = await supabase.from('sync_log').select('ultima_sync, force_sync').eq('id', 1).single()
+      const { data } = await supabase.from('sync_log').select('ultima_sync, force_sync, last_heartbeat').eq('id', 1).single()
       if (data?.ultima_sync) {
         const d = new Date(data.ultima_sync as string)
         setLastSyncTime(d.toLocaleString('pt-BR', {
           day: '2-digit', month: '2-digit', year: 'numeric',
           hour: '2-digit', minute: '2-digit', second: '2-digit',
         }))
+      }
+      const hb = data?.last_heartbeat as string | null | undefined
+      if (hb) {
+        setSeLinkOnline(Date.now() - new Date(hb).getTime() < 90_000)
+      } else {
+        setSeLinkOnline(false)
       }
       return data as { ultima_sync: string | null; force_sync: boolean | null } | null
     } catch { return null }
@@ -282,10 +323,106 @@ export default function AdminPanel() {
     }
   }
 
+  async function fetchSeLinkLogs() {
+    try {
+      const { data } = await supabase
+        .from('se_link_logs')
+        .select('id, created_at, level, message')
+        .order('id', { ascending: true })
+        .limit(200)
+      if (data) setSeLinkLogs(data as SeLinkLog[])
+    } catch { /* ignore */ }
+  }
+
+  async function clearSeLinkLogs() {
+    setSeLinkLogsClearing(true)
+    try {
+      await supabase.from('se_link_logs').delete().gt('id', 0)
+      setSeLinkLogs([])
+    } catch { /* ignore */ }
+    setSeLinkLogsClearing(false)
+  }
+
+  async function fetchSyncConfig() {
+    setSyncConfigLoading(true)
+    try {
+      const { data } = await supabase
+        .from('sync_config')
+        .select('dbf_name, table_name, pk_field, enabled, discovered, found_at')
+        .order('dbf_name', { ascending: true })
+      if (data) {
+        setSyncConfig(data as SyncConfigRow[])
+        const toggles: Record<string, boolean> = {}
+        for (const row of data as SyncConfigRow[]) toggles[row.dbf_name] = row.enabled
+        setSyncConfigToggles(toggles)
+      }
+    } catch { /* ignore */ }
+    setSyncConfigLoading(false)
+  }
+
+  async function toggleSyncConfig(dbfName: string, enabled: boolean) {
+    setSyncConfigToggles(prev => ({ ...prev, [dbfName]: enabled }))
+    try {
+      await supabase.from('sync_config').update({ enabled, updated_at: new Date().toISOString() }).eq('dbf_name', dbfName)
+    } catch {
+      setSyncConfigToggles(prev => ({ ...prev, [dbfName]: !enabled }))
+    }
+  }
+
+  async function clearSyncSelection() {
+    const enabledNames = Object.entries(syncConfigToggles).filter(([, v]) => v).map(([k]) => k)
+    if (enabledNames.length === 0) return
+    setSyncConfigSavedToggles({ ...syncConfigToggles })
+    setSyncConfigToggles(prev => Object.fromEntries(Object.keys(prev).map(k => [k, false])))
+    try {
+      await supabase.from('sync_config').update({ enabled: false, updated_at: new Date().toISOString() }).in('dbf_name', enabledNames)
+    } catch {
+      setSyncConfigToggles(prev => ({ ...prev, ...syncConfigToggles }))
+      setSyncConfigSavedToggles(null)
+    }
+  }
+
+  async function restoreSyncSelection() {
+    if (!syncConfigSavedToggles) return
+    const saved = syncConfigSavedToggles
+    setSyncConfigSavedToggles(null)
+    setSyncConfigToggles(saved)
+    const enabledNames = Object.entries(saved).filter(([, v]) => v).map(([k]) => k)
+    const disabledNames = Object.entries(saved).filter(([, v]) => !v).map(([k]) => k)
+    try {
+      if (enabledNames.length) await supabase.from('sync_config').update({ enabled: true, updated_at: new Date().toISOString() }).in('dbf_name', enabledNames)
+      if (disabledNames.length) await supabase.from('sync_config').update({ enabled: false, updated_at: new Date().toISOString() }).in('dbf_name', disabledNames)
+    } catch { /* best effort */ }
+  }
+
   useEffect(() => {
-    if (selectedModule === 'database') void fetchLastSync()
+    if (logsEndRef.current) logsEndRef.current.scrollIntoView({ behavior: 'smooth' })
+  }, [seLinkLogs])
+
+  useEffect(() => {
+    if (selectedModule === 'database') {
+      void fetchLastSync()
+      void fetchSeLinkLogs()
+      void fetchSyncConfig()
+      heartbeatIntervalRef.current = setInterval(() => void fetchLastSync(), 30_000)
+
+      // Realtime: escuta novos logs em tempo real
+      const channel = supabase
+        .channel('se_link_logs_stream')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'se_link_logs' },
+          (payload) => {
+            setSeLinkLogs(prev => {
+              const next = [...prev, payload.new as SeLinkLog]
+              return next.slice(-200)
+            })
+          })
+        .subscribe()
+      logsChannelRef.current = channel
+    }
     return () => {
       if (forceSyncPollRef.current) clearInterval(forceSyncPollRef.current)
+      if (heartbeatIntervalRef.current) { clearInterval(heartbeatIntervalRef.current); heartbeatIntervalRef.current = null }
+      if (logsChannelRef.current) { void supabase.removeChannel(logsChannelRef.current); logsChannelRef.current = null }
     }
   }, [selectedModule])
 
@@ -946,7 +1083,7 @@ export default function AdminPanel() {
                     value={ordersSubTab === 'pedidos' ? ordersQuery : remessasQuery}
                     onChange={e => ordersSubTab === 'pedidos' ? setOrdersQuery(e.target.value) : setRemessasQuery(e.target.value)}
                     placeholder={ordersSubTab === 'pedidos' ? 'Buscar pedido...' : 'Buscar remessa...'}
-                    className="w-full rounded-lg border border-[var(--th-border)] bg-[var(--th-subtle)] pl-8 pr-3 py-1.5 text-[13px] text-[var(--th-txt-1)] placeholder:text-[var(--th-txt-4)] focus:outline-none focus:ring-1 focus:ring-orange-500/50"
+                    className="w-full rounded-lg border border-[var(--th-border)] bg-transparent pl-8 pr-3 py-1.5 text-xs text-[var(--th-txt-1)] placeholder:text-[var(--th-txt-4)] focus:outline-none focus:ring-2 focus:ring-orange-500/40"
                   />
                 </div>
                 {ordersSubTab === 'pedidos' && (
@@ -1173,6 +1310,7 @@ export default function AdminPanel() {
 
                 // Fluxo de produção vinculado a este pedido
                 const fluxoVinculado = pedidoFluxoMap.get(pc)
+                const fluxoItem = fluxoVinculado ? prodItems.find(i => i.id === fluxoVinculado.item_id) : null
                 const fluxoEtapas = fluxoVinculado
                   ? prodItems.length > 0
                     ? (() => {
@@ -1294,68 +1432,67 @@ export default function AdminPanel() {
                         <div className="px-4 py-2 bg-[var(--th-subtle)] flex items-center justify-between">
                           <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Fluxo de Produção</p>
                           <div className="flex items-center gap-2">
-                            {/* Fluxo selector inline */}
-                            {(() => {
-                              const effectiveId = pedidoFluxoSelect !== '' ? pedidoFluxoSelect : (fluxoVinculado ? fluxoVinculado.item_id : '')
-                              const displayNome = effectiveId === -1 ? 'Nenhum' : prodItems.find(i => i.id === effectiveId)?.nome
-                              return (
-                                <>
-                                  <div className="relative">
-                                    <button
-                                      type="button"
-                                      onClick={() => setFluxoDropdownOpen(o => !o)}
-                                      className={`flex items-center justify-between gap-1.5 pl-2.5 pr-1.5 py-1 rounded-lg border text-xs transition-colors ${
-                                        fluxoDropdownOpen
-                                          ? 'border-orange-500/50 bg-[var(--th-card)] ring-2 ring-orange-500/20 text-[var(--th-txt-1)]'
-                                          : 'border-[var(--th-border)] bg-[var(--th-card)] text-[var(--th-txt-3)] hover:border-orange-500/30 hover:text-[var(--th-txt-1)]'
-                                      }`}
-                                    >
-                                      <span className="truncate max-w-[100px]">{displayNome ?? 'Selecionar fluxo…'}</span>
-                                      <ChevronDown strokeWidth={2} className={`w-3 h-3 transition-transform shrink-0 ${fluxoDropdownOpen ? 'rotate-180' : ''}`} />
-                                    </button>
-                                    {fluxoDropdownOpen && (
-                                      <div className="absolute z-50 top-full mt-1 right-0 min-w-[140px] rounded-lg border border-[var(--th-border)] bg-[var(--th-card)] shadow-lg overflow-hidden">
-                                        <button
-                                          type="button"
-                                          onClick={() => { setPedidoFluxoSelect(-1); setFluxoDropdownOpen(false) }}
-                                          className={`w-full text-left px-3 py-2 text-xs transition-colors hover:bg-[var(--th-hover)] ${
-                                            effectiveId === -1 ? 'text-orange-400 bg-orange-500/8 font-semibold' : 'text-[var(--th-txt-3)]'
-                                          }`}
-                                        >
-                                          Nenhum
-                                        </button>
-                                        {prodItems.map(item => (
-                                          <button
-                                            key={item.id}
-                                            type="button"
-                                            onClick={() => { setPedidoFluxoSelect(item.id); setFluxoDropdownOpen(false) }}
-                                            className={`w-full text-left px-3 py-2 text-xs transition-colors hover:bg-[var(--th-hover)] ${
-                                              effectiveId === item.id ? 'text-orange-400 bg-orange-500/8 font-semibold' : 'text-[var(--th-txt-1)]'
-                                            }`}
-                                          >
-                                            {item.nome}
-                                          </button>
-                                        ))}
-                                      </div>
-                                    )}
-                                  </div>
-                                  <button
-                                    type="button"
-                                    disabled={effectiveId === '' || pedidoFluxoSaving}
-                                    onClick={() => { if (effectiveId === -1) { void removePedidoFluxo(pc); setPedidoFluxoSelect('') } else if (effectiveId !== '') void savePedidoFluxo(pc, effectiveId as number) }}
-                                    className="px-2.5 py-1 rounded-lg bg-orange-500 text-white text-[11px] font-medium disabled:opacity-40 hover:bg-orange-600 transition-colors shrink-0"
-                                  >
-                                    {pedidoFluxoSaving ? '…' : fluxoVinculado ? 'Alterar' : 'Atribuir'}
-                                  </button>
-                                </>
-                              )
-                            })()}
+                            {fluxoVinculado && fluxoItem && (
+                              <span className="text-[11px] font-medium text-[var(--th-txt-2)]">{fluxoItem.nome}</span>
+                            )}
+                            {fluxoVinculado && !passouExpedicaoPedido && (
+                              <button type="button" onClick={() => void removePedidoFluxo(pc)}
+                                className="text-[11px] text-[var(--th-txt-4)] hover:text-red-400 transition-colors">
+                                Remover
+                              </button>
+                            )}
                             {passouExpedicaoPedido && fluxoVinculado && (
                               <span className="text-[11px] px-2 py-0.5 rounded-full bg-green-500/15 text-green-400 border border-green-500/30 font-medium">Finalizado</span>
                             )}
                           </div>
                         </div>
 
+                        {!passouExpedicaoPedido && (() => {
+                          const effectiveId = pedidoFluxoSelect !== '' ? pedidoFluxoSelect : (fluxoVinculado?.item_id ?? '')
+                          const displayNome = prodItems.find(i => i.id === effectiveId)?.nome
+                          return (
+                            <div className="px-4 py-3 border-b border-[var(--th-border)] flex items-center gap-2">
+                              <div className="relative flex-1 sm:flex-none sm:w-40">
+                                <button
+                                  type="button"
+                                  onClick={() => setFluxoDropdownOpen(o => !o)}
+                                  className={`w-full flex items-center justify-between gap-2 pl-3 pr-2 py-1.5 rounded-lg border text-xs transition-colors ${
+                                    fluxoDropdownOpen
+                                      ? 'border-orange-500/50 bg-[var(--th-card)] ring-2 ring-orange-500/20 text-[var(--th-txt-1)]'
+                                      : 'border-[var(--th-border)] bg-[var(--th-subtle)] text-[var(--th-txt-4)] hover:border-orange-500/30 hover:text-[var(--th-txt-1)]'
+                                  }`}
+                                >
+                                  <span className="truncate">{displayNome ?? 'Selecionar fluxo…'}</span>
+                                  <ChevronDown strokeWidth={2} className={`w-3 h-3 transition-transform shrink-0 ${fluxoDropdownOpen ? 'rotate-180' : ''}`} />
+                                </button>
+                                {fluxoDropdownOpen && (
+                                  <div className="absolute z-50 top-full mt-1 left-0 right-0 rounded-lg border border-[var(--th-border)] bg-[var(--th-card)] shadow-lg overflow-hidden">
+                                    {prodItems.map(item => (
+                                      <button
+                                        key={item.id}
+                                        type="button"
+                                        onClick={() => { setPedidoFluxoSelect(item.id); setFluxoDropdownOpen(false) }}
+                                        className={`w-full text-left px-3 py-2 text-xs transition-colors hover:bg-[var(--th-hover)] ${
+                                          effectiveId === item.id ? 'text-orange-400 bg-orange-500/8 font-semibold' : 'text-[var(--th-txt-1)]'
+                                        }`}
+                                      >
+                                        {item.nome}
+                                      </button>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                              <button
+                                type="button"
+                                disabled={effectiveId === '' || pedidoFluxoSaving}
+                                onClick={() => { if (effectiveId !== '') void savePedidoFluxo(pc, effectiveId as number) }}
+                                className="px-3 py-1.5 rounded-lg bg-orange-500 text-white text-xs font-medium disabled:opacity-40 hover:bg-orange-600 transition-colors shrink-0"
+                              >
+                                {pedidoFluxoSaving ? '…' : fluxoVinculado ? 'Alterar' : 'Atribuir'}
+                              </button>
+                            </div>
+                          )
+                        })()}
 
                         {fluxoVinculado && fluxoEtapas.length > 0 && (
                           <div className="px-4 py-3 flex flex-wrap gap-1.5 items-center">
@@ -1412,7 +1549,7 @@ export default function AdminPanel() {
                             placeholder="Buscar talão, referência ou produto…"
                             value={talaoSearch}
                             onChange={e => setTalaoSearch(e.target.value)}
-                            className="w-full pl-8 pr-3 py-2 rounded-lg border border-[var(--th-border)] bg-[var(--th-card)] text-sm text-[var(--th-txt-1)] placeholder:text-[var(--th-txt-4)] focus:outline-none focus:ring-2 focus:ring-orange-500/40"
+                            className="w-full rounded-lg border border-[var(--th-border)] bg-transparent pl-8 pr-3 py-1.5 text-xs text-[var(--th-txt-1)] placeholder:text-[var(--th-txt-4)] focus:outline-none focus:ring-2 focus:ring-orange-500/40"
                           />
                           {talaoSearch && (
                             <button type="button" onClick={() => setTalaoSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--th-txt-4)] hover:text-[var(--th-txt-1)]">
@@ -1719,7 +1856,7 @@ export default function AdminPanel() {
                       value={logsQuery}
                       onChange={e => setLogsQuery(e.target.value)}
                       placeholder="Buscar usuário, IP, OS..."
-                      className="w-full rounded-lg border border-[var(--th-border)] bg-[var(--th-subtle)] pl-8 pr-3 py-1.5 text-[13px] text-[var(--th-txt-1)] placeholder:text-[var(--th-txt-4)] focus:outline-none focus:ring-1 focus:ring-orange-500/50"
+                      className="w-full rounded-lg border border-[var(--th-border)] bg-transparent pl-8 pr-3 py-1.5 text-xs text-[var(--th-txt-1)] placeholder:text-[var(--th-txt-4)] focus:outline-none focus:ring-2 focus:ring-orange-500/40"
                     />
                   </div>
                 </div>
@@ -1972,7 +2109,7 @@ export default function AdminPanel() {
                         onKeyDown={e => { if (e.key === 'Enter') void createProdItem() }}
                         placeholder="Nome do item *"
                         autoFocus
-                        className="w-full rounded-lg border border-[var(--th-border)] bg-[var(--th-card)] px-2.5 py-1.5 text-xs text-[var(--th-txt-1)] placeholder:text-[var(--th-txt-4)] focus:outline-none focus:ring-1 focus:ring-orange-500/50"
+                        className="w-full rounded-lg border border-[var(--th-border)] bg-transparent px-3 py-1.5 text-xs text-[var(--th-txt-1)] placeholder:text-[var(--th-txt-4)] focus:outline-none focus:ring-2 focus:ring-orange-500/40"
                       />
                       {newItemError && <p className="text-[11px] text-red-400">{newItemError}</p>}
                       <div className="flex gap-2">
@@ -1993,7 +2130,7 @@ export default function AdminPanel() {
                     <Search strokeWidth={1.5} className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--th-txt-4)]" />
                     <input value={prodItemsQuery} onChange={e => setProdItemsQuery(e.target.value)}
                       placeholder="Buscar item..."
-                      className="w-full rounded-lg border border-[var(--th-border)] bg-[var(--th-subtle)] pl-8 pr-3 py-1.5 text-[13px] text-[var(--th-txt-1)] placeholder:text-[var(--th-txt-4)] focus:outline-none focus:ring-1 focus:ring-orange-500/50" />
+                      className="w-full rounded-lg border border-[var(--th-border)] bg-transparent pl-8 pr-3 py-1.5 text-xs text-[var(--th-txt-1)] placeholder:text-[var(--th-txt-4)] focus:outline-none focus:ring-2 focus:ring-orange-500/40" />
                   </div>
                 </div>
 
@@ -2056,7 +2193,7 @@ export default function AdminPanel() {
                               onChange={e => setEditItemName(e.target.value)}
                               onKeyDown={e => { if (e.key === 'Enter') void saveItemName(); if (e.key === 'Escape') setEditItemMode(false) }}
                               autoFocus
-                              className="flex-1 rounded-lg border border-orange-500/40 bg-[var(--th-subtle)] px-3 py-1.5 text-lg font-bold text-[var(--th-txt-1)] focus:outline-none focus:ring-1 focus:ring-orange-500/50"
+                              className="flex-1 rounded-lg border border-orange-500/40 bg-transparent px-3 py-1.5 text-lg font-bold text-[var(--th-txt-1)] focus:outline-none focus:ring-2 focus:ring-orange-500/40"
                             />
                             <button type="button" onClick={() => void saveItemName()}
                               className="p-1.5 rounded-lg bg-orange-500 text-white hover:bg-orange-600 transition-colors">
@@ -2120,7 +2257,7 @@ export default function AdminPanel() {
                                     onChange={e => setEtapaEditName(e.target.value)}
                                     onKeyDown={e => { if (e.key === 'Enter') void saveEtapaName(etapa.id); if (e.key === 'Escape') setEtapaEditId(null) }}
                                     autoFocus
-                                    className="flex-1 rounded border border-orange-500/40 bg-[var(--th-subtle)] px-2 py-1 text-sm text-[var(--th-txt-1)] focus:outline-none focus:ring-1 focus:ring-orange-500/50"
+                                    className="flex-1 rounded-lg border border-orange-500/40 bg-transparent px-3 py-1.5 text-xs text-[var(--th-txt-1)] focus:outline-none focus:ring-2 focus:ring-orange-500/40"
                                   />
                                   <button type="button" onClick={() => void saveEtapaName(etapa.id)}
                                     className="p-1 rounded bg-orange-500 text-white hover:bg-orange-600">
@@ -2175,7 +2312,7 @@ export default function AdminPanel() {
                             onChange={e => setNewEtapaName(e.target.value)}
                             onKeyDown={e => { if (e.key === 'Enter') void createProdEtapa() }}
                             placeholder="Nome da nova etapa..."
-                            className="flex-1 rounded-lg border border-[var(--th-border)] bg-[var(--th-card)] px-3 py-1.5 text-[13px] text-[var(--th-txt-1)] placeholder:text-[var(--th-txt-4)] focus:outline-none focus:ring-1 focus:ring-orange-500/50"
+                            className="flex-1 rounded-lg border border-[var(--th-border)] bg-transparent px-3 py-1.5 text-xs text-[var(--th-txt-1)] placeholder:text-[var(--th-txt-4)] focus:outline-none focus:ring-2 focus:ring-orange-500/40"
                           />
                           <button type="button" onClick={() => void createProdEtapa()}
                             disabled={newEtapaSaving || !newEtapaName.trim()}
@@ -2494,59 +2631,240 @@ export default function AdminPanel() {
               <div className="max-w-xl space-y-5">
                 <div>
                   <h1 className="text-xl font-bold text-[var(--th-txt-1)] mb-1">Banco de Dados</h1>
-                  <p className="text-sm text-[var(--th-txt-3)] mb-6">Sincronização ERP → Supabase via SE Link</p>
+                  <p className="text-sm text-[var(--th-txt-3)] mb-6">Ômega ERP → SE Link → Supabase</p>
                 </div>
 
                 {/* Sync card (status + force) */}
                 <div className="rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] overflow-hidden">
-                  {/* Status row */}
-                  <div className="px-5 py-4 flex items-center justify-between gap-4 border-b border-[var(--th-border)]">
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-widest text-[var(--th-txt-4)] mb-1">Última Sincronização</p>
-                      <p className="text-sm font-mono text-[var(--th-txt-1)]">{lastSyncTime ?? '—'}</p>
+                  {/* Header: SE Link + badge + refresh */}
+                  <div className="px-5 py-3 flex items-center justify-between gap-4 border-b border-[var(--th-border)]">
+                    <div className="flex items-center gap-2.5">
+                      <p className="text-xs font-semibold uppercase tracking-widest text-[var(--th-txt-1)]">SE Link</p>
+                      <span className={`text-[11px] px-2 py-0.5 rounded-full border font-medium ${
+                        seLinkOnline === true  ? 'bg-green-500/10 text-green-400 border-green-500/20' :
+                        seLinkOnline === false ? 'bg-red-500/10 text-red-400 border-red-500/20' :
+                        'bg-[var(--th-subtle)] text-[var(--th-txt-4)] border-[var(--th-border)]'
+                      }`}>
+                        <span className={`inline-block w-1.5 h-1.5 rounded-full mr-1.5 mb-px align-middle ${
+                          seLinkOnline === true  ? 'bg-green-400 shadow-[0_0_4px_1px_rgba(74,222,128,0.6)]' :
+                          seLinkOnline === false ? 'bg-red-400' : 'bg-[var(--th-txt-4)]'
+                        }`} />
+                        {seLinkOnline === true ? 'Online' : seLinkOnline === false ? 'Offline' : '—'}
+                      </span>
                     </div>
                     <button type="button" onClick={() => void fetchLastSync()}
                       className="p-1.5 rounded hover:bg-[var(--th-hover)] text-[var(--th-txt-4)] shrink-0">
-                      <RefreshCw strokeWidth={1.5} className="w-4 h-4" />
+                      <RefreshCw strokeWidth={1.5} className="w-3.5 h-3.5" />
                     </button>
                   </div>
-                  {/* Force sync row */}
-                  <div className="px-5 py-4 space-y-3">
-                    <p className="text-sm text-[var(--th-txt-3)]">
-                      Solicita ao SE Link que execute uma sincronização completa dos arquivos DBF agora. O SE Link irá detectar a solicitação em até 15 segundos.
-                    </p>
-                    <div className="flex items-center gap-3">
-                      <button type="button" onClick={() => void requestForceSync()}
-                        disabled={forceSyncLoading || forceSyncStatus === 'waiting'}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white text-sm font-medium transition-colors">
-                        <RefreshCw strokeWidth={1.5} className={`w-4 h-4 ${forceSyncLoading || forceSyncStatus === 'waiting' ? 'animate-spin' : ''}`} />
-                        {forceSyncLoading ? 'Solicitando...' : forceSyncStatus === 'waiting' ? 'Aguardando SE Link...' : 'Forçar Sincronização'}
-                      </button>
-                      {forceSyncStatus === 'done' && (
-                        <span className="inline-flex items-center gap-1.5 text-sm text-green-400">
-                          <Check strokeWidth={2} className="w-4 h-4" /> Sincronizado!
-                        </span>
-                      )}
-                      {forceSyncStatus === 'error' && (
-                        <span className="text-sm text-red-400">{forceSyncError}</span>
-                      )}
+                  {/* Body */}
+                  <div className="px-5 py-4 space-y-4">
+                    {/* Última sync */}
+                    <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)] mb-1">Última Sincronização</p>
+                      <p className="text-sm font-mono text-[var(--th-txt-1)]">{lastSyncTime ?? '—'}</p>
                     </div>
-                    <p className="text-[11px] text-[var(--th-txt-4)]">O SE Link precisa estar rodando no servidor.</p>
+                    {/* Force sync */}
+                    <div className="space-y-3">
+                      <p className="text-xs text-[var(--th-txt-3)] leading-relaxed">
+                        Solicita ao SE Link que execute uma sincronização completa dos arquivos DBF agora. O SE Link irá detectar a solicitação via Realtime instantaneamente.
+                      </p>
+                      <div className="flex items-center gap-3">
+                        <button type="button" onClick={() => void requestForceSync()}
+                          disabled={forceSyncLoading || forceSyncStatus === 'waiting'}
+                          className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white text-xs font-semibold transition-colors">
+                          <RefreshCw strokeWidth={2} className={`w-3.5 h-3.5 ${forceSyncLoading || forceSyncStatus === 'waiting' ? 'animate-spin' : ''}`} />
+                          {forceSyncLoading ? 'Solicitando...' : forceSyncStatus === 'waiting' ? 'Aguardando SE Link...' : 'Forçar Sincronização'}
+                        </button>
+                        {forceSyncStatus === 'done' && (
+                          <span className="inline-flex items-center gap-1.5 text-xs text-green-400">
+                            <Check strokeWidth={2} className="w-3.5 h-3.5" /> Sincronizado!
+                          </span>
+                        )}
+                        {forceSyncStatus === 'error' && (
+                          <span className="text-xs text-red-400">{forceSyncError}</span>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                {/* Tables list */}
-                <div className="rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] p-5">
-                  <p className="text-xs font-semibold uppercase tracking-widest text-[var(--th-txt-4)] mb-3">Tabelas Sincronizadas</p>
-                  <div className="divide-y divide-[var(--th-border)]">
-                    {['clientes', 'pedidos', 'fichas', 'taloes', 'talsetor', 'setores'].map(t => (
-                      <div key={t} className="flex items-center justify-between px-4 py-2.5">
-                        <span className="font-mono text-sm text-[var(--th-txt-2)]">{t}</span>
-                        <span className="text-[11px] px-1.5 py-0.5 rounded bg-green-500/15 text-green-400 border border-green-500/20">DBF → Supabase</span>
-                      </div>
-                    ))}
+                {/* Sync config */}
+                <div className="rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] overflow-hidden">
+                  <div className="px-5 py-3 flex items-center justify-between gap-4 border-b border-[var(--th-border)]">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-widest text-[var(--th-txt-1)]">Tabelas Sincronizadas</p>
+                      <p className="text-[11px] text-[var(--th-txt-4)] mt-0.5">Ative ou desative quais DBFs o SE Link deve sincronizar</p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {syncConfigSavedToggles && (
+                        <button type="button" onClick={() => void restoreSyncSelection()}
+                          className="px-2.5 py-1 rounded text-[11px] font-medium border border-orange-500/30 bg-orange-500/10 text-orange-400 hover:bg-orange-500/20 transition-colors">
+                          Restaurar
+                        </button>
+                      )}
+                      <button type="button" onClick={() => void clearSyncSelection()}
+                        disabled={Object.values(syncConfigToggles).every(v => !v)}
+                        className="px-2.5 py-1 rounded text-[11px] font-medium border border-[var(--th-border)] text-[var(--th-txt-4)] hover:text-red-400 hover:border-red-500/30 disabled:opacity-30 transition-colors">
+                        Limpar seleção
+                      </button>
+                      <button type="button" onClick={() => void fetchSyncConfig()}
+                        className="p-1.5 rounded hover:bg-[var(--th-hover)] text-[var(--th-txt-4)]">
+                        <RefreshCw strokeWidth={1.5} className={`w-3.5 h-3.5 ${syncConfigLoading ? 'animate-spin' : ''}`} />
+                      </button>
+                    </div>
+                  </div>
+                  {/* Search + filter */}
+                  <div className="px-4 py-2.5 border-b border-[var(--th-border)]">
+                    <div className="relative">
+                      <Search strokeWidth={1.5} className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--th-txt-4)]" />
+                      <input
+                        type="text"
+                        value={syncConfigSearch}
+                        onChange={e => setSyncConfigSearch(e.target.value)}
+                        placeholder="Buscar tabela..."
+                        className="w-full rounded-lg border border-[var(--th-border)] bg-transparent pl-8 pr-7 py-1.5 text-xs text-[var(--th-txt-1)] placeholder:text-[var(--th-txt-4)] focus:outline-none focus:ring-2 focus:ring-orange-500/40"
+                      />
+                      {syncConfigSearch && (
+                        <button type="button" onClick={() => setSyncConfigSearch('')}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--th-txt-4)] hover:text-[var(--th-txt-1)]">
+                          <X strokeWidth={2} className="w-3 h-3" />
+                        </button>
+                      )}
+                    </div>
+                    <div className="flex gap-1 mt-2">
+                      {([{ key: 'all', label: 'Todos' }, { key: 'active', label: 'Ativos' }] as const).map(({ key, label }) => (
+                        <button key={key} type="button" onClick={() => setSyncConfigFilter(key)}
+                          className={`text-[11px] px-2.5 py-1 rounded-full border font-medium transition-all ${
+                            syncConfigFilter === key
+                              ? 'bg-orange-500/15 text-orange-400 border-orange-500/30'
+                              : 'bg-[var(--th-subtle)] text-[var(--th-txt-4)] border-[var(--th-border)] hover:text-[var(--th-txt-1)]'
+                          }`}>
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="divide-y divide-[var(--th-border)] max-h-64 overflow-y-auto">
+                    {syncConfig.length === 0 && !syncConfigLoading && (
+                      <p className="px-5 py-4 text-sm text-[var(--th-txt-4)]">Inicie o SE Link para descobrir os DBFs disponíveis.</p>
+                    )}
+                    {syncConfig
+                      .filter(row => {
+                        const matchSearch = row.dbf_name.toLowerCase().includes(syncConfigSearch.toLowerCase())
+                        const matchFilter = syncConfigFilter === 'all' || (syncConfigToggles[row.dbf_name] ?? row.enabled)
+                        return matchSearch && matchFilter
+                      })
+                      .map(row => {
+                      const on = syncConfigToggles[row.dbf_name] ?? row.enabled
+                      const isDiscovered = row.discovered
+                      return (
+                        <div key={row.dbf_name} className="flex items-center gap-3 px-5 py-3">
+                          {/* Toggle */}
+                          <button
+                            type="button"
+                            onClick={() => void toggleSyncConfig(row.dbf_name, !on)}
+                            className={`relative shrink-0 w-9 h-5 rounded-full transition-colors ${on ? 'bg-orange-500' : 'bg-[var(--th-border)]'}`}
+                          >
+                            <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${on ? 'translate-x-4' : 'translate-x-0'}`} />
+                          </button>
+                          {/* DBF name */}
+                          <span className="font-mono text-sm text-[var(--th-txt-1)] w-28 shrink-0">{row.dbf_name}.dbf</span>
+                          {/* Arrow */}
+                          <span className="text-[var(--th-txt-4)] text-xs shrink-0">→</span>
+                          {/* Table name */}
+                          <span className="font-mono text-xs text-[var(--th-txt-3)] flex-1">{row.table_name ?? <span className="italic text-[var(--th-txt-4)]">não configurado</span>}</span>
+                          {/* Badges */}
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {isDiscovered ? (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded border border-green-500/20 bg-green-500/10 text-green-400">Encontrado</span>
+                            ) : (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded border border-[var(--th-border)] bg-[var(--th-subtle)] text-[var(--th-txt-4)]">Não detectado</span>
+                            )}
+                            {!row.pk_field && (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded border border-amber-500/20 bg-amber-500/10 text-amber-400">PK composta</span>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
+                    {syncConfig.length > 0 && syncConfig.filter(row => {
+                        const matchSearch = row.dbf_name.toLowerCase().includes(syncConfigSearch.toLowerCase())
+                        const matchFilter = syncConfigFilter === 'all' || (syncConfigToggles[row.dbf_name] ?? row.enabled)
+                        return matchSearch && matchFilter
+                      }).length === 0 && (
+                      <p className="px-5 py-4 text-sm text-[var(--th-txt-4)]">
+                        {syncConfigFilter === 'active' && !syncConfigSearch ? 'Nenhuma tabela ativa.' : `Nenhuma tabela encontrada para "${syncConfigSearch}".`}
+                      </p>
+                    )}
                   </div>
                 </div>
+
+                {/* SE Link logs */}
+                <div className="rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] overflow-hidden">
+                  <div className="px-5 py-3 flex items-center justify-between gap-4 border-b border-[var(--th-border)]">
+                    <p className="text-xs font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Console do SE Link</p>
+                    <div className="flex items-center gap-2">
+                      <button type="button" onClick={() => void fetchSeLinkLogs()}
+                        className="p-1.5 rounded hover:bg-[var(--th-hover)] text-[var(--th-txt-4)]">
+                        <RefreshCw strokeWidth={1.5} className="w-3.5 h-3.5" />
+                      </button>
+                      <button type="button" onClick={() => void clearSeLinkLogs()} disabled={seLinkLogsClearing || seLinkLogs.length === 0}
+                        className="px-2.5 py-1 rounded text-[11px] font-medium border border-[var(--th-border)] text-[var(--th-txt-4)] hover:text-red-400 hover:border-red-500/30 disabled:opacity-40 transition-colors">
+                        {seLinkLogsClearing ? 'Limpando...' : 'Limpar'}
+                      </button>
+                    </div>
+                  </div>
+                  {/* Level filter */}
+                  <div className="px-4 py-2 border-b border-[var(--th-border)] flex gap-1">
+                    {([
+                      { key: 'ALL',     label: 'Todos' },
+                      { key: 'INFO',    label: 'Info' },
+                      { key: 'WARNING', label: 'Warning' },
+                      { key: 'ERROR',   label: 'Error' },
+                    ] as const).map(({ key, label }) => (
+                      <button key={key} type="button" onClick={() => setSeLinkLogsFilter(key)}
+                        className={`text-[11px] px-2.5 py-1 rounded-full border font-medium transition-all ${
+                          seLinkLogsFilter === key
+                            ? key === 'ERROR'   ? 'bg-red-500/15 text-red-400 border-red-500/30'
+                            : key === 'WARNING' ? 'bg-amber-500/15 text-amber-400 border-amber-500/30'
+                            : key === 'INFO'    ? 'bg-green-500/15 text-green-400 border-green-500/30'
+                            :                    'bg-orange-500/15 text-orange-400 border-orange-500/30'
+                            : 'bg-[var(--th-subtle)] text-[var(--th-txt-4)] border-[var(--th-border)] hover:text-[var(--th-txt-1)]'
+                        }`}>
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="h-64 overflow-y-auto font-mono text-[11px] leading-relaxed">
+                    {seLinkLogs.length === 0 ? (
+                      <div className="flex items-center justify-center h-full text-[var(--th-txt-4)]">
+                        Nenhum log. Inicie o SE Link para ver o console aqui.
+                      </div>
+                    ) : (
+                      <div className="p-3 space-y-0.5">
+                        {seLinkLogs
+                          .filter(log => seLinkLogsFilter === 'ALL' || log.level === seLinkLogsFilter)
+                          .map(log => {
+                            const t = new Date(log.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+                            const levelColor =
+                              log.level === 'ERROR'   ? 'text-red-400' :
+                              log.level === 'WARNING' ? 'text-amber-400' :
+                              'text-green-400'
+                            return (
+                              <div key={log.id} className="flex gap-2 py-0.5">
+                                <span className="shrink-0 text-[var(--th-txt-4)] opacity-60">{t}</span>
+                                <span className={`shrink-0 w-14 ${levelColor}`}>{log.level}</span>
+                                <span className="text-[var(--th-txt-2)] break-all">{log.message}</span>
+                              </div>
+                            )
+                          })}
+                        <div ref={logsEndRef} />
+                      </div>
+                    )}
+                  </div>
+                </div>
+
               </div>
             )}
 
