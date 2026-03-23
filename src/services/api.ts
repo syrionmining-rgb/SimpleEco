@@ -72,12 +72,19 @@ async function fetchAll<T>(
   const result: T[] = []
   let from = 0
   while (true) {
-    let q = supabase.from(tableName).select(select).range(from, from + PAGE - 1)
-    if (filter) q = filter(q)
-    const { data, error } = await q
-    if (error) throw new Error(`fetchAll(${tableName}): ${error.message}`)
-    if (!data || data.length === 0) break
-    result.push(...(data as T[]))
+    let data: T[] | null = null
+    let lastError: string | null = null
+    for (let attempt = 0; attempt < 3; attempt++) {
+      if (attempt > 0) await new Promise(r => setTimeout(r, attempt * 4000))
+      let q = supabase.from(tableName).select(select).range(from, from + PAGE - 1)
+      if (filter) q = filter(q)
+      const res = await q
+      if (!res.error) { data = res.data as T[]; break }
+      lastError = res.error.message
+    }
+    if (data === null) throw new Error(`fetchAll(${tableName}): ${lastError}`)
+    if (data.length === 0) break
+    result.push(...data)
     if (data.length < PAGE) break
     from += PAGE
   }

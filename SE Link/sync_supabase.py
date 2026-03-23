@@ -201,15 +201,16 @@ def sync_table(supabase: Client, name: str, config: dict, _retry: bool = False):
 
         # TRUNCATE via conexão direta (sem timeout) + INSERT em lotes via REST
         # Muito mais rápido que UPSERT ou DELETE para tabelas grandes
+        BATCH = 5000   # lotes maiores = menos requests HTTP ao Supabase
         truncated = _truncate_table(table)
         if truncated:
-            for i in range(0, len(records), 1000):
-                supabase.table(table).insert(records[i:i+1000]).execute()
+            for i in range(0, len(records), BATCH):
+                supabase.table(table).insert(records[i:i+BATCH]).execute()
         else:
             # Fallback sem DATABASE_URL: UPSERT (PK) ou DELETE+INSERT (sem PK)
             if pk:
-                for i in range(0, len(records), 1000):
-                    supabase.table(table).upsert(records[i:i+1000]).execute()
+                for i in range(0, len(records), BATCH):
+                    supabase.table(table).upsert(records[i:i+BATCH]).execute()
             else:
                 first_col = list(records[0].keys())[0]
                 for attempt in range(3):
@@ -222,8 +223,8 @@ def sync_table(supabase: Client, name: str, config: dict, _retry: bool = False):
                             time.sleep(3)
                         else:
                             raise
-                for i in range(0, len(records), 1000):
-                    supabase.table(table).insert(records[i:i+1000]).execute()
+                for i in range(0, len(records), BATCH):
+                    supabase.table(table).insert(records[i:i+BATCH]).execute()
 
         log.info(f"✔ {name} → {table}: {len(records)} registros sincronizados")
 
