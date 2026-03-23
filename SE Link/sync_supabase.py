@@ -291,14 +291,14 @@ def sync_all(supabase: Client, dbf_map: dict | None = None):
     from supabase import create_client as _create_client
 
     active_map = dbf_map if dbf_map is not None else DBF_MAP
-    log.info(f"Iniciando sincronização completa ({len(active_map)} tabelas, paralela)...")
+    log.info(f"Iniciando sincronização completa ({len(active_map)} tabelas, sequencial)...")
 
     def _sync_one(name, config):
         # Cada thread usa seu próprio client para evitar conflitos de socket
         client = _create_client(SUPABASE_URL, SUPABASE_KEY)
         sync_table(client, name, config)
 
-    with ThreadPoolExecutor(max_workers=3) as pool:
+    with ThreadPoolExecutor(max_workers=1) as pool:
         futures = {
             pool.submit(_sync_one, name, config): name
             for name, config in active_map.items()
