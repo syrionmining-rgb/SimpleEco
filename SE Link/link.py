@@ -207,6 +207,21 @@ class Api:
             _log_client = client
             _push_log("INFO", f"Conectado ao Supabase: {ss.SUPABASE_URL}")
 
+            stop_ref = self._stop_event
+
+            # Heartbeat independente — inicia imediatamente, antes do sync
+            def _heartbeat_loop():
+                from datetime import datetime, timezone as tz
+                while not stop_ref.is_set():
+                    try:
+                        ts = datetime.now(tz.utc).isoformat()
+                        client.table("sync_log").update({"last_heartbeat": ts}).eq("id", 1).execute()
+                    except Exception:
+                        pass
+                    stop_ref.wait(timeout=30)
+
+            threading.Thread(target=_heartbeat_loop, daemon=True, name="heartbeat").start()
+
             # Reporta DBFs disponíveis na pasta e lê mapa ativo do painel
             ss.report_available_dbfs(client, ss.BASE_DIR)
             active_map = ss.get_active_dbf_map(client)
@@ -231,7 +246,6 @@ class Api:
             time.sleep(2)
 
             # subclasse que notifica a GUI ao detectar alteracoes
-            stop_ref = self._stop_event
             class _GUIDBFHandler(ss.DBFHandler):
                 def on_modified(self, event):
                     is_dbf = (not event.is_directory
@@ -271,21 +285,9 @@ class Api:
             client_ref = client
 
             async def _realtime_loop():
-                from datetime import datetime, timezone as tz
                 # A lib monta `<url>/websocket`, por isso passamos já com /realtime/v1
                 _rt_url = ss.SUPABASE_URL.rstrip("/") + "/realtime/v1"
                 rt = AsyncRealtimeClient(_rt_url, ss.SUPABASE_KEY, auto_reconnect=True)
-
-                async def _heartbeat():
-                    while not stop_ref.is_set():
-                        try:
-                            ts = datetime.now(tz.utc).isoformat()
-                            client_ref.table("sync_log").update({"last_heartbeat": ts}).eq("id", 1).execute()
-                        except Exception:
-                            pass
-                        await asyncio.sleep(30)
-
-                heartbeat_task = asyncio.create_task(_heartbeat())
 
                 def _do_remote_sync():
                     """Executa sync remoto em thread separada — nao bloqueia o loop asyncio."""
@@ -326,11 +328,6 @@ class Api:
                 while not stop_ref.is_set():
                     await asyncio.sleep(0.5)
 
-                heartbeat_task.cancel()
-                try:
-                    await heartbeat_task
-                except asyncio.CancelledError:
-                    pass
                 await channel.unsubscribe()
 
             def _run_realtime():
