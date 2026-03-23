@@ -174,7 +174,7 @@ export default function AdminPanel() {
   const [ordersError, setOrdersError] = useState<string | null>(null)
   const [ordersQuery, setOrdersQuery] = useState('')
   const [remessasQuery, setRemessasQuery] = useState('')
-  const [ordersLastSync, setOrdersLastSync] = useState<Date | null>(null)
+  const [, setOrdersLastSync] = useState<Date | null>(null)
   const [selectedPedidoDetail, setSelectedPedidoDetail] = useState<PedidoNode | null>(null)
   const [selectedRemessaDetail, setSelectedRemessaDetail] = useState<RemessaTreeNode | null>(null)
   const [talaoSearch, setTalaoSearch] = useState('')
