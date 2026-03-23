@@ -190,8 +190,8 @@ def sync_table(supabase: Client, name: str, config: dict, _retry: bool = False):
     pk    = config["pk"]
 
     try:
+        # Deduplica pelo PK quando existe
         if pk:
-            # Deduplica pelo PK
             seen: dict = {}
             for rec in records:
                 key = str(rec.get(pk, "")).strip()
@@ -199,13 +199,18 @@ def sync_table(supabase: Client, name: str, config: dict, _retry: bool = False):
                     seen[key] = rec
             records = list(seen.values())
 
-            # UPSERT em lotes de 1000
+        # TRUNCATE via conexão direta (sem timeout) + INSERT em lotes via REST
+        # Muito mais rápido que UPSERT ou DELETE para tabelas grandes
+        truncated = _truncate_table(table)
+        if truncated:
             for i in range(0, len(records), 1000):
-                supabase.table(table).upsert(records[i:i+1000]).execute()
+                supabase.table(table).insert(records[i:i+1000]).execute()
         else:
-            # Sem PK: TRUNCATE (via pg direto, muito mais rápido) + INSERT
-            if not _truncate_table(table):
-                # Fallback: DELETE via REST com retry
+            # Fallback sem DATABASE_URL: UPSERT (PK) ou DELETE+INSERT (sem PK)
+            if pk:
+                for i in range(0, len(records), 1000):
+                    supabase.table(table).upsert(records[i:i+1000]).execute()
+            else:
                 first_col = list(records[0].keys())[0]
                 for attempt in range(3):
                     try:
@@ -217,8 +222,8 @@ def sync_table(supabase: Client, name: str, config: dict, _retry: bool = False):
                             time.sleep(3)
                         else:
                             raise
-            for i in range(0, len(records), 1000):
-                supabase.table(table).insert(records[i:i+1000]).execute()
+                for i in range(0, len(records), 1000):
+                    supabase.table(table).insert(records[i:i+1000]).execute()
 
         log.info(f"✔ {name} → {table}: {len(records)} registros sincronizados")
 
