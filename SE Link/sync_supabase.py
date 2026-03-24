@@ -190,7 +190,8 @@ def _pg_bulk_insert(table_name: str, records: list[dict]) -> bool:
         cursor = conn.cursor()
         cols = list(records[0].keys())
         col_str = ', '.join(f'"{c}"' for c in cols)
-        BATCH = 500
+        # Limite de 65535 parâmetros por query no PostgreSQL
+        BATCH = max(1, min(500, 65535 // len(cols)))
         for i in range(0, len(records), BATCH):
             batch = records[i:i + BATCH]
             row_ph = ', '.join(f"({', '.join(['%s'] * len(cols))})" for _ in batch)
