@@ -267,6 +267,9 @@ export default function AdminPanel() {
   // ── Scanner state ─────────────────────────────────────────────────────────
   const [scannerOpen, setScannerOpen] = useState(false)
   const [scannerError, setScannerError] = useState<string | null>(null)
+  const [scannerStatus, setScannerStatus] = useState<'loading' | 'scanning' | 'error'>('loading')
+  const [lastScannedCode, setLastScannedCode] = useState<string | null>(null)
+  const [lastScannedFormat, setLastScannedFormat] = useState<string | null>(null)
   const videoRef = React.useRef<HTMLVideoElement | null>(null)
   const scannerControlsRef = React.useRef<{ stop: () => void } | null>(null)
   const onScanRef = React.useRef<((code: string) => void) | null>(null)
@@ -1000,37 +1003,191 @@ export default function AdminPanel() {
   useEffect(() => {
     if (!scannerOpen) return
     setScannerError(null)
+    setScannerStatus('loading')
+    setLastScannedCode(null)
+    setLastScannedFormat(null)
     lastScanRef.current = { code: '', time: 0 }
-    let cancelled = false
 
-    const timer = setTimeout(async () => {
+    let cancelled = false
+    let rafId = 0
+    let zxingControls: { stop: () => void } | null = null
+
+    const stopAll = () => {
+      cancelled = true
+      cancelAnimationFrame(rafId)
+      zxingControls?.stop()
+      if (videoRef.current) {
+        const stream = videoRef.current.srcObject as MediaStream | null
+        stream?.getTracks().forEach(t => t.stop())
+        videoRef.current.srcObject = null
+      }
+    }
+    scannerControlsRef.current = { stop: stopAll }
+
+    const start = async () => {
       if (cancelled || !videoRef.current) return
+      const video = videoRef.current
+
+      // ── 1. Start camera ───────────────────────────────────────────────────
       try {
-        const { BrowserMultiFormatReader } = await import('@zxing/browser')
-        const { DecodeHintType, BarcodeFormat } = await import('@zxing/library')
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+        })
+        if (cancelled) { stream.getTracks().forEach(t => t.stop()); return }
+        video.srcObject = stream
+        await video.play()
+
+        // Apply zoom + continuous autofocus
+        try {
+          const track = stream.getVideoTracks()[0]
+          const caps = track.getCapabilities?.() as Record<string, unknown> | undefined
+          const adv: Record<string, unknown>[] = []
+          if (caps?.zoom) {
+            const z = caps.zoom as { min: number; max: number }
+            adv.push({ zoom: Math.min(z.max, Math.max(z.min, 2.5)) })
+          }
+          if (caps?.focusMode && (caps.focusMode as string[]).includes('continuous')) {
+            adv.push({ focusMode: 'continuous' })
+          }
+          if (adv.length) await track.applyConstraints({ advanced: adv as MediaTrackConstraintSet[] })
+        } catch { /* constraints not supported */ }
+      } catch (err) {
+        if (!cancelled) {
+          setScannerStatus('error')
+          setScannerError(err instanceof Error ? err.message : 'Câmera indisponível.')
+        }
+        return
+      }
+
+      if (cancelled) return
+      setScannerStatus('scanning')
+
+      // ── 2. Choose decoder ─────────────────────────────────────────────────
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const BD = (globalThis as any).BarcodeDetector
+
+      if (BD) {
+        // PATH A — Native BarcodeDetector via requestAnimationFrame
+        // Crops the frame exactly to the visual scan zone by computing the
+        // object-fit:cover mapping from CSS pixels → actual video pixels.
+        // Portrait 390×760 phone with 1280×720 video → ~258×216px crop (16x smaller).
+        let nativeDetector: { detect: (src: OffscreenCanvas | HTMLCanvasElement) => Promise<Array<{ rawValue: string; format: string }>> } | null = null
+        try {
+          nativeDetector = new BD({ formats: ['itf', 'code_128', 'code_39', 'ean_13', 'ean_8', 'codabar', 'upc_a', 'code_93'] })
+        } catch {
+          try { nativeDetector = new BD() } catch { /* not available */ }
+        }
+
+        if (nativeDetector) {
+          // Prefer OffscreenCanvas (avoids layout-thread canvas overhead)
+          let cropCanvas: OffscreenCanvas | HTMLCanvasElement
+          let cropCtx: OffscreenCanvasRenderingContext2D | CanvasRenderingContext2D
+          try {
+            cropCanvas = new OffscreenCanvas(1, 1)
+            cropCtx = cropCanvas.getContext('2d') as OffscreenCanvasRenderingContext2D
+          } catch {
+            cropCanvas = document.createElement('canvas')
+            cropCtx = (cropCanvas as HTMLCanvasElement).getContext('2d')!
+          }
+
+          const nd = nativeDetector
+          let detecting = false
+          let lastTs = 0
+
+          const loop = (ts: number) => {
+            if (cancelled) return
+            rafId = requestAnimationFrame(loop)
+            if (detecting || video.readyState < 2 || ts - lastTs < 50) return
+
+            const vw = video.videoWidth, vh = video.videoHeight
+            const cw = video.clientWidth,  ch = video.clientHeight
+            if (!vw || !vh || !cw || !ch) return
+
+            // Map visual scan zone (SVG 15–85% width × 35–65% height)
+            // to actual video pixels, correcting for object-fit:cover scale+offset.
+            const scale = Math.max(cw / vw, ch / vh)
+            const ox = Math.max(0, (vw * scale - cw) / 2 / scale) // left dead-zone in video px
+            const oy = Math.max(0, (vh * scale - ch) / 2 / scale) // top  dead-zone in video px
+
+            const x1 = Math.max(0, Math.round(cw * 0.15 / scale + ox))
+            const y1 = Math.max(0, Math.round(ch * 0.35 / scale + oy))
+            const x2 = Math.min(vw, Math.round(cw * 0.85 / scale + ox))
+            const y2 = Math.min(vh, Math.round(ch * 0.65 / scale + oy))
+            const w = x2 - x1, h = y2 - y1
+            if (w <= 0 || h <= 0) return
+
+            if (cropCanvas.width !== w || cropCanvas.height !== h) {
+              cropCanvas.width = w
+              cropCanvas.height = h
+            }
+            cropCtx.drawImage(video, x1, y1, w, h, 0, 0, w, h)
+
+            detecting = true
+            lastTs = ts
+            nd.detect(cropCanvas)
+              .then(results => {
+                detecting = false
+                if (!cancelled && results.length > 0) {
+                  setLastScannedCode(results[0].rawValue)
+                  setLastScannedFormat(results[0].format)
+                  onScanRef.current?.(results[0].rawValue)
+                }
+              })
+              .catch(() => { detecting = false })
+          }
+          rafId = requestAnimationFrame(loop)
+          return // BarcodeDetector handles everything — no ZXing needed
+        }
+      }
+
+      // PATH B — ZXing BrowserMultiFormatReader fallback (when BarcodeDetector unavailable)
+      // decodeFromVideoElement decodes the full frame at native video resolution.
+      try {
+        const [zxBrowser, zxLib] = await Promise.all([
+          import('@zxing/browser'),
+          import('@zxing/library'),
+        ])
         if (cancelled) return
 
         const hints = new Map()
-        hints.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.ITF])
-        hints.set(DecodeHintType.TRY_HARDER, true)
+        hints.set(zxLib.DecodeHintType.POSSIBLE_FORMATS, [
+          zxLib.BarcodeFormat.ITF, zxLib.BarcodeFormat.CODE_128, zxLib.BarcodeFormat.CODE_39,
+          zxLib.BarcodeFormat.EAN_13, zxLib.BarcodeFormat.EAN_8, zxLib.BarcodeFormat.CODABAR,
+          zxLib.BarcodeFormat.UPC_A, zxLib.BarcodeFormat.CODE_93,
+        ])
+        hints.set(zxLib.DecodeHintType.TRY_HARDER, true)
 
-        const reader = new BrowserMultiFormatReader(hints)
-        const controls = await reader.decodeFromConstraints(
-          { video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } } },
-          videoRef.current,
-          (result, _err) => { if (!cancelled && result) onScanRef.current?.(result.getText()) }
-        )
-        if (!cancelled) scannerControlsRef.current = controls
-        else controls.stop()
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const reader = new (zxBrowser as any).BrowserMultiFormatReader(hints, {
+          delayBetweenScanAttempts: 100,
+          delayBetweenScanSuccess: 600,
+        })
+
+        // Camera is already started — just attach decoder to the video element
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const controls = await reader.decodeFromVideoElement(video, (result: any) => {
+          if (result && !cancelled) {
+            const code: string = result.getText()
+            setLastScannedCode(code)
+            setLastScannedFormat(String(result.getBarcodeFormat()))
+            onScanRef.current?.(code)
+          }
+        })
+
+        if (cancelled) { controls.stop(); return }
+        zxingControls = controls
       } catch (err) {
-        if (!cancelled) setScannerError(err instanceof Error ? err.message : 'Não foi possível acessar a câmera.')
+        if (!cancelled) {
+          setScannerStatus('error')
+          setScannerError(err instanceof Error ? err.message : 'Decodificador indisponível.')
+        }
       }
-    }, 200)
+    }
+
+    void start()
 
     return () => {
-      cancelled = true
-      clearTimeout(timer)
-      scannerControlsRef.current?.stop()
+      stopAll()
       scannerControlsRef.current = null
     }
   }, [scannerOpen])
@@ -3213,8 +3370,35 @@ export default function AdminPanel() {
             autoPlay
           />
 
+          {/* Status badge - discrete overlay on top */}
+          <div className="absolute top-3 left-1/2 -translate-x-1/2 z-30 pointer-events-none">
+            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full backdrop-blur-md text-xs font-medium shadow-lg ${
+              scannerStatus === 'loading' ? 'bg-black/60 text-white/80' :
+              scannerStatus === 'error' ? 'bg-red-900/70 text-red-200' :
+              scannerError ? 'bg-red-900/70 text-red-200' :
+              lastScannedCode ? 'bg-green-900/70 text-green-200' :
+              'bg-black/60 text-white/70'
+            }`}>
+              {scannerStatus === 'loading' && (
+                <><div className="w-2 h-2 border border-white/40 border-t-[#FF8C00] rounded-full animate-spin" /><span>Iniciando...</span></>
+              )}
+              {scannerStatus === 'error' && (
+                <><div className="w-1.5 h-1.5 rounded-full bg-red-400" /><span>{scannerError || 'Erro'}</span></>
+              )}
+              {scannerStatus === 'scanning' && scannerError && (
+                <><div className="w-1.5 h-1.5 rounded-full bg-red-400" /><span>{scannerError}</span></>
+              )}
+              {scannerStatus === 'scanning' && !scannerError && !lastScannedCode && (
+                <><div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" /><span>Pronto</span></>
+              )}
+              {scannerStatus === 'scanning' && !scannerError && lastScannedCode && (
+                <><div className="w-1.5 h-1.5 rounded-full bg-green-400" /><span>Lido: {lastScannedCode} ({lastScannedFormat})</span></>
+              )}
+            </div>
+          </div>
+
           {/* Black mask with rounded barcode cutout */}
-          <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none" viewBox="0 0 100 100">
+          <svg className="absolute inset-0 w-full h-full pointer-events-none z-10" preserveAspectRatio="none" viewBox="0 0 100 100">
             <defs>
               <mask id="barcode-cutout">
                 <rect width="100" height="100" fill="white" />
@@ -3225,7 +3409,7 @@ export default function AdminPanel() {
           </svg>
 
           {/* Cutout border glow */}
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
             <div className="relative" style={{ width: '70%', height: '30%' }}>
               {/* Rounded border */}
               <div className="absolute inset-0 rounded-xl border-2 border-[#FF8C00]/60" />
@@ -3241,13 +3425,9 @@ export default function AdminPanel() {
           </div>
         </div>
 
-        {/* Footer status */}
-        <div className="shrink-0 px-4 py-3 bg-black/90 border-t border-white/10 min-h-[60px] flex items-center justify-center z-10">
-          {scannerError ? (
-            <p className="text-center text-sm text-red-400">{scannerError}</p>
-          ) : (
-            <p className="text-center text-sm text-white/50">Aponte a câmera para o código de barras do talão</p>
-          )}
+        {/* Footer */}
+        <div className="shrink-0 px-4 py-2.5 bg-black/90 border-t border-white/10 flex items-center justify-center z-10">
+          <p className="text-center text-xs text-white/30">Posicione o código de barras no centro</p>
         </div>
 
         <style>{`
