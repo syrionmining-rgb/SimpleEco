@@ -1170,7 +1170,17 @@ export default function AdminPanel() {
 
     void start()
 
+    // iOS Safari PWA: video stream freezes when app goes to background.
+    // Re-play the video when the page becomes visible again.
+    const onVisible = () => {
+      if (!cancelled && videoRef.current?.paused) {
+        videoRef.current.play().catch(() => {/* ignore */})
+      }
+    }
+    document.addEventListener('visibilitychange', onVisible)
+
     return () => {
+      document.removeEventListener('visibilitychange', onVisible)
       stopAll()
       scannerControlsRef.current = null
     }
