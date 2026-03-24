@@ -173,15 +173,15 @@ CREATE POLICY se_link_logs_read ON public.se_link_logs FOR SELECT TO anon, authe
 
 -- prod_items / prod_etapas: leitura pública, escrita authenticated
 CREATE POLICY prod_items_read  ON public.prod_items  FOR SELECT TO anon, authenticated USING (true);
-CREATE POLICY prod_items_write ON public.prod_items  FOR ALL    TO authenticated        USING (true) WITH CHECK (true);
+CREATE POLICY prod_items_write ON public.prod_items  FOR ALL    TO anon, authenticated USING (true) WITH CHECK (true);
 CREATE POLICY prod_etapas_read  ON public.prod_etapas FOR SELECT TO anon, authenticated USING (true);
-CREATE POLICY prod_etapas_write ON public.prod_etapas FOR ALL   TO authenticated        USING (true) WITH CHECK (true);
+CREATE POLICY prod_etapas_write ON public.prod_etapas FOR ALL   TO anon, authenticated USING (true) WITH CHECK (true);
 
 -- pedido_fluxo / admin_setores / pedido_setores: leitura pública, escrita authenticated
 CREATE POLICY pedido_fluxo_read  ON public.pedido_fluxo  FOR SELECT TO anon, authenticated USING (true);
-CREATE POLICY pedido_fluxo_write ON public.pedido_fluxo  FOR ALL    TO authenticated        USING (true) WITH CHECK (true);
+CREATE POLICY pedido_fluxo_write ON public.pedido_fluxo  FOR ALL    TO anon, authenticated USING (true) WITH CHECK (true);
 CREATE POLICY admin_setores_read  ON public.admin_setores  FOR SELECT TO anon, authenticated USING (true);
-CREATE POLICY admin_setores_write ON public.admin_setores  FOR ALL    TO authenticated        USING (true) WITH CHECK (true);
+CREATE POLICY admin_setores_write ON public.admin_setores  FOR ALL    TO anon, authenticated USING (true) WITH CHECK (true);
 CREATE POLICY pedido_setores_read  ON public.pedido_setores  FOR SELECT TO anon, authenticated USING (true);
 CREATE POLICY pedido_setores_write ON public.pedido_setores  FOR ALL    TO authenticated        USING (true) WITH CHECK (true);
 
