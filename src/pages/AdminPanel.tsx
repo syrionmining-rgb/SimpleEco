@@ -100,10 +100,21 @@ interface FichaRow {
   CODIGO?: string; NOME?: string; REFER?: string; NOMECOR?: string
   MATRIZ?: string | number | null; NAVALHA?: string | number | null
   COR01?: string; COR02?: string; COR03?: string; OBS?: string
+  GRADE?: string; CONSTRUC?: string; SALTO?: string; PALMILHA?: string
+  FORMA?: string; LINHA?: string; PROD_TXT?: string
 }
 interface PeditenRow {
   [key: string]: unknown
   CODIGO?: string; ITEM?: string; REFERENCIA?: string; REMESSA?: string; LOTE?: string
+}
+interface GradeRow {
+  [key: string]: unknown
+  CODIGO?: string; NOME?: string; GRADE?: string
+}
+interface PedimateRow {
+  [key: string]: unknown
+  CODIGO?: string; ITEM?: string; TIPO?: string; NOMESET?: string
+  MATERIAL?: string; NOMEMAT?: string; UNI?: string; CONSUMO?: number | string | null
 }
 
 interface RemessaNode { codigo: string; movimentos: TalsetorRow[]; qtdeTotal: number }
@@ -170,6 +181,9 @@ export default function AdminPanel() {
   const [clientes, setClientes] = useState<ClienteRow[]>([])
   const [fichas, setFichas] = useState<FichaRow[]>([])
   const [peditens, setPeditens] = useState<PeditenRow[]>([])
+  const [grades, setGrades] = useState<GradeRow[]>([])
+  const [pedimate, setPedimate] = useState<PedimateRow[]>([])
+  const [expandedBom, setExpandedBom] = useState<Set<string>>(new Set())
   const [ordersLoading, setOrdersLoading] = useState(false)
   const [ordersError, setOrdersError] = useState<string | null>(null)
   const [ordersQuery, setOrdersQuery] = useState('')
@@ -534,7 +548,7 @@ export default function AdminPanel() {
         fetchTableRows<TalaoRow>('taloes',    'CODIGO,PEDIDO,ITEM,REFERENCIA,REMESSA,TOTAL,CANCELADO,FATURADO,NUMEROS,GRADE,DE_ATE'),
         fetchTableRows<TalsetorRow>('talsetor','TALAO,SETOR,NOMESET,DATA,QTDE,REMESSA'),
         fetchTableRows<ClienteRow>('clientes', 'CODIGO,NOME,FANTASIA,CNPJ,CHAVE,ENDERECO,NUMERO,COMPL,BAIRRO,CIDADE,ESTADO,CEP,INCLUIDO,ATUALIZADO'),
-        fetchTableRows<FichaRow>('fichas',     'CODIGO,NOME,REFER,NOMECOR,MATRIZ,NAVALHA,COR01,COR02,COR03,OBS'),
+        fetchTableRows<FichaRow>('fichas',     'CODIGO,NOME,REFER,NOMECOR,MATRIZ,NAVALHA,COR01,COR02,COR03,OBS,GRADE,CONSTRUC,SALTO,PALMILHA,FORMA,LINHA,PROD_TXT'),
       ])
       pedidosRows.sort((a, b) => asText(a.CODIGO).localeCompare(asText(b.CODIGO), 'pt-BR'))
       taloesRows.sort((a, b) => {
@@ -553,6 +567,18 @@ export default function AdminPanel() {
         const peditensRows = await fetchTableRows<PeditenRow>('peditens', 'CODIGO,ITEM,REFERENCIA,REMESSA,LOTE')
         setPeditens(peditensRows)
       } catch { /* tabela ainda não disponível no Supabase, ignora silenciosamente */ }
+
+      // grades — tabela opcional, nome da grade por código
+      try {
+        const gradesRows = await fetchTableRows<GradeRow>('grades', 'CODIGO,NOME,GRADE')
+        setGrades(gradesRows)
+      } catch { /* ignora silenciosamente */ }
+
+      // pedimate — tabela opcional, materiais por talão
+      try {
+        const pedimateRows = await fetchTableRows<PedimateRow>('pedimate', 'CODIGO,ITEM,TIPO,NOMESET,MATERIAL,NOMEMAT,UNI,CONSUMO')
+        setPedimate(pedimateRows)
+      } catch { /* ignora silenciosamente */ }
 
       // pedido_fluxo — tabela opcional, vínculo de fluxo de produção por pedido
       void fetchPedidoFluxo()
@@ -804,6 +830,21 @@ export default function AdminPanel() {
     }
     return m
   }, [talsetor])
+
+  const gradeMap = useMemo(() => {
+    const m = new Map<string, GradeRow>()
+    for (const g of grades) { const k = asText(g.CODIGO).trim(); if (k) m.set(k, g) }
+    return m
+  }, [grades])
+
+  const pedimateByTalao = useMemo(() => {
+    const m = new Map<string, PedimateRow[]>()
+    for (const p of pedimate) {
+      const k = asText(p.CODIGO).trim(); if (!k) continue
+      if (!m.has(k)) m.set(k, []); m.get(k)!.push(p)
+    }
+    return m
+  }, [pedimate])
 
   // ── Pedidos tree ──────────────────────────────────────────────────────────
 
@@ -1609,6 +1650,16 @@ export default function AdminPanel() {
                         const fNavalha = asText(ficha?.NAVALHA).trim()
                         const fCor = asText(ficha?.NOMECOR).trim()
                         const fObs = asText(ficha?.OBS).trim()
+                        const fConstruc = asText(ficha?.CONSTRUC).trim()
+                        const fSalto = asText(ficha?.SALTO).trim()
+                        const fPalmilha = asText(ficha?.PALMILHA).trim()
+                        const fForma = asText(ficha?.FORMA).trim()
+                        const fLinha = asText(ficha?.LINHA).trim()
+                        const fProdTxt = asText(ficha?.PROD_TXT).trim()
+                        const gradeCode = asText(tNode.talao.GRADE).trim()
+                        const gradeName = asText(gradeMap.get(gradeCode)?.NOME).trim()
+                        const bomItems = pedimateByTalao.get(tc) ?? []
+                        const bomExpanded = expandedBom.has(tc)
                         const canc = isTruthy(tNode.talao.CANCELADO)
                         const fat = isTruthy(tNode.talao.FATURADO)
                         const passouExpedicao = (talsetorByTalao.get(tc) ?? []).some(mv =>
@@ -1669,9 +1720,25 @@ export default function AdminPanel() {
                                 <span className="text-[11px] text-[var(--th-txt-4)]">Obs. <span className="text-[var(--th-txt-2)]">{fObs}</span></span>
                               </div>
                             )}
+                            {/* Meta strip — linha 3: detalhes de construção da ficha */}
+                            {(fConstruc || fSalto || fPalmilha || fForma || fLinha || fProdTxt) && (
+                              <div className="flex gap-4 px-4 py-1.5 border-t border-[var(--th-border)] flex-wrap">
+                                {fProdTxt && <span className="text-[11px] text-[var(--th-txt-4)]">Tipo <span className="font-mono text-[var(--th-txt-2)]">{fProdTxt}</span></span>}
+                                {fLinha && <span className="text-[11px] text-[var(--th-txt-4)]">Linha <span className="font-mono text-[var(--th-txt-2)]">{fLinha}</span></span>}
+                                {fConstruc && <span className="text-[11px] text-[var(--th-txt-4)]">Construção <span className="font-mono text-[var(--th-txt-2)]">{fConstruc}</span></span>}
+                                {fSalto && <span className="text-[11px] text-[var(--th-txt-4)]">Salto <span className="font-mono text-[var(--th-txt-2)]">{fSalto}</span></span>}
+                                {fPalmilha && <span className="text-[11px] text-[var(--th-txt-4)]">Palmilha <span className="font-mono text-[var(--th-txt-2)]">{fPalmilha}</span></span>}
+                                {fForma && <span className="text-[11px] text-[var(--th-txt-4)]">Forma <span className="font-mono text-[var(--th-txt-2)]">{fForma}</span></span>}
+                              </div>
+                            )}
                             {/* Grade */}
                             {grade.length > 0 && (
                               <div className="px-4 py-3 border-t border-[var(--th-border)]">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <span className="text-[11px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Grade</span>
+                                  {gradeCode && <span className="font-mono text-[11px] text-[var(--th-txt-3)]">{gradeCode}</span>}
+                                  {gradeName && <span className="text-[11px] text-[var(--th-txt-3)]">— {gradeName}</span>}
+                                </div>
                                 <div className="flex flex-wrap gap-1.5">
                                   {grade.map(({ slot, qty }) => (
                                     <div key={slot} className="flex flex-col items-center rounded-lg border border-[var(--th-border)] bg-[var(--th-subtle)] overflow-hidden" style={{ minWidth: 38 }}>
@@ -1681,6 +1748,38 @@ export default function AdminPanel() {
                                     </div>
                                   ))}
                                 </div>
+                              </div>
+                            )}
+                            {/* Materiais (BOM) */}
+                            {bomItems.length > 0 && (
+                              <div className="border-t border-[var(--th-border)]">
+                                <button
+                                  type="button"
+                                  onClick={() => setExpandedBom(prev => {
+                                    const next = new Set(prev)
+                                    next.has(tc) ? next.delete(tc) : next.add(tc)
+                                    return next
+                                  })}
+                                  className="w-full px-4 py-2 bg-[var(--th-subtle)] flex items-center justify-between hover:bg-[var(--th-hover)] transition-colors"
+                                >
+                                  <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Materiais</p>
+                                  <span className="text-[11px] text-[var(--th-txt-4)]">{bomExpanded ? '▲' : '▼'} {bomItems.length}</span>
+                                </button>
+                                {bomExpanded && (
+                                  <div className="divide-y divide-[var(--th-border)]">
+                                    {bomItems.map((bom, i) => (
+                                      <div key={i} className="flex items-center gap-3 px-4 py-2 hover:bg-[var(--th-hover)] transition-colors">
+                                        <div className="flex-1 min-w-0">
+                                          <p className="text-[11px] font-medium text-[var(--th-txt-2)] truncate">{asText(bom.NOMEMAT) || '—'}</p>
+                                          <p className="text-[10px] text-[var(--th-txt-4)]">{asText(bom.NOMESET) || asText(bom.TIPO) || ''}</p>
+                                        </div>
+                                        {(bom.CONSUMO != null && bom.CONSUMO !== '') && (
+                                          <span className="text-[11px] font-mono text-orange-400 shrink-0">{fmtNumber(bom.CONSUMO)} <span className="text-[var(--th-txt-4)]">{asText(bom.UNI)}</span></span>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
                               </div>
                             )}
                             {/* Histórico de setores */}
