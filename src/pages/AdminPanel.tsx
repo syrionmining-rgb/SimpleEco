@@ -1067,11 +1067,11 @@ export default function AdminPanel() {
       const BD = (globalThis as any).BarcodeDetector
 
       if (BD) {
-        // PATH A — Native BarcodeDetector via requestAnimationFrame
-        // Crops the frame exactly to the visual scan zone by computing the
-        // object-fit:cover mapping from CSS pixels → actual video pixels.
-        // Portrait 390×760 phone with 1280×720 video → ~258×216px crop (16x smaller).
-        let nativeDetector: { detect: (src: OffscreenCanvas | HTMLCanvasElement) => Promise<Array<{ rawValue: string; format: string }>> } | null = null
+        // PATH A — Native BarcodeDetector, max-speed rAF loop
+        // Uses createImageBitmap(video, x, y, w, h) — async, off-thread crop,
+        // no canvas, no drawImage on the main thread.
+        // No time throttle: the `detecting` flag self-limits to detector speed.
+        let nativeDetector: { detect: (src: ImageBitmap) => Promise<Array<{ rawValue: string; format: string }>> } | null = null
         try {
           nativeDetector = new BD({ formats: ['itf', 'code_128', 'code_39', 'ean_13', 'ean_8', 'codabar', 'upc_a', 'code_93'] })
         } catch {
@@ -1079,60 +1079,44 @@ export default function AdminPanel() {
         }
 
         if (nativeDetector) {
-          // Prefer OffscreenCanvas (avoids layout-thread canvas overhead)
-          let cropCanvas: OffscreenCanvas | HTMLCanvasElement
-          let cropCtx: OffscreenCanvasRenderingContext2D | CanvasRenderingContext2D
-          try {
-            cropCanvas = new OffscreenCanvas(1, 1)
-            cropCtx = cropCanvas.getContext('2d') as OffscreenCanvasRenderingContext2D
-          } catch {
-            cropCanvas = document.createElement('canvas')
-            cropCtx = (cropCanvas as HTMLCanvasElement).getContext('2d')!
-          }
-
           const nd = nativeDetector
           let detecting = false
-          let lastTs = 0
 
-          const loop = (ts: number) => {
+          const loop = () => {
             if (cancelled) return
             rafId = requestAnimationFrame(loop)
-            if (detecting || video.readyState < 2 || ts - lastTs < 50) return
+            if (detecting || video.readyState < 2) return
 
             const vw = video.videoWidth, vh = video.videoHeight
             const cw = video.clientWidth,  ch = video.clientHeight
             if (!vw || !vh || !cw || !ch) return
 
-            // Map visual scan zone (SVG 15–85% width × 35–65% height)
-            // to actual video pixels, correcting for object-fit:cover scale+offset.
+            // Map visual scan zone (SVG 15–85% × 35–65%) → video pixel crop,
+            // accounting for object-fit:cover scale + offset.
             const scale = Math.max(cw / vw, ch / vh)
-            const ox = Math.max(0, (vw * scale - cw) / 2 / scale) // left dead-zone in video px
-            const oy = Math.max(0, (vh * scale - ch) / 2 / scale) // top  dead-zone in video px
-
+            const ox = Math.max(0, (vw * scale - cw) / 2 / scale)
+            const oy = Math.max(0, (vh * scale - ch) / 2 / scale)
             const x1 = Math.max(0, Math.round(cw * 0.15 / scale + ox))
             const y1 = Math.max(0, Math.round(ch * 0.35 / scale + oy))
-            const x2 = Math.min(vw, Math.round(cw * 0.85 / scale + ox))
-            const y2 = Math.min(vh, Math.round(ch * 0.65 / scale + oy))
-            const w = x2 - x1, h = y2 - y1
+            const w  = Math.min(vw - x1, Math.round(cw * 0.70 / scale))
+            const h  = Math.min(vh - y1, Math.round(ch * 0.30 / scale))
             if (w <= 0 || h <= 0) return
 
-            if (cropCanvas.width !== w || cropCanvas.height !== h) {
-              cropCanvas.width = w
-              cropCanvas.height = h
-            }
-            cropCtx.drawImage(video, x1, y1, w, h, 0, 0, w, h)
-
             detecting = true
-            lastTs = ts
-            nd.detect(cropCanvas)
-              .then(results => {
-                detecting = false
-                if (!cancelled && results.length > 0) {
-                  setLastScannedCode(results[0].rawValue)
-                  setLastScannedFormat(results[0].format)
-                  onScanRef.current?.(results[0].rawValue)
-                }
-              })
+            // createImageBitmap with crop is async + off-thread: no main-thread blocking
+            createImageBitmap(video, x1, y1, w, h)
+              .then(bmp => nd.detect(bmp)
+                .then(results => {
+                  bmp.close()
+                  detecting = false
+                  if (!cancelled && results.length > 0) {
+                    setLastScannedCode(results[0].rawValue)
+                    setLastScannedFormat(results[0].format)
+                    onScanRef.current?.(results[0].rawValue)
+                  }
+                })
+                .catch(() => { bmp.close(); detecting = false })
+              )
               .catch(() => { detecting = false })
           }
           rafId = requestAnimationFrame(loop)
