@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react'
 import {
   Sun, Moon, LogOut, Settings, Users, Database, Package, Home, Box,
   ScrollText, RefreshCw, Search, ChevronDown, ChevronUp, ChevronLeft,
-  GitBranch, Plus, X, Check, Monitor, Smartphone, ScanLine, Trash2, Pencil, Menu,
+  GitBranch, Plus, X, Check, Monitor, Smartphone, ScanLine, Trash2, Pencil, Menu, MapPin,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
@@ -2527,32 +2527,43 @@ export default function AdminPanel() {
               const filtered = clientesAll.filter(c => {
                 if (clientesEstado && asText(c.ESTADO).trim() !== clientesEstado) return false
                 if (!q) return true
-                return [asText(c.CODIGO), asText(c.NOME), asText(c.FANTASIA), asText(c.CNPJ), asText(c.CIDADE)].some(v => v.toLowerCase().includes(q))
+                return [asText(c.CODIGO), asText(c.NOME), asText(c.FANTASIA), asText(c.CNPJ), asText(c.CHAVE), asText(c.CIDADE)].some(v => v.toLowerCase().includes(q))
               })
+              // Contagem de pedidos por cliente (para exibir na lista)
+              const pedidosCountMap = new Map<string, number>()
+              for (const p of orders) {
+                const k = asText(p.CLIENTE).trim(); if (!k) continue
+                pedidosCountMap.set(k, (pedidosCountMap.get(k) ?? 0) + 1)
+              }
               return (
                 <div className="flex h-full gap-0 -m-6">
                   {/* List panel */}
-                  <div className={`shrink-0 flex-col border-r border-[var(--th-border)] bg-[var(--th-card)] w-full sm:w-[320px] ${selectedCliente ? 'hidden sm:flex' : 'flex'}`}>
+                  <div className={`shrink-0 flex-col border-r border-[var(--th-border)] bg-[var(--th-card)] w-full sm:w-[340px] ${selectedCliente ? 'hidden sm:flex' : 'flex'}`}>
                     {/* Header */}
                     <div className="px-4 py-4 border-b border-[var(--th-border)]">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
                           <h1 className="text-sm font-semibold text-[var(--th-txt-1)]">Clientes</h1>
                           <span className="text-xs bg-[var(--th-subtle)] px-2 py-0.5 rounded-full text-[var(--th-txt-4)]">{filtered.length}</span>
+                          {clientesEstado && (
+                            <span className="text-xs bg-orange-500/15 text-orange-400 border border-orange-500/30 px-2 py-0.5 rounded-full">{clientesEstado}</span>
+                          )}
                         </div>
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[11px] text-[var(--th-txt-4)]">{clientesAll.length} total</span>
-                          <button type="button" onClick={() => void fetchClientes()} className="p-1.5 rounded hover:bg-[var(--th-hover)] text-[var(--th-txt-4)]">
-                            <RefreshCw strokeWidth={1.5} className={`w-3.5 h-3.5 ${clientesLoading ? 'animate-spin' : ''}`} />
-                          </button>
-                        </div>
+                        <button type="button" onClick={() => void fetchClientes()} className="p-1.5 rounded hover:bg-[var(--th-hover)] text-[var(--th-txt-4)]" title="Atualizar">
+                          <RefreshCw strokeWidth={1.5} className={`w-3.5 h-3.5 ${clientesLoading ? 'animate-spin' : ''}`} />
+                        </button>
                       </div>
                       {/* Search */}
                       <div className="relative mb-2">
                         <Search strokeWidth={1.5} className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--th-txt-4)]" />
                         <input value={clientesQuery} onChange={e => setClientesQuery(e.target.value)}
-                          placeholder="Buscar por nome, CNPJ, cidade..."
-                          className="w-full rounded-lg border border-[var(--th-border)] bg-transparent pl-8 pr-3 py-1.5 text-xs text-[var(--th-txt-1)] placeholder:text-[var(--th-txt-4)] focus:outline-none focus:ring-2 focus:ring-orange-500/40" />
+                          placeholder="Nome, fantasia, CNPJ, cidade..."
+                          className="w-full rounded-lg border border-[var(--th-border)] bg-transparent pl-8 pr-8 py-1.5 text-xs text-[var(--th-txt-1)] placeholder:text-[var(--th-txt-4)] focus:outline-none focus:ring-2 focus:ring-orange-500/40" />
+                        {clientesQuery && (
+                          <button type="button" onClick={() => setClientesQuery('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--th-txt-4)] hover:text-[var(--th-txt-1)]">
+                            <X strokeWidth={2} className="w-3 h-3" />
+                          </button>
+                        )}
                       </div>
                       {/* Estado filter */}
                       <div className="relative">
@@ -2562,11 +2573,13 @@ export default function AdminPanel() {
                           className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg border text-xs transition-colors ${
                             clientesEstadoOpen
                               ? 'border-orange-500/50 bg-[var(--th-card)] ring-2 ring-orange-500/20'
-                              : 'border-[var(--th-border)] bg-[var(--th-card)] hover:border-orange-500/30'
+                              : clientesEstado
+                                ? 'border-orange-500/40 bg-orange-500/5'
+                                : 'border-[var(--th-border)] bg-[var(--th-card)] hover:border-orange-500/30'
                           }`}
                         >
-                          <span className={clientesEstado ? 'text-[var(--th-txt-1)]' : 'text-[var(--th-txt-4)]'}>
-                            {clientesEstado || 'Todos os estados'}
+                          <span className={clientesEstado ? 'text-orange-400 font-medium' : 'text-[var(--th-txt-4)]'}>
+                            {clientesEstado ? `Estado: ${clientesEstado}` : 'Todos os estados'}
                           </span>
                           <ChevronDown strokeWidth={2} className={`w-3 h-3 text-[var(--th-txt-4)] transition-transform shrink-0 ml-1 ${clientesEstadoOpen ? 'rotate-180' : ''}`} />
                         </button>
@@ -2575,22 +2588,21 @@ export default function AdminPanel() {
                             <button
                               type="button"
                               onClick={() => { setClientesEstado(''); setClientesEstadoOpen(false) }}
-                              className={`w-full text-left px-2.5 py-1.5 text-xs transition-colors hover:bg-[var(--th-hover)] ${
-                                clientesEstado === '' ? 'text-orange-400 bg-orange-500/8 font-semibold' : 'text-[var(--th-txt-3)]'
+                              className={`w-full text-left px-3 py-2 text-xs transition-colors hover:bg-[var(--th-hover)] ${
+                                clientesEstado === '' ? 'text-orange-400 font-semibold' : 'text-[var(--th-txt-3)]'
                               }`}
-                            >
-                              Todos os estados
-                            </button>
+                            >Todos os estados</button>
                             {estados.map(uf => (
                               <button
                                 key={uf}
                                 type="button"
                                 onClick={() => { setClientesEstado(uf); setClientesEstadoOpen(false) }}
-                                className={`w-full text-left px-2.5 py-1.5 text-xs transition-colors hover:bg-[var(--th-hover)] ${
-                                  clientesEstado === uf ? 'text-orange-400 bg-orange-500/8 font-semibold' : 'text-[var(--th-txt-1)]'
+                                className={`w-full text-left px-3 py-2 text-xs transition-colors hover:bg-[var(--th-hover)] flex items-center justify-between ${
+                                  clientesEstado === uf ? 'text-orange-400 font-semibold' : 'text-[var(--th-txt-1)]'
                                 }`}
                               >
-                                {uf}
+                                <span>{uf}</span>
+                                <span className="text-[var(--th-txt-4)] font-normal">{clientesAll.filter(c => asText(c.ESTADO).trim() === uf).length}</span>
                               </button>
                             ))}
                           </div>
@@ -2603,29 +2615,54 @@ export default function AdminPanel() {
                       {clientesError && <div className="px-3 py-2 text-xs text-red-400 bg-red-500/10 rounded-lg border border-red-500/20">{clientesError}</div>}
                       {!clientesLoading && filtered.length === 0 && <div className="px-4 py-16 text-center text-sm text-[var(--th-txt-3)]">Nenhum cliente encontrado.</div>}
                       {filtered.map(c => {
-                        const nome = asText(c.FANTASIA || c.NOME).trim() || '—'
+                        const fantasia = asText(c.FANTASIA).trim()
+                        const nomeRaw = asText(c.NOME).trim()
+                        const displayName = fantasia || nomeRaw || '—'
+                        const subName = fantasia && nomeRaw && fantasia !== nomeRaw ? nomeRaw : ''
                         const cod = asText(c.CODIGO).trim()
                         const cidade = asText(c.CIDADE).trim()
                         const uf = asText(c.ESTADO).trim()
+                        const cnpj = asText(c.CNPJ || c.CHAVE).trim()
+                        const nPedidos = pedidosCountMap.get(cod) ?? 0
+                        const initials = displayName.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('')
                         const isSelected = selectedCliente?.CODIGO === c.CODIGO
                         return (
                           <button key={cod} type="button" onClick={() => setSelectedCliente(c)}
-                            className={isSelected ? 'w-full text-left rounded-xl border border-orange-500/40 bg-orange-500/8 px-4 py-3 transition-all' : 'w-full text-left rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] px-4 py-3 transition-all hover:border-orange-500/30 hover:bg-orange-500/5'}>
-                            <div className="flex items-start justify-between gap-2">
-                              <p className="text-sm font-medium text-[var(--th-txt-1)] leading-snug line-clamp-2">{nome}</p>
-                              <span className="text-[11px] font-mono text-[var(--th-txt-4)] shrink-0 mt-0.5">{cod}</span>
+                            className={`w-full text-left rounded-xl border px-3 py-2.5 transition-all flex items-center gap-3 ${isSelected ? 'border-orange-500/40 bg-orange-500/8' : 'border-[var(--th-border)] bg-[var(--th-card)] hover:border-orange-500/30 hover:bg-orange-500/5'}`}>
+                            {/* Avatar */}
+                            <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 text-xs font-bold ${isSelected ? 'bg-orange-500/20 text-orange-400' : 'bg-[var(--th-subtle)] text-[var(--th-txt-3)]'}`}>
+                              {initials || '?'}
                             </div>
-                            {(cidade || uf) && (
-                              <p className="text-[11px] text-[var(--th-txt-4)] mt-0.5">{[cidade, uf].filter(Boolean).join(' · ')}</p>
-                            )}
+                            {/* Info */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between gap-1.5 mb-0.5">
+                                <p className="text-xs font-semibold text-[var(--th-txt-1)] truncate leading-snug">{displayName}</p>
+                                {nPedidos > 0 && (
+                                  <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded shrink-0 ${isSelected ? 'bg-orange-500/20 text-orange-400' : 'bg-[var(--th-subtle)] text-[var(--th-txt-4)]'}`}>{nPedidos}p</span>
+                                )}
+                              </div>
+                              {subName && <p className="text-[10px] text-[var(--th-txt-4)] truncate leading-none mb-0.5">{subName}</p>}
+                              <div className="flex items-center gap-2">
+                                {cnpj && <span className="text-[10px] font-mono text-[var(--th-txt-4)] truncate">{cnpj}</span>}
+                                {(cidade || uf) && !cnpj && <span className="text-[10px] text-[var(--th-txt-4)] truncate">{[cidade, uf].filter(Boolean).join(' · ')}</span>}
+                                {(cidade || uf) && cnpj && <span className="text-[10px] text-[var(--th-txt-4)] shrink-0">{uf}</span>}
+                              </div>
+                            </div>
                           </button>
                         )
                       })}
                     </div>
+                    {/* Footer count */}
+                    <div className="px-4 py-2 border-t border-[var(--th-border)] text-[11px] text-[var(--th-txt-4)] flex justify-between">
+                      <span>{filtered.length} de {clientesAll.length} clientes</span>
+                      {(clientesQuery || clientesEstado) && (
+                        <button type="button" onClick={() => { setClientesQuery(''); setClientesEstado('') }} className="text-orange-400 hover:underline">Limpar filtros</button>
+                      )}
+                    </div>
                   </div>
 
                   {/* Detail panel */}
-                  <div className={`overflow-y-auto sm:flex-1 sm:p-5 ${selectedCliente ? 'fixed inset-0 top-[54px] z-40 bg-[var(--th-page)] p-4 sm:static sm:inset-auto sm:z-auto sm:bg-transparent' : 'hidden sm:block'}`}>
+                  <div className={`overflow-y-auto sm:flex-1 sm:p-6 ${selectedCliente ? 'fixed inset-0 top-[54px] z-40 bg-[var(--th-page)] p-4 sm:static sm:inset-auto sm:z-auto sm:bg-transparent' : 'hidden sm:block'}`}>
                     {!selectedCliente && (
                       <div className="flex flex-col items-center justify-center py-16 text-[var(--th-txt-4)]">
                         <Users strokeWidth={1} className="w-12 h-12 mb-3 opacity-30" />
@@ -2634,102 +2671,155 @@ export default function AdminPanel() {
                     )}
                     {selectedCliente && (() => {
                       const c = selectedCliente
-                      const nome = asText(c.FANTASIA || c.NOME).trim() || '—'
+                      const fantasia = asText(c.FANTASIA).trim()
+                      const nomeRaw = asText(c.NOME).trim()
+                      const displayName = fantasia || nomeRaw || '—'
+                      const subName = fantasia && nomeRaw && fantasia !== nomeRaw ? nomeRaw : ''
                       const cnpj = asText(c.CNPJ || c.CHAVE).trim()
                       const endereco = [asText(c.ENDERECO), asText(c.NUMERO), asText(c.COMPL)].filter(Boolean).join(', ')
-                      const localidade = [asText(c.BAIRRO), asText(c.CIDADE), asText(c.ESTADO)].filter(Boolean).join(' · ')
+                      const cidade = asText(c.CIDADE).trim()
+                      const uf = asText(c.ESTADO).trim()
+                      const bairro = asText(c.BAIRRO).trim()
                       const cep = asText(c.CEP).trim()
-                      const pedidosDoCliente = orders.filter(p => asText(p.CLIENTE).trim() === asText(c.CODIGO).trim())
+                      const pedidosDoCliente = [...orders.filter(p => asText(p.CLIENTE).trim() === asText(c.CODIGO).trim())]
+                        .sort((a, b) => asText(b.VENDA || b.PREVISAO).localeCompare(asText(a.VENDA || a.PREVISAO)))
+                      const totalPares = pedidosDoCliente.reduce((s, p) => s + toNumber(p.TOTAL), 0)
+                      const totalFaturados = pedidosDoCliente.reduce((s, p) => s + toNumber(p.FATURADOS), 0)
+                      const emAberto = pedidosDoCliente.filter(p => toNumber(p.SALDO) > 0).length
+                      const initials = displayName.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('')
+                      const mapsQuery = [endereco, bairro, cidade, uf, cep].filter(Boolean).join(', ')
                       return (
-                        <div className="space-y-4">
+                        <div className="space-y-4 max-w-2xl">
                           <button className="sm:hidden flex items-center gap-1.5 text-sm text-[var(--th-txt-3)] hover:text-[var(--th-txt-1)] transition-colors py-1" onClick={() => setSelectedCliente(null)}>
                             <ChevronLeft className="w-4 h-4" />Voltar
                           </button>
-                          {/* Header */}
-                          <div className="flex items-start justify-between gap-4 pb-4 border-b border-[var(--th-border)]">
-                            <div className="min-w-0 flex-1">
-                              <h2 className="text-lg font-bold text-[var(--th-txt-1)] mb-1 leading-snug">{nome}</h2>
-                              <div className="flex items-center gap-3 flex-wrap text-xs text-[var(--th-txt-4)]">
-                                <span className="font-mono text-[var(--th-txt-2)]">{asText(c.CODIGO)}</span>
-                                {cnpj && <span>{cnpj}</span>}
+
+                          {/* Header card */}
+                          <div className="rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] p-5">
+                            <div className="flex items-start gap-4">
+                              {/* Avatar */}
+                              <div className="w-14 h-14 rounded-xl bg-orange-500/15 text-orange-400 flex items-center justify-center text-xl font-bold shrink-0 border border-orange-500/20">
+                                {initials || '?'}
                               </div>
+                              <div className="flex-1 min-w-0">
+                                <h2 className="text-base font-bold text-[var(--th-txt-1)] leading-snug mb-0.5">{displayName}</h2>
+                                {subName && <p className="text-xs text-[var(--th-txt-4)] mb-1.5 truncate">{subName}</p>}
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="inline-flex items-center gap-1 bg-[var(--th-subtle)] border border-[var(--th-border)] px-2 py-0.5 rounded text-[11px] font-mono text-[var(--th-txt-3)]">#{asText(c.CODIGO)}</span>
+                                  {cnpj && <span className="inline-flex items-center gap-1 bg-[var(--th-subtle)] border border-[var(--th-border)] px-2 py-0.5 rounded text-[11px] font-mono text-[var(--th-txt-3)]">{cnpj}</span>}
+                                  {uf && <span className="inline-flex items-center bg-[var(--th-subtle)] border border-[var(--th-border)] px-2 py-0.5 rounded text-[11px] text-[var(--th-txt-3)]">{uf}</span>}
+                                </div>
+                              </div>
+                              <button type="button" onClick={() => setSelectedCliente(null)} className="p-1.5 rounded hover:bg-[var(--th-hover)] text-[var(--th-txt-4)] shrink-0">
+                                <X strokeWidth={1.5} className="w-4 h-4" />
+                              </button>
                             </div>
-                            {/* Cadastro inline */}
-                            <div className="shrink-0 text-right text-xs text-[var(--th-txt-4)] space-y-1">
-                              {asText(c.INCLUIDO) && <div><span>Incluído </span><span className="font-mono text-[var(--th-txt-2)]">{fmtDate(asText(c.INCLUIDO))}</span></div>}
-                              {asText(c.ATUALIZADO) && <div><span>Atualizado </span><span className="font-mono text-[var(--th-txt-2)]">{fmtDate(asText(c.ATUALIZADO))}</span></div>}
-                              <div><span>Pedidos </span><span className="font-semibold text-[var(--th-txt-2)]">{pedidosDoCliente.length}</span></div>
+
+                            {/* Stats strip */}
+                            <div className="grid grid-cols-4 gap-2 mt-4 pt-4 border-t border-[var(--th-border)]">
+                              {[
+                                { label: 'Pedidos', value: String(pedidosDoCliente.length) },
+                                { label: 'Em aberto', value: String(emAberto), highlight: emAberto > 0 },
+                                { label: 'Total pares', value: fmtNumber(totalPares) },
+                                { label: 'Faturados', value: fmtNumber(totalFaturados) },
+                              ].map(stat => (
+                                <div key={stat.label} className="text-center">
+                                  <p className={`text-sm font-bold font-mono ${stat.highlight ? 'text-orange-400' : 'text-[var(--th-txt-1)]'}`}>{stat.value}</p>
+                                  <p className="text-[10px] text-[var(--th-txt-4)] mt-0.5">{stat.label}</p>
+                                </div>
+                              ))}
                             </div>
-                            <button type="button" onClick={() => setSelectedCliente(null)} className="p-1.5 rounded hover:bg-[var(--th-hover)] text-[var(--th-txt-4)] shrink-0">
-                              <X strokeWidth={1.5} className="w-4 h-4" />
-                            </button>
+
+                            {/* Datas */}
+                            {(asText(c.INCLUIDO) || asText(c.ATUALIZADO)) && (
+                              <div className="flex gap-4 mt-3 pt-3 border-t border-[var(--th-border)]">
+                                {asText(c.INCLUIDO) && <span className="text-[11px] text-[var(--th-txt-4)]">Incluído <span className="font-mono text-[var(--th-txt-3)]">{fmtDate(asText(c.INCLUIDO))}</span></span>}
+                                {asText(c.ATUALIZADO) && <span className="text-[11px] text-[var(--th-txt-4)]">Atualizado <span className="font-mono text-[var(--th-txt-3)]">{fmtDate(asText(c.ATUALIZADO))}</span></span>}
+                              </div>
+                            )}
                           </div>
 
                           {/* Endereço */}
-                          <div className="rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] p-5">
-                            <p className="text-xs font-semibold uppercase tracking-widest text-[var(--th-txt-4)] mb-3">Endereço</p>
-                            <div className="space-y-1.5 text-sm">
-                              {endereco && <p className="text-[var(--th-txt-2)]">{endereco}</p>}
-                              {localidade && <p className="text-[var(--th-txt-3)]">{localidade}</p>}
-                              {cep && <p className="text-[var(--th-txt-4)] font-mono text-xs">CEP {cep}</p>}
-                              {!endereco && !localidade && <p className="text-[var(--th-txt-4)]">—</p>}
+                          {(endereco || cidade || bairro || cep) && (
+                            <div className="rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] p-4">
+                              <div className="flex items-center justify-between mb-3">
+                                <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Endereço</p>
+                                {mapsQuery && (
+                                  <a
+                                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapsQuery)}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-[11px] text-[var(--th-txt-4)] hover:text-orange-400 transition-colors flex items-center gap-1"
+                                    onClick={e => e.stopPropagation()}
+                                  >
+                                    <MapPin strokeWidth={1.5} className="w-3 h-3" />
+                                    Ver no Maps
+                                  </a>
+                                )}
+                              </div>
+                              <div className="space-y-1 text-sm">
+                                {endereco && <p className="text-[var(--th-txt-2)]">{endereco}</p>}
+                                {(bairro || cidade || uf) && (
+                                  <p className="text-[var(--th-txt-3)] text-xs">{[bairro, cidade, uf].filter(Boolean).join(' · ')}</p>
+                                )}
+                                {cep && <p className="text-[var(--th-txt-4)] font-mono text-[11px]">CEP {cep}</p>}
+                              </div>
                             </div>
-                          </div>
+                          )}
 
                           {/* Histórico de pedidos */}
                           <div className="rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] overflow-hidden">
                             <div className="px-4 py-2.5 bg-[var(--th-subtle)] border-b border-[var(--th-border)] flex items-center justify-between">
-                              <p className="text-xs font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Histórico de Pedidos</p>
-                              <span className="text-[11px] text-[var(--th-txt-4)]">{pedidosDoCliente.length} pedido(s)</span>
+                              <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Pedidos</p>
+                              <span className="text-[11px] text-[var(--th-txt-4)]">{pedidosDoCliente.length}</span>
                             </div>
                             {pedidosDoCliente.length === 0
-                              ? <p className="px-4 py-6 text-sm text-center text-[var(--th-txt-3)]">Nenhum pedido encontrado.</p>
+                              ? <p className="px-4 py-8 text-sm text-center text-[var(--th-txt-3)]">Nenhum pedido encontrado.</p>
                               : <div className="divide-y divide-[var(--th-border)]">
-                                  {[...pedidosDoCliente]
-                                    .sort((a, b) => asText(b.VENDA || b.PREVISAO).localeCompare(asText(a.VENDA || a.PREVISAO)))
-                                    .map(p => {
-                                      const saldo = toNumber(p.SALDO)
-                                      const total = toNumber(p.TOTAL)
-                                      const faturados = toNumber(p.FATURADOS)
-                                      const pct = total > 0 ? Math.round(((total - saldo) / total) * 100) : 0
-                                      const nTaloes = (taloesByPedido.get(asText(p.CODIGO).trim()) ?? []).length
-                                      const isFinalizado = saldo === 0
-                                      return (
-                                        <div key={asText(p.CODIGO)} className="px-4 py-3 hover:bg-[var(--th-hover)] transition-colors">
-                                          <div className="flex items-center justify-between gap-3 mb-2">
-                                            <div className="flex items-center gap-2.5">
-                                              <button
-                                                type="button"
-                                                onClick={() => {
-                                                  const pNode = pedidoTree.find(n => asText(n.pedido.CODIGO).trim() === asText(p.CODIGO).trim())
-                                                  if (pNode) { setSelectedPedidoDetail(pNode); setSelectedModule('orders') }
-                                                }}
-                                                className="font-mono font-semibold text-sm text-[var(--th-txt-1)] hover:text-orange-400 hover:underline transition-colors"
-                                              >{asText(p.CODIGO)}</button>
-                                              {isFinalizado
-                                                ? <span className="text-[11px] px-1.5 py-0.5 rounded bg-green-500/15 text-green-400 border border-green-500/20">Finalizado</span>
-                                                : <span className="text-[11px] px-1.5 py-0.5 rounded bg-orange-500/15 text-orange-400 border border-orange-500/20">Em aberto</span>
-                                              }
-                                            </div>
-                                            <div className="flex items-center gap-3 text-xs text-[var(--th-txt-4)] shrink-0">
-                                              {asText(p.VENDA) && <span>Pedido <span className="font-mono text-[var(--th-txt-2)]">{fmtDate(asText(p.VENDA))}</span></span>}
-                                              <span>Prev. <span className="font-mono text-[var(--th-txt-2)]">{fmtDate(asText(p.PREVISAO)) ?? '—'}</span></span>
-                                            </div>
+                                  {pedidosDoCliente.map(p => {
+                                    const saldo = toNumber(p.SALDO)
+                                    const total = toNumber(p.TOTAL)
+                                    const faturados = toNumber(p.FATURADOS)
+                                    const pct = total > 0 ? Math.round(((total - saldo) / total) * 100) : 0
+                                    const nTaloes = (taloesByPedido.get(asText(p.CODIGO).trim()) ?? []).length
+                                    const isFinalizado = saldo === 0 && total > 0
+                                    return (
+                                      <div key={asText(p.CODIGO)} className="px-4 py-3 hover:bg-[var(--th-hover)] transition-colors">
+                                        <div className="flex items-start justify-between gap-3 mb-1.5">
+                                          <div className="flex items-center gap-2 min-w-0">
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                const pNode = pedidoTree.find(n => asText(n.pedido.CODIGO).trim() === asText(p.CODIGO).trim())
+                                                if (pNode) { setSelectedPedidoDetail(pNode); setSelectedModule('orders') }
+                                              }}
+                                              className="font-mono font-bold text-sm text-[var(--th-txt-1)] hover:text-orange-400 transition-colors shrink-0"
+                                            >{asText(p.CODIGO)}</button>
+                                            {asText(p.NOME) && <span className="text-xs text-[var(--th-txt-4)] truncate">{asText(p.NOME)}</span>}
                                           </div>
-                                          <div className="flex items-center gap-4 text-xs text-[var(--th-txt-4)] mb-2">
-                                            <span>Total <span className="font-mono text-[var(--th-txt-2)]">{fmtNumber(total)}</span> pares</span>
-                                            {faturados > 0 && <span>Faturado <span className="font-mono text-[var(--th-txt-2)]">{fmtNumber(faturados)}</span></span>}
-                                            {saldo > 0 && <span>Saldo <span className="font-mono text-orange-400">{fmtNumber(saldo)}</span></span>}
-                                            <span>{nTaloes} talão(ões)</span>
+                                          <div className="flex items-center gap-1.5 shrink-0">
+                                            {isFinalizado
+                                              ? <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-500/15 text-green-400 border border-green-500/20">Finalizado</span>
+                                              : <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-orange-500/15 text-orange-400 border border-orange-500/20">Em aberto</span>
+                                            }
                                           </div>
-                                          {total > 0 && (
-                                            <div className="h-1 rounded-full bg-[var(--th-border)] overflow-hidden">
-                                              <div className={`h-full rounded-full transition-all ${isFinalizado ? 'bg-green-500' : 'bg-orange-500'}`} style={{ width: `${pct}%` }} />
-                                            </div>
-                                          )}
                                         </div>
-                                      )
-                                    })}
+                                        <div className="flex items-center gap-3 text-[11px] text-[var(--th-txt-4)] mb-2 flex-wrap">
+                                          {asText(p.VENDA) && <span>Pedido <span className="font-mono text-[var(--th-txt-2)]">{fmtDate(asText(p.VENDA))}</span></span>}
+                                          {asText(p.PREVISAO) && <span>Prev. <span className="font-mono text-[var(--th-txt-2)]">{fmtDate(asText(p.PREVISAO))}</span></span>}
+                                          <span className="font-mono text-[var(--th-txt-2)]">{fmtNumber(total)} pares</span>
+                                          {faturados > 0 && <span>Fat. <span className="font-mono text-[var(--th-txt-2)]">{fmtNumber(faturados)}</span></span>}
+                                          {saldo > 0 && <span>Saldo <span className="font-mono text-orange-400">{fmtNumber(saldo)}</span></span>}
+                                          {nTaloes > 0 && <span>{nTaloes} talão{nTaloes !== 1 ? 'ões' : ''}</span>}
+                                        </div>
+                                        {total > 0 && (
+                                          <div className="h-1 rounded-full bg-[var(--th-border)] overflow-hidden">
+                                            <div className={`h-full rounded-full transition-all ${isFinalizado ? 'bg-green-500' : 'bg-orange-500'}`} style={{ width: `${pct}%` }} />
+                                          </div>
+                                        )}
+                                      </div>
+                                    )
+                                  })}
                                 </div>
                             }
                           </div>
