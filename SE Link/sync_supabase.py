@@ -169,6 +169,44 @@ def _truncate_table(table_name: str) -> bool:
     finally:
         conn.close()
 
+
+def _pg_bulk_insert(table_name: str, records: list[dict]) -> bool:
+    """Insere registros diretamente via pg8000 (sem PostgREST, sem timeout de 8s).
+    Usa multi-row INSERT em lotes de 500 linhas por statement SQL.
+    """
+    db_url = os.getenv("DATABASE_URL", "")
+    if not db_url or not records:
+        return False
+    try:
+        import pg8000.dbapi as pgd
+        m = re.match(r'postgresql://([^:]+):([^@]+)@([^:/]+):?(\d+)?/(.+)', db_url)
+        if not m:
+            return False
+        user, password, host, port, database = m.groups()
+        conn = pgd.connect(
+            user=user, password=password, host=host,
+            port=int(port or 5432), database=database, ssl_context=True,
+        )
+        cursor = conn.cursor()
+        cols = list(records[0].keys())
+        col_str = ', '.join(f'"{c}"' for c in cols)
+        BATCH = 500
+        for i in range(0, len(records), BATCH):
+            batch = records[i:i + BATCH]
+            row_ph = ', '.join(f"({', '.join(['%s'] * len(cols))})" for _ in batch)
+            params  = [r.get(c) for r in batch for c in cols]
+            cursor.execute(
+                f'INSERT INTO public."{table_name}" ({col_str}) VALUES {row_ph}',
+                params,
+            )
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return True
+    except Exception as e:
+        log.warning(f"pg8000 bulk insert falhou para {table_name}: {e}")
+        return False
+
 # ── Logging ─────────────────────────────────────────────────────────────────
 logging.basicConfig(
     level=logging.INFO,
@@ -230,15 +268,17 @@ def sync_table(supabase: Client, name: str, config: dict, _retry: bool = False):
                     seen[key] = rec
             records = list(seen.values())
 
-        # TRUNCATE via conexão direta (sem timeout) + INSERT em lotes via REST
-        # Muito mais rápido que UPSERT ou DELETE para tabelas grandes
-        BATCH = 5000   # lotes maiores = menos requests HTTP ao Supabase
+        # TRUNCATE + INSERT via pg8000 direto (sem PostgREST, sem timeout)
         truncated = _truncate_table(table)
         if truncated:
-            for i in range(0, len(records), BATCH):
-                supabase.table(table).insert(records[i:i+BATCH]).execute()
+            if not _pg_bulk_insert(table, records):
+                # Fallback REST API se pg8000 indisponível
+                BATCH = 1000
+                for i in range(0, len(records), BATCH):
+                    supabase.table(table).insert(records[i:i+BATCH]).execute()
         else:
-            # Fallback sem DATABASE_URL: UPSERT (PK) ou DELETE+INSERT (sem PK)
+            # Sem DATABASE_URL: UPSERT (PK) ou DELETE+INSERT (sem PK) via REST
+            BATCH = 1000
             if pk:
                 for i in range(0, len(records), BATCH):
                     supabase.table(table).upsert(records[i:i+BATCH]).execute()
