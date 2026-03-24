@@ -499,21 +499,29 @@ export default function AdminPanel() {
 
   // ── Fetch helpers ─────────────────────────────────────────────────────────
 
-  async function fetchTableRows<T extends Record<string, unknown>>(tableName: string): Promise<T[]> {
-    const PAGE = 1000; let from = 0; const allRows: T[] = []
-    while (true) {
-      let data: T[] | null = null; let lastError = ''
-      for (let attempt = 0; attempt < 3; attempt++) {
-        if (attempt > 0) await new Promise(r => setTimeout(r, attempt * 4000))
-        const res = await supabase.from(tableName).select('*').range(from, from + PAGE - 1)
-        if (!res.error) { data = res.data as T[]; break }
-        lastError = res.error.message
+  async function fetchTableRows<T extends Record<string, unknown>>(
+    tableName: string, columns = '*'
+  ): Promise<T[]> {
+    const PAGE = 1000
+    const { count, error: cErr } = await supabase
+      .from(tableName).select('*', { count: 'exact', head: true })
+    if (cErr) throw new Error(`${tableName}: ${cErr.message}`)
+    if (!count) return []
+
+    const totalPages = Math.ceil(count / PAGE)
+    const CONCURRENCY = 5
+    const allRows: T[] = []
+
+    for (let start = 0; start < totalPages; start += CONCURRENCY) {
+      const batch = Array.from({ length: Math.min(CONCURRENCY, totalPages - start) }, (_, i) => {
+        const from = (start + i) * PAGE
+        return supabase.from(tableName).select(columns).range(from, from + PAGE - 1)
+      })
+      const results = await Promise.all(batch)
+      for (const { data, error } of results) {
+        if (error) throw new Error(`${tableName}: ${error.message}`)
+        if (data) allRows.push(...(data as T[]))
       }
-      if (data === null) throw new Error(lastError)
-      if (data.length === 0) break
-      allRows.push(...data)
-      if (data.length < PAGE) break
-      from += PAGE
     }
     return allRows
   }
@@ -522,9 +530,11 @@ export default function AdminPanel() {
     setOrdersLoading(true); setOrdersError(null)
     try {
       const [pedidosRows, taloesRows, talsetorRows, clientesRows, fichasRows] = await Promise.all([
-        fetchTableRows<PedidoRow>('pedidos'), fetchTableRows<TalaoRow>('taloes'),
-        fetchTableRows<TalsetorRow>('talsetor'), fetchTableRows<ClienteRow>('clientes'),
-        fetchTableRows<FichaRow>('fichas'),
+        fetchTableRows<PedidoRow>('pedidos',  'CODIGO,NOME,CLIENTE,PREVISAO,VENDA,SALDO,TOTAL,PRODUCAO,FATURADOS,OC,PEDCLIENTE'),
+        fetchTableRows<TalaoRow>('taloes',    'CODIGO,PEDIDO,ITEM,REFERENCIA,REMESSA,TOTAL,CANCELADO,FATURADO,NUMEROS,GRADE,DE_ATE'),
+        fetchTableRows<TalsetorRow>('talsetor','TALAO,SETOR,NOMESET,DATA,QTDE,REMESSA'),
+        fetchTableRows<ClienteRow>('clientes', 'CODIGO,NOME,FANTASIA,CNPJ,CHAVE,ENDERECO,NUMERO,COMPL,BAIRRO,CIDADE,ESTADO,CEP,INCLUIDO,ATUALIZADO'),
+        fetchTableRows<FichaRow>('fichas',     'CODIGO,NOME,REFER,NOMECOR,MATRIZ,NAVALHA,COR01,COR02,COR03,OBS'),
       ])
       pedidosRows.sort((a, b) => asText(a.CODIGO).localeCompare(asText(b.CODIGO), 'pt-BR'))
       taloesRows.sort((a, b) => {
@@ -540,7 +550,7 @@ export default function AdminPanel() {
 
       // peditens — tabela opcional, conecta talão → ficha via PEDIDO+ITEM
       try {
-        const peditensRows = await fetchTableRows<PeditenRow>('peditens')
+        const peditensRows = await fetchTableRows<PeditenRow>('peditens', 'CODIGO,ITEM,REFERENCIA,REMESSA,LOTE')
         setPeditens(peditensRows)
       } catch { /* tabela ainda não disponível no Supabase, ignora silenciosamente */ }
 
