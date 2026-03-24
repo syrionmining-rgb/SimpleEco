@@ -520,7 +520,7 @@ export default function AdminPanel() {
       const results = await Promise.all(batch)
       for (const { data, error } of results) {
         if (error) throw new Error(`${tableName}: ${error.message}`)
-        if (data) allRows.push(...(data as T[]))
+        if (data) allRows.push(...(data as unknown as T[]))
       }
     }
     return allRows
