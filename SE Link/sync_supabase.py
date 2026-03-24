@@ -11,6 +11,8 @@ Configuração:
         SUPABASE_KEY=sua_service_role_key_aqui
 """
 
+import hashlib
+import json
 import os
 import re
 import time
@@ -51,6 +53,17 @@ DBF_MAP = {
 }
 
 DEBOUNCE_SECONDS = 2   # aguarda N seg após última alteração antes de sincronizar
+
+# ── Snapshot para delta sync ─────────────────────────────────────────────────
+# Preenchido após cada sync_table() completo.
+# Estrutura: { nome_tabela: { pk_valor: md5_do_registro } }
+_snapshot: dict[str, dict[str, str]] = {}
+
+
+def _rec_hash(rec: dict) -> str:
+    return hashlib.md5(
+        json.dumps(rec, sort_keys=True, default=str).encode()
+    ).hexdigest()
 
 # ── Conexão direta PostgreSQL (para DDL e TRUNCATE) ──────────────────────────
 # Adicione ao .env:  DATABASE_URL=postgresql://postgres:<senha>@db.<ref>.supabase.co:5432/postgres
@@ -228,6 +241,13 @@ def sync_table(supabase: Client, name: str, config: dict, _retry: bool = False):
 
         log.info(f"✔ {name} → {table}: {len(records)} registros sincronizados")
 
+        # Salva snapshot para delta sync nas próximas alterações
+        if pk:
+            _snapshot[name] = {
+                str(r.get(pk, "")).strip(): _rec_hash(r)
+                for r in records if str(r.get(pk, "")).strip()
+            }
+
     except Exception as e:
         err = str(e)
         # Tabela não existe no schema cache → tentar criar automaticamente
@@ -238,6 +258,60 @@ def sync_table(supabase: Client, name: str, config: dict, _retry: bool = False):
                 sync_table(supabase, name, config, _retry=True)
                 return
         log.error(f"✘ Erro ao sincronizar {name}: {e}")
+
+
+def sync_table_delta(supabase: Client, name: str, config: dict):
+    """Envia apenas registros alterados desde o último sync completo.
+
+    Requer snapshot gerado por sync_table(). Sem PK ou sem snapshot → sync completo.
+    """
+    pk = config["pk"]
+
+    if not pk or name not in _snapshot:
+        log.info(f"{name}: sem snapshot — sincronização completa.")
+        sync_table(supabase, name, config)
+        return
+
+    records = read_dbf(name)
+    if not records:
+        log.info(f"{name}: nenhum registro encontrado, pulando.")
+        return
+
+    table   = config["table"]
+    prev    = _snapshot[name]
+    new_snap: dict[str, str] = {}
+    to_upsert: list[dict]    = []
+
+    for rec in records:
+        pk_val = str(rec.get(pk, "")).strip()
+        if not pk_val:
+            continue
+        h = _rec_hash(rec)
+        new_snap[pk_val] = h
+        if pk_val not in prev or prev[pk_val] != h:
+            to_upsert.append(rec)
+
+    to_delete = [v for v in prev if v not in new_snap]
+
+    if not to_upsert and not to_delete:
+        log.info(f"✔ {name}: sem alterações detectadas.")
+        return
+
+    log.info(f"{name}: delta — {len(to_upsert)} upsert, {len(to_delete)} excluir")
+
+    BATCH = 5000
+    try:
+        if to_upsert:
+            for i in range(0, len(to_upsert), BATCH):
+                supabase.table(table).upsert(to_upsert[i:i+BATCH]).execute()
+        if to_delete:
+            for i in range(0, len(to_delete), 500):
+                supabase.table(table).delete().in_(pk, to_delete[i:i+500]).execute()
+        _snapshot[name] = new_snap
+        log.info(f"✔ {name} → {table}: delta aplicado.")
+    except Exception as e:
+        log.error(f"✘ Erro no delta de {name}: {e}")
+        _snapshot.pop(name, None)   # descarta snapshot → próximo sync será completo
 
 
 def update_sync_log(supabase: Client):
@@ -340,7 +414,7 @@ class DBFHandler(FileSystemEventHandler):
 
         log.info(f"Alteração detectada: {path.name}")
         time.sleep(DEBOUNCE_SECONDS)   # aguarda o sistema liberar o arquivo
-        sync_table(self.supabase, name, DBF_MAP[name])
+        sync_table_delta(self.supabase, name, DBF_MAP[name])
         update_sync_log(self.supabase)
 
 
