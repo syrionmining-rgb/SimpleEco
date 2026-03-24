@@ -51,6 +51,8 @@ DBF_MAP = {
     "material":  {"table": "material",  "pk": "CODIGO",  "group_by": None},
     "grades":    {"table": "grades",    "pk": "CODIGO",  "group_by": None},
     "talaoaux":  {"table": "talaoaux",  "pk": "CODIGO",  "group_by": None},
+    "moviprod":  {"table": "moviprod",  "pk": "CODIGO",  "group_by": None},
+    "sequeset":  {"table": "sequeset",  "pk": None,      "group_by": "CODIGO"},
 }
 
 DEBOUNCE_SECONDS = 2   # aguarda N seg após última alteração antes de sincronizar

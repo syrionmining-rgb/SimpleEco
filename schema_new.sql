@@ -74,8 +74,39 @@ INSERT INTO public.sync_config (dbf_name, table_name, pk_field, enabled, discove
   ('pedimate',  'pedimate',  NULL,     true,  true),
   ('material',  'material',  'CODIGO', true,  true),
   ('grades',    'grades',    'CODIGO', true,  true),
-  ('talaoaux',  'talaoaux',  'CODIGO', true,  true)
+  ('talaoaux',  'talaoaux',  'CODIGO', true,  true),
+  ('moviprod',  'moviprod',  'CODIGO', true,  true),
+  ('sequeset',  'sequeset',  NULL,     true,  true)
 ON CONFLICT (dbf_name) DO NOTHING;
+
+-- ── moviprod: rastreamento de talões por scanner de barcode ─────────────────
+CREATE TABLE IF NOT EXISTS public.moviprod (
+  "CODIGO"   TEXT,
+  "SETOR"    TEXT,
+  "ATELIER"  TEXT,
+  "TAREFA"   TEXT,
+  "DATAENT"  DATE,
+  "HORAENT"  TEXT,
+  "DATASDA"  DATE,
+  "HORASDA"  TEXT,
+  "INT_EXT"  TEXT,
+  "NFISCAL"  TEXT,
+  "CONSUMO"  DOUBLE PRECISION,
+  "CORTADOR" TEXT,
+  "INFORMOU" BOOLEAN
+);
+ALTER TABLE public.moviprod ENABLE ROW LEVEL SECURITY;
+CREATE POLICY moviprod_open ON public.moviprod FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+
+-- ── sequeset: fluxo de setores por ficha (rota de produção) ─────────────────
+CREATE TABLE IF NOT EXISTS public.sequeset (
+  "CODIGO" TEXT,
+  "SETOR"  TEXT,
+  "SEQ"    TEXT,
+  "TALAO"  BOOLEAN
+);
+ALTER TABLE public.sequeset ENABLE ROW LEVEL SECURITY;
+CREATE POLICY sequeset_open ON public.sequeset FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
 
 -- ── 3. Operacionais ─────────────────────────────────────
 
