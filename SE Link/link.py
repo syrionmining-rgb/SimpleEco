@@ -278,77 +278,44 @@ class Api:
             _push_status("Monitorando...", True)
             _push_log("INFO", f"Monitorando {ss.BASE_DIR} — aguardando alteracoes...")
 
-            # Realtime: escuta force_sync via WebSocket (sem polling)
-            import asyncio
-            from realtime import AsyncRealtimeClient
+            # Polling: verifica force_sync a cada 10 s via HTTP (sem WebSocket)
+            _syncing_remote = threading.Event()
 
-            client_ref = client
-
-            async def _realtime_loop():
-                # A lib monta `<url>/websocket`, por isso passamos já com /realtime/v1
-                _rt_url = ss.SUPABASE_URL.rstrip("/") + "/realtime/v1"
-                rt = AsyncRealtimeClient(_rt_url, ss.SUPABASE_KEY, auto_reconnect=True)
-
-                def _do_remote_sync():
-                    """Executa sync remoto em thread separada — nao bloqueia o loop asyncio."""
-                    _push_log("INFO", "Sync remoto solicitado pelo painel — iniciando...")
-                    _push_state("syncing")
-                    _push_status("Sincronizando (remoto)...", True)
-                    try:
-                        # Reseta a flag antes de sincronizar (evita disparo duplo)
-                        client_ref.table("sync_log").update({"force_sync": False}).eq("id", 1).execute()
-                        current_map = ss.get_active_dbf_map(client_ref)
-                        ss.sync_all(client_ref, current_map)
-                        _push_log("INFO", "Sync remoto concluido.")
-                    except Exception as exc:
-                        _push_log("ERROR", f"Erro no sync remoto: {exc}")
-                    finally:
-                        if not stop_ref.is_set():
-                            _push_state("monitoring")
-                            _push_status("Monitorando...", True)
-
-                def _on_force_sync(payload):
-                    new = payload.get("new", {}) if isinstance(payload, dict) else {}
-                    if not new.get("force_sync"):
-                        return
-                    # Despacha para thread separada para nao travar o loop asyncio
-                    threading.Thread(target=_do_remote_sync, daemon=True).start()
-
-                channel = rt.channel("force_sync_watch")
-                channel.on_postgres_changes(
-                    event="UPDATE",
-                    schema="public",
-                    table="sync_log",
-                    filter="id=eq.1",
-                    callback=_on_force_sync,
-                )
-                await channel.subscribe()
-                _push_log("INFO", "Realtime ativo — aguardando comando do painel...")
-
+            def _force_sync_poll():
+                _push_log("INFO", "Monitoramento remoto ativo — verificando a cada 10 s...")
                 while not stop_ref.is_set():
-                    await asyncio.sleep(0.5)
+                    try:
+                        res = client.table("sync_log").select("force_sync").eq("id", 1).single().execute()
+                        if res.data and res.data.get("force_sync") and not _syncing_remote.is_set():
+                            _syncing_remote.set()
+                            _push_log("INFO", "Sync remoto solicitado pelo painel — iniciando...")
+                            _push_state("syncing")
+                            _push_status("Sincronizando (remoto)...", True)
+                            try:
+                                client.table("sync_log").update({"force_sync": False}).eq("id", 1).execute()
+                                current_map = ss.get_active_dbf_map(client)
+                                ss.sync_all(client, current_map)
+                                _push_log("INFO", "Sync remoto concluido.")
+                            except Exception as exc:
+                                _push_log("ERROR", f"Erro no sync remoto: {exc}")
+                            finally:
+                                _syncing_remote.clear()
+                                if not stop_ref.is_set():
+                                    _push_state("monitoring")
+                                    _push_status("Monitorando...", True)
+                    except Exception:
+                        pass
+                    stop_ref.wait(timeout=10)
 
-                await channel.unsubscribe()
-
-            def _run_realtime():
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-                try:
-                    loop.run_until_complete(_realtime_loop())
-                except Exception as exc:
-                    _push_log("WARNING", f"Realtime encerrado: {exc}")
-                finally:
-                    loop.close()
-
-            rt_thread = threading.Thread(target=_run_realtime, daemon=True)
-            rt_thread.start()
+            poll_thread = threading.Thread(target=_force_sync_poll, daemon=True, name="force-sync-poll")
+            poll_thread.start()
 
             # Aguarda parada (watchdog continua rodando em paralelo)
             stop_ref.wait()
 
             observer.stop()
             observer.join(timeout=5)
-            rt_thread.join(timeout=5)
+            poll_thread.join(timeout=5)
 
         except Exception as exc:
             _push_log("ERROR", f"ERRO: {exc}")
