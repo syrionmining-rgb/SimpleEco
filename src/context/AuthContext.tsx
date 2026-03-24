@@ -151,7 +151,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       setAuthToken(session.token, rememberMe)
       localStorage.setItem(USER_STORAGE_KEY, session.nome ?? user)
-      await registrarDeviceSessao(session.token)
+      void registrarDeviceSessao(session.token)
       setIsAuthenticated(true)
       return true
     } catch {
