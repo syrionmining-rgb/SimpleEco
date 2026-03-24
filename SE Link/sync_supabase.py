@@ -38,32 +38,50 @@ SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")   # ← TI: cola a service_role key
 BASE_DIR = Path(__file__).parent.parent / "DBF"
 
 # Mapeamento: arquivo DBF → tabela Supabase → campo chave primária
+# group_by: campo usado para delta sync em tabelas sem PK simples
 DBF_MAP = {
-    "clientes":  {"table": "clientes",  "pk": "CODIGO"},
-    "pedidos":   {"table": "pedidos",   "pk": "CODIGO"},
-    "fichas":    {"table": "fichas",    "pk": "CODIGO"},
-    "taloes":    {"table": "taloes",    "pk": "CODIGO"},
-    "peditens":  {"table": "peditens",  "pk": None},   # chave composta (CODIGO, ITEM)
-    "talsetor":  {"table": "talsetor",  "pk": None},   # chave composta
-    "setores":   {"table": "setores",   "pk": "CODIGO"},
-    "pedimate":  {"table": "pedimate",  "pk": None},   # chave composta (CODIGO, ITEM, ORDEM)
-    "material":  {"table": "material",  "pk": "CODIGO"},
-    "grades":    {"table": "grades",    "pk": "CODIGO"},
-    "talaoaux":  {"table": "talaoaux",  "pk": "CODIGO"},
+    "clientes":  {"table": "clientes",  "pk": "CODIGO",  "group_by": None},
+    "pedidos":   {"table": "pedidos",   "pk": "CODIGO",  "group_by": None},
+    "fichas":    {"table": "fichas",    "pk": "CODIGO",  "group_by": None},
+    "taloes":    {"table": "taloes",    "pk": "CODIGO",  "group_by": None},
+    "peditens":  {"table": "peditens",  "pk": None,      "group_by": "CODIGO"},  # agrupa por pedido
+    "talsetor":  {"table": "talsetor",  "pk": None,      "group_by": "TALAO"},   # agrupa por talão
+    "setores":   {"table": "setores",   "pk": "CODIGO",  "group_by": None},
+    "pedimate":  {"table": "pedimate",  "pk": None,      "group_by": "CODIGO"},  # agrupa por pedido
+    "material":  {"table": "material",  "pk": "CODIGO",  "group_by": None},
+    "grades":    {"table": "grades",    "pk": "CODIGO",  "group_by": None},
+    "talaoaux":  {"table": "talaoaux",  "pk": "CODIGO",  "group_by": None},
 }
 
 DEBOUNCE_SECONDS = 2   # aguarda N seg após última alteração antes de sincronizar
 
-# ── Snapshot para delta sync ─────────────────────────────────────────────────
-# Preenchido após cada sync_table() completo.
-# Estrutura: { nome_tabela: { pk_valor: md5_do_registro } }
-_snapshot: dict[str, dict[str, str]] = {}
+# ── Snapshot e hash de arquivo para delta sync ───────────────────────────────
+# _snapshot: { nome: { chave: md5 } }  — PK tables usam pk_val, group tables usam group_val
+# _file_hash: { nome: md5_do_arquivo } — skip imediato se o arquivo não mudou
+_snapshot:  dict[str, dict[str, str]] = {}
+_file_hash: dict[str, str]            = {}
 
 
 def _rec_hash(rec: dict) -> str:
     return hashlib.md5(
         json.dumps(rec, sort_keys=True, default=str).encode()
     ).hexdigest()
+
+
+def _group_hash(recs: list[dict]) -> str:
+    serialized = sorted(json.dumps(r, sort_keys=True, default=str) for r in recs)
+    return hashlib.md5(json.dumps(serialized).encode()).hexdigest()
+
+
+def _hash_file(name: str) -> str:
+    path = BASE_DIR / f"{name}.dbf"
+    if not path.exists():
+        return ""
+    h = hashlib.md5()
+    with open(str(path), "rb") as f:
+        for chunk in iter(lambda: f.read(65536), b""):
+            h.update(chunk)
+    return h.hexdigest()
 
 # ── Conexão direta PostgreSQL (para DDL e TRUNCATE) ──────────────────────────
 # Adicione ao .env:  DATABASE_URL=postgresql://postgres:<senha>@db.<ref>.supabase.co:5432/postgres
@@ -241,12 +259,21 @@ def sync_table(supabase: Client, name: str, config: dict, _retry: bool = False):
 
         log.info(f"✔ {name} → {table}: {len(records)} registros sincronizados")
 
-        # Salva snapshot para delta sync nas próximas alterações
+        # Salva snapshot e hash do arquivo para delta sync nas próximas alterações
+        _file_hash[name] = _hash_file(name)
+        group_by = config.get("group_by")
         if pk:
             _snapshot[name] = {
                 str(r.get(pk, "")).strip(): _rec_hash(r)
                 for r in records if str(r.get(pk, "")).strip()
             }
+        elif group_by:
+            groups: dict[str, list] = {}
+            for r in records:
+                g = str(r.get(group_by, "")).strip()
+                if g:
+                    groups.setdefault(g, []).append(r)
+            _snapshot[name] = {g: _group_hash(recs) for g, recs in groups.items()}
 
     except Exception as e:
         err = str(e)
@@ -263,55 +290,99 @@ def sync_table(supabase: Client, name: str, config: dict, _retry: bool = False):
 def sync_table_delta(supabase: Client, name: str, config: dict):
     """Envia apenas registros alterados desde o último sync completo.
 
-    Requer snapshot gerado por sync_table(). Sem PK ou sem snapshot → sync completo.
+    Fluxo:
+      1. File hash — pula se o arquivo não mudou (sem custo de leitura/rede)
+      2. PK table  — row-level delta: upsert alterados + delete removidos
+      3. Group-by  — group-level delta: re-sincroniza só os grupos alterados
+      4. Fallback  — sync completo quando não há snapshot
     """
-    pk = config["pk"]
-
-    if not pk or name not in _snapshot:
-        log.info(f"{name}: sem snapshot — sincronização completa.")
-        sync_table(supabase, name, config)
+    # 1. File hash — skip imediato se o arquivo não mudou
+    new_fh = _hash_file(name)
+    if new_fh and _file_hash.get(name) == new_fh:
+        log.info(f"✔ {name}: arquivo sem alterações, pulando.")
         return
 
-    records = read_dbf(name)
-    if not records:
-        log.info(f"{name}: nenhum registro encontrado, pulando.")
+    pk       = config["pk"]
+    group_by = config.get("group_by")
+    table    = config["table"]
+
+    # 2. PK table com snapshot → row-level delta
+    if pk and name in _snapshot:
+        records = read_dbf(name)
+        if not records:
+            return
+        prev     = _snapshot[name]
+        new_snap: dict[str, str] = {}
+        to_upsert: list[dict]    = []
+        for rec in records:
+            pk_val = str(rec.get(pk, "")).strip()
+            if not pk_val:
+                continue
+            h = _rec_hash(rec)
+            new_snap[pk_val] = h
+            if pk_val not in prev or prev[pk_val] != h:
+                to_upsert.append(rec)
+        to_delete = [v for v in prev if v not in new_snap]
+        if not to_upsert and not to_delete:
+            log.info(f"✔ {name}: sem alterações.")
+            _file_hash[name] = new_fh
+            return
+        log.info(f"{name}: delta PK — +{len(to_upsert)} upsert, -{len(to_delete)} excluir")
+        BATCH = 5000
+        try:
+            if to_upsert:
+                for i in range(0, len(to_upsert), BATCH):
+                    supabase.table(table).upsert(to_upsert[i:i+BATCH]).execute()
+            if to_delete:
+                for i in range(0, len(to_delete), 500):
+                    supabase.table(table).delete().in_(pk, to_delete[i:i+500]).execute()
+            _snapshot[name] = new_snap
+            _file_hash[name] = new_fh
+            log.info(f"✔ {name}: delta PK aplicado.")
+        except Exception as e:
+            log.error(f"✘ {name} delta PK: {e}")
+            _snapshot.pop(name, None)
         return
 
-    table   = config["table"]
-    prev    = _snapshot[name]
-    new_snap: dict[str, str] = {}
-    to_upsert: list[dict]    = []
-
-    for rec in records:
-        pk_val = str(rec.get(pk, "")).strip()
-        if not pk_val:
-            continue
-        h = _rec_hash(rec)
-        new_snap[pk_val] = h
-        if pk_val not in prev or prev[pk_val] != h:
-            to_upsert.append(rec)
-
-    to_delete = [v for v in prev if v not in new_snap]
-
-    if not to_upsert and not to_delete:
-        log.info(f"✔ {name}: sem alterações detectadas.")
+    # 3. Group-by table com snapshot → group-level delta
+    if group_by and name in _snapshot:
+        records = read_dbf(name)
+        if not records:
+            return
+        prev = _snapshot[name]   # {group_val: group_hash}
+        # Agrupa registros atuais
+        new_groups: dict[str, list[dict]] = {}
+        for rec in records:
+            g = str(rec.get(group_by, "")).strip()
+            if g:
+                new_groups.setdefault(g, []).append(rec)
+        new_snap = {g: _group_hash(recs) for g, recs in new_groups.items()}
+        changed = [g for g, h in new_snap.items() if prev.get(g) != h]
+        deleted = [g for g in prev if g not in new_snap]
+        if not changed and not deleted:
+            log.info(f"✔ {name}: sem alterações.")
+            _file_hash[name] = new_fh
+            return
+        log.info(f"{name}: delta grupo — {len(changed)} grupos alt., {len(deleted)} excluídos")
+        BATCH = 5000
+        try:
+            to_remove = changed + deleted
+            for i in range(0, len(to_remove), 500):
+                supabase.table(table).delete().in_(group_by, to_remove[i:i+500]).execute()
+            to_insert = [rec for g in changed for rec in new_groups[g]]
+            for i in range(0, len(to_insert), BATCH):
+                supabase.table(table).insert(to_insert[i:i+BATCH]).execute()
+            _snapshot[name] = new_snap
+            _file_hash[name] = new_fh
+            log.info(f"✔ {name}: delta grupo aplicado ({len(to_insert)} registros).")
+        except Exception as e:
+            log.error(f"✘ {name} delta grupo: {e}")
+            _snapshot.pop(name, None)
         return
 
-    log.info(f"{name}: delta — {len(to_upsert)} upsert, {len(to_delete)} excluir")
-
-    BATCH = 5000
-    try:
-        if to_upsert:
-            for i in range(0, len(to_upsert), BATCH):
-                supabase.table(table).upsert(to_upsert[i:i+BATCH]).execute()
-        if to_delete:
-            for i in range(0, len(to_delete), 500):
-                supabase.table(table).delete().in_(pk, to_delete[i:i+500]).execute()
-        _snapshot[name] = new_snap
-        log.info(f"✔ {name} → {table}: delta aplicado.")
-    except Exception as e:
-        log.error(f"✘ Erro no delta de {name}: {e}")
-        _snapshot.pop(name, None)   # descarta snapshot → próximo sync será completo
+    # 4. Sem snapshot → sync completo
+    log.info(f"{name}: sem snapshot — sincronização completa.")
+    sync_table(supabase, name, config)
 
 
 def update_sync_log(supabase: Client):
