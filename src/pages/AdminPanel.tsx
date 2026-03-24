@@ -1007,10 +1007,16 @@ export default function AdminPanel() {
       if (cancelled || !videoRef.current) return
       try {
         const { BrowserMultiFormatReader } = await import('@zxing/browser')
+        const { DecodeHintType, BarcodeFormat } = await import('@zxing/library')
         if (cancelled) return
-        const reader = new BrowserMultiFormatReader()
+
+        const hints = new Map()
+        hints.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.ITF])
+        hints.set(DecodeHintType.TRY_HARDER, true)
+
+        const reader = new BrowserMultiFormatReader(hints)
         const controls = await reader.decodeFromConstraints(
-          { video: { facingMode: 'environment' } },
+          { video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } } },
           videoRef.current,
           (result, _err) => { if (!cancelled && result) onScanRef.current?.(result.getText()) }
         )
@@ -1172,7 +1178,7 @@ export default function AdminPanel() {
                   </div>
                   <div className="flex items-center gap-0.5">
                     <button type="button" onClick={() => setScannerOpen(true)} title="Escanear código de barras"
-                      className="p-1.5 rounded text-[var(--th-txt-4)] hover:bg-[var(--th-hover)] transition-colors md:hidden">
+                      className="p-1.5 rounded text-[var(--th-txt-4)] hover:bg-[var(--th-hover)] transition-colors">
                       <ScanLine strokeWidth={1.5} className="w-3.5 h-3.5" />
                     </button>
                     <button type="button" onClick={() => { void fetchAllOrders() }} title="Atualizar"
@@ -3184,9 +3190,9 @@ export default function AdminPanel() {
 
     {/* ── Barcode scanner overlay (mobile only) ────────────────────────────── */}
     {scannerOpen && (
-      <div className="fixed inset-0 z-50 bg-black flex flex-col md:hidden">
+      <div className="fixed inset-0 z-50 bg-black flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 bg-black/80 border-b border-white/10 shrink-0">
+        <div className="flex items-center justify-between px-4 py-3 bg-black/90 border-b border-white/10 shrink-0 z-10">
           <div className="flex items-center gap-2">
             <ScanLine strokeWidth={1.5} className="w-4 h-4 text-[#FF8C00]" />
             <span className="text-sm font-semibold text-white">Escanear Talão</span>
@@ -3206,32 +3212,50 @@ export default function AdminPanel() {
             muted
             autoPlay
           />
-          {/* Targeting frame */}
+
+          {/* Black mask with rounded barcode cutout */}
+          <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none" viewBox="0 0 100 100">
+            <defs>
+              <mask id="barcode-cutout">
+                <rect width="100" height="100" fill="white" />
+                <rect x="15" y="35" width="70" height="30" rx="3" ry="3" fill="black" />
+              </mask>
+            </defs>
+            <rect width="100" height="100" fill="rgba(0,0,0,0.75)" mask="url(#barcode-cutout)" />
+          </svg>
+
+          {/* Cutout border glow */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="relative w-64 h-32">
-              {/* Corner markers */}
-              <span className="absolute top-0 left-0 w-6 h-6 border-t-2 border-l-2 border-[#FF8C00] rounded-tl" />
-              <span className="absolute top-0 right-0 w-6 h-6 border-t-2 border-r-2 border-[#FF8C00] rounded-tr" />
-              <span className="absolute bottom-0 left-0 w-6 h-6 border-b-2 border-l-2 border-[#FF8C00] rounded-bl" />
-              <span className="absolute bottom-0 right-0 w-6 h-6 border-b-2 border-r-2 border-[#FF8C00] rounded-br" />
-              {/* Scan line animation */}
-              <span className="absolute left-0 right-0 h-px bg-[#FF8C00]/70 top-1/2 animate-pulse" />
+            <div className="relative" style={{ width: '70%', height: '30%' }}>
+              {/* Rounded border */}
+              <div className="absolute inset-0 rounded-xl border-2 border-[#FF8C00]/60" />
+              {/* Corner accents */}
+              <span className="absolute -top-px -left-px w-8 h-8 border-t-[3px] border-l-[3px] border-[#FF8C00] rounded-tl-xl" />
+              <span className="absolute -top-px -right-px w-8 h-8 border-t-[3px] border-r-[3px] border-[#FF8C00] rounded-tr-xl" />
+              <span className="absolute -bottom-px -left-px w-8 h-8 border-b-[3px] border-l-[3px] border-[#FF8C00] rounded-bl-xl" />
+              <span className="absolute -bottom-px -right-px w-8 h-8 border-b-[3px] border-r-[3px] border-[#FF8C00] rounded-br-xl" />
+              {/* Animated scan line */}
+              <div className="absolute left-2 right-2 h-0.5 bg-gradient-to-r from-transparent via-[#FF8C00] to-transparent"
+                style={{ top: '50%', animation: 'scanPulse 2s ease-in-out infinite' }} />
             </div>
           </div>
-          {/* Dimmed overlay outside target area */}
-          <div className="absolute inset-0 pointer-events-none" style={{
-            background: 'radial-gradient(ellipse 280px 150px at center, transparent 60%, rgba(0,0,0,0.65) 100%)'
-          }} />
         </div>
 
         {/* Footer status */}
-        <div className="shrink-0 px-4 py-3 bg-black/80 border-t border-white/10 min-h-[60px] flex items-center justify-center">
+        <div className="shrink-0 px-4 py-3 bg-black/90 border-t border-white/10 min-h-[60px] flex items-center justify-center z-10">
           {scannerError ? (
             <p className="text-center text-sm text-red-400">{scannerError}</p>
           ) : (
             <p className="text-center text-sm text-white/50">Aponte a câmera para o código de barras do talão</p>
           )}
         </div>
+
+        <style>{`
+          @keyframes scanPulse {
+            0%, 100% { opacity: 0.3; transform: translateY(-8px); }
+            50% { opacity: 1; transform: translateY(8px); }
+          }
+        `}</style>
       </div>
     )}
     </>
