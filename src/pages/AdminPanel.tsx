@@ -1067,11 +1067,12 @@ export default function AdminPanel() {
       const BD = (globalThis as any).BarcodeDetector
 
       if (BD) {
-        // PATH A — Native BarcodeDetector, max-speed rAF loop
-        // Uses createImageBitmap(video, x, y, w, h) — async, off-thread crop,
-        // no canvas, no drawImage on the main thread.
-        // No time throttle: the `detecting` flag self-limits to detector speed.
-        let nativeDetector: { detect: (src: ImageBitmap) => Promise<Array<{ rawValue: string; format: string }>> } | null = null
+        // PATH A — Native BarcodeDetector, detect(video) directly.
+        // Passing HTMLVideoElement skips all canvas/bitmap overhead; the browser
+        // (ML Kit on Android, Vision on iOS) samples the frame internally.
+        // No crop: avoids false-misses when the barcode is slightly off-centre.
+        // No time throttle: `detecting` flag self-limits to detector speed.
+        let nativeDetector: { detect: (src: HTMLVideoElement) => Promise<Array<{ rawValue: string; format: string }>> } | null = null
         try {
           nativeDetector = new BD({ formats: ['itf', 'code_128', 'code_39', 'ean_13', 'ean_8', 'codabar', 'upc_a', 'code_93'] })
         } catch {
@@ -1086,37 +1087,16 @@ export default function AdminPanel() {
             if (cancelled) return
             rafId = requestAnimationFrame(loop)
             if (detecting || video.readyState < 2) return
-
-            const vw = video.videoWidth, vh = video.videoHeight
-            const cw = video.clientWidth,  ch = video.clientHeight
-            if (!vw || !vh || !cw || !ch) return
-
-            // Map visual scan zone (SVG 15–85% × 35–65%) → video pixel crop,
-            // accounting for object-fit:cover scale + offset.
-            const scale = Math.max(cw / vw, ch / vh)
-            const ox = Math.max(0, (vw * scale - cw) / 2 / scale)
-            const oy = Math.max(0, (vh * scale - ch) / 2 / scale)
-            const x1 = Math.max(0, Math.round(cw * 0.15 / scale + ox))
-            const y1 = Math.max(0, Math.round(ch * 0.35 / scale + oy))
-            const w  = Math.min(vw - x1, Math.round(cw * 0.70 / scale))
-            const h  = Math.min(vh - y1, Math.round(ch * 0.30 / scale))
-            if (w <= 0 || h <= 0) return
-
             detecting = true
-            // createImageBitmap with crop is async + off-thread: no main-thread blocking
-            createImageBitmap(video, x1, y1, w, h)
-              .then(bmp => nd.detect(bmp)
-                .then(results => {
-                  bmp.close()
-                  detecting = false
-                  if (!cancelled && results.length > 0) {
-                    setLastScannedCode(results[0].rawValue)
-                    setLastScannedFormat(results[0].format)
-                    onScanRef.current?.(results[0].rawValue)
-                  }
-                })
-                .catch(() => { bmp.close(); detecting = false })
-              )
+            nd.detect(video)
+              .then(results => {
+                detecting = false
+                if (!cancelled && results.length > 0) {
+                  setLastScannedCode(results[0].rawValue)
+                  setLastScannedFormat(results[0].format)
+                  onScanRef.current?.(results[0].rawValue)
+                }
+              })
               .catch(() => { detecting = false })
           }
           rafId = requestAnimationFrame(loop)
