@@ -61,6 +61,32 @@ DEBOUNCE_SECONDS = 2   # aguarda N seg após última alteração antes de sincro
 _snapshot:  dict[str, dict[str, str]] = {}
 _file_hash: dict[str, str]            = {}
 
+_CACHE_FILE = Path(__file__).parent / "sync_cache.json"
+
+
+def _save_cache():
+    """Persiste snapshot e file_hash em disco para sobreviver a reinicializações."""
+    try:
+        with open(str(_CACHE_FILE), "w", encoding="utf-8") as f:
+            json.dump({"snapshot": _snapshot, "file_hash": _file_hash}, f)
+    except Exception as e:
+        log.warning(f"Não foi possível salvar cache: {e}")
+
+
+def _load_cache():
+    """Carrega snapshot e file_hash do disco se existir."""
+    global _snapshot, _file_hash
+    if not _CACHE_FILE.exists():
+        return
+    try:
+        with open(str(_CACHE_FILE), "r", encoding="utf-8") as f:
+            data = json.load(f)
+        _snapshot  = data.get("snapshot",  {})
+        _file_hash = data.get("file_hash", {})
+        log.info(f"Cache carregado: {len(_snapshot)} tabelas com snapshot.")
+    except Exception as e:
+        log.warning(f"Não foi possível carregar cache: {e}")
+
 
 def _rec_hash(rec: dict) -> str:
     return hashlib.md5(
@@ -481,9 +507,12 @@ def sync_all(supabase: Client, dbf_map: dict | None = None):
     log.info(f"Iniciando sincronização completa ({len(active_map)} tabelas, sequencial)...")
 
     def _sync_one(name, config):
-        # Cada thread usa seu próprio client para evitar conflitos de socket
         client = _create_client(SUPABASE_URL, SUPABASE_KEY)
-        sync_table(client, name, config)
+        # Se já tem snapshot → delta sync; senão → sync completo
+        if name in _snapshot or name in _file_hash:
+            sync_table_delta(client, name, config)
+        else:
+            sync_table(client, name, config)
 
     with ThreadPoolExecutor(max_workers=1) as pool:
         futures = {
@@ -497,6 +526,7 @@ def sync_all(supabase: Client, dbf_map: dict | None = None):
             except Exception as e:
                 log.error(f"✘ Erro na thread de {name}: {e}")
     update_sync_log(supabase)
+    _save_cache()
     log.info("Sincronização completa concluída.")
 
 
@@ -528,6 +558,7 @@ class DBFHandler(FileSystemEventHandler):
         time.sleep(DEBOUNCE_SECONDS)   # aguarda o sistema liberar o arquivo
         sync_table_delta(self.supabase, name, DBF_MAP[name])
         update_sync_log(self.supabase)
+        _save_cache()
 
 
 # ── Main ─────────────────────────────────────────────────────────────────────
@@ -547,7 +578,10 @@ def main():
     supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
     log.info(f"Conectado ao Supabase: {SUPABASE_URL}")
 
-    # Carga inicial
+    # Carrega snapshot do disco — se existir, o startup usa delta sync
+    _load_cache()
+
+    # Carga inicial — usa delta sync para tabelas com snapshot, completo para novas
     sync_all(supabase)
 
     # Monitor contínuo
