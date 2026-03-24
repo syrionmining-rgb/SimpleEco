@@ -116,6 +116,14 @@ interface PedimateRow {
   CODIGO?: string; ITEM?: string; TIPO?: string; NOMESET?: string
   MATERIAL?: string; NOMEMAT?: string; UNI?: string; CONSUMO?: number | string | null
 }
+interface MoviprodRow {
+  [key: string]: unknown
+  CODIGO?: string; SETOR?: string; DATAENT?: string; HORAENT?: string; DATASDA?: string
+}
+interface SequesetRow {
+  [key: string]: unknown
+  CODIGO?: string; SETOR?: string; SEQ?: string; TALAO?: unknown
+}
 
 interface RemessaNode { codigo: string; movimentos: TalsetorRow[]; qtdeTotal: number }
 interface TalaoNode { talao: TalaoRow; remessas: RemessaNode[] }
@@ -184,6 +192,8 @@ export default function AdminPanel() {
   const [grades, setGrades] = useState<GradeRow[]>([])
   const [pedimate, setPedimate] = useState<PedimateRow[]>([])
   const [expandedBom, setExpandedBom] = useState<Set<string>>(new Set())
+  const [moviprod, setMoviprod] = useState<MoviprodRow[]>([])
+  const [sequeset, setSequeset] = useState<SequesetRow[]>([])
   const [ordersLoading, setOrdersLoading] = useState(false)
   const [ordersError, setOrdersError] = useState<string | null>(null)
   const [ordersQuery, setOrdersQuery] = useState('')
@@ -580,6 +590,18 @@ export default function AdminPanel() {
         setPedimate(pedimateRows)
       } catch { /* ignora silenciosamente */ }
 
+      // moviprod — posição atual do talão no chão de fábrica (scan de barcode)
+      try {
+        const moviprodRows = await fetchTableRows<MoviprodRow>('moviprod', 'CODIGO,SETOR,DATAENT,HORAENT,DATASDA')
+        setMoviprod(moviprodRows)
+      } catch { /* ignora silenciosamente */ }
+
+      // sequeset — fluxo esperado de setores por ficha
+      try {
+        const sequesetRows = await fetchTableRows<SequesetRow>('sequeset', 'CODIGO,SETOR,SEQ,TALAO')
+        setSequeset(sequesetRows)
+      } catch { /* ignora silenciosamente */ }
+
       // pedido_fluxo — tabela opcional, vínculo de fluxo de produção por pedido
       void fetchPedidoFluxo()
     } catch (err) {
@@ -845,6 +867,31 @@ export default function AdminPanel() {
     }
     return m
   }, [pedimate])
+
+  const moviprodByTalao = useMemo(() => {
+    const m = new Map<string, MoviprodRow>()
+    for (const mv of moviprod) { const k = asText(mv.CODIGO).trim(); if (k) m.set(k, mv) }
+    return m
+  }, [moviprod])
+
+  const sequesetByFicha = useMemo(() => {
+    const m = new Map<string, SequesetRow[]>()
+    for (const s of sequeset) {
+      const k = asText(s.CODIGO).trim(); if (!k) continue
+      if (!m.has(k)) m.set(k, []); m.get(k)!.push(s)
+    }
+    for (const [, steps] of m) steps.sort((a, b) => asText(a.SEQ).localeCompare(asText(b.SEQ)))
+    return m
+  }, [sequeset])
+
+  const setorNameMap = useMemo(() => {
+    const m = new Map<string, string>()
+    for (const mv of talsetor) {
+      const sc = asText(mv.SETOR).trim(); const sn = asText(mv.NOMESET).trim()
+      if (sc && sn && !m.has(sc)) m.set(sc, sn)
+    }
+    return m
+  }, [talsetor])
 
   // ── Pedidos tree ──────────────────────────────────────────────────────────
 
@@ -1425,94 +1472,78 @@ export default function AdminPanel() {
                     <button className="sm:hidden flex items-center gap-1 text-sm font-medium text-[var(--th-txt-3)] hover:text-[var(--th-txt-1)] transition-colors -ml-1 mb-1" onClick={() => setSelectedPedidoDetail(null)}>
                       <ChevronLeft className="w-4 h-4" />Voltar
                     </button>
-                                        {/* ── Visão Geral do Pedido ── */}
-                    <div className="rounded-2xl border border-[var(--th-border)] bg-[var(--th-card)] overflow-hidden">
+                    {/* ── Card unificado: pedido + fluxo + grade ── */}
+                    <div className="rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] overflow-hidden">
 
-                      {/* Accent line */}
-                      <div className={`h-0.5 w-full ${saldo === 0 ? 'bg-green-500' : pedidoAtrasado ? 'bg-red-500' : 'bg-[var(--th-accent)]'}`} />
-
-                      {/* Header */}
-                      <div className="px-5 pt-5 pb-4">
+                      {/* Cabeçalho do pedido */}
+                      <div className="px-4 pt-4 pb-3">
+                        {/* Linha topo: info + X (desktop) */}
                         <div className="flex items-start gap-3">
                           <div className="min-w-0 flex-1">
+                            {/* Nº Pedido + data */}
+                            <div className="flex items-center gap-1.5 mb-1">
+                              <span className="text-sm font-mono font-semibold text-[var(--th-txt-2)]">{pc}</span>
+                              <span className="text-[var(--th-txt-4)] select-none">·</span>
+                              <span className="text-sm text-[var(--th-txt-4)]">{fmtDate(pNode.pedido.PREVISAO)}</span>
+                            </div>
+                            {/* Nome do cliente */}
                             <button
                               type="button"
                               onClick={() => {
                                 const cliRow = cliMap.get(asText(pNode.pedido.CLIENTE).trim())
                                 if (cliRow) { setSelectedCliente(cliRow); setSelectedModule('clients') }
                               }}
-                              className="text-lg font-bold text-[var(--th-txt-1)] hover:text-orange-400 transition-colors text-left leading-snug block mb-2"
+                              className="text-base font-bold text-[var(--th-txt-1)] hover:text-orange-400 hover:underline transition-colors text-left leading-snug mb-0.5 block"
                             >{cliNome}</button>
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="inline-flex items-center bg-[var(--th-subtle)] border border-[var(--th-border)] px-2.5 py-1 rounded-lg text-[11px] font-mono font-semibold text-[var(--th-txt-2)]">#{pc}</span>
+                            {/* O.C. */}
+                            {asText(pNode.pedido.PEDCLIENTE) && (
+                              <p className="text-[11px] text-[var(--th-txt-4)] mb-1.5">O.C. <span className="font-mono text-[var(--th-txt-2)]">{asText(pNode.pedido.PEDCLIENTE)}</span></p>
+                            )}
+                            {/* Talões + Status badges */}
+                            <div className="flex items-center gap-1.5 flex-wrap mb-1.5">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[var(--th-subtle)] border border-[var(--th-border)] text-[11px] font-medium text-[var(--th-txt-4)]">
+                                {pNode.taloes.length} Talões
+                              </span>
                               {saldo === 0
-                                ? <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium border bg-green-500/15 text-green-400 border-green-500/30">Finalizado</span>
+                                ? <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border bg-green-500/15 text-green-400 border-green-500/30">Finalizado</span>
                                 : pedidoAtrasado
-                                  ? <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium border bg-red-500/15 text-red-400 border-red-500/20">Atrasado</span>
-                                  : <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium border bg-orange-500/15 text-orange-400 border-orange-500/30">Em produção</span>
+                                  ? <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border bg-red-500/15 text-red-400 border-red-500/20">Atrasado</span>
+                                  : <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[var(--th-subtle)] border border-[var(--th-border)] text-[11px] font-medium text-[var(--th-txt-4)]">Unidades {fmtNumber(saldo)}</span>
                               }
-                              {asText(pNode.pedido.PEDCLIENTE) && (
-                                <span className="text-[11px] text-[var(--th-txt-4)]">O.C. <span className="font-mono text-[var(--th-txt-2)]">{asText(pNode.pedido.PEDCLIENTE)}</span></span>
-                              )}
                             </div>
+                            {/* Produtos */}
+                            {produtosDistintos.length > 0 && (
+                              <div className="flex flex-wrap gap-1.5">
+                                {produtosDistintos.map(([ref, nome]) => (
+                                  <span key={ref} className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] border bg-[var(--th-subtle)] border-[var(--th-border)]">
+                                    <span className="font-mono text-[var(--th-txt-4)]">{ref}</span>
+                                    {nome !== ref && <span className="text-[var(--th-txt-2)]">{nome}</span>}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
                           </div>
+                          {/* X — só desktop */}
                           <button type="button" onClick={() => setSelectedPedidoDetail(null)} className="hidden sm:flex p-1.5 rounded hover:bg-[var(--th-hover)] text-[var(--th-txt-4)] shrink-0">
                             <X strokeWidth={1.5} className="w-4 h-4" />
                           </button>
                         </div>
 
-                        {/* Stats grid */}
-                        <div className="grid grid-cols-4 gap-px mt-4 rounded-xl overflow-hidden border border-[var(--th-border)] bg-[var(--th-border)]">
-                          {([
-                            { label: 'Total', value: fmtNumber(pNode.pedido.TOTAL) },
-                            { label: 'Saldo', value: fmtNumber(saldo), hl: saldo > 0 },
-                            { label: 'Faturados', value: fmtNumber(pNode.pedido.FATURADOS) },
-                            { label: 'Talões', value: String(pNode.taloes.length) },
-                          ] as Array<{ label: string; value: string; hl?: boolean }>).map(s => (
-                            <div key={s.label} className="bg-[var(--th-card)] px-2 py-3 text-center">
-                              <p className={`text-sm font-bold font-mono leading-none mb-1 ${s.hl ? 'text-orange-400' : 'text-[var(--th-txt-1)]'}`}>{s.value}</p>
-                              <p className="text-[10px] text-[var(--th-txt-4)]">{s.label}</p>
-                            </div>
-                          ))}
-                        </div>
-
-                        {/* Datas */}
-                        <div className="flex gap-4 mt-3 flex-wrap">
-                          {asText(pNode.pedido.VENDA) && (
-                            <span className="text-[11px] text-[var(--th-txt-4)]">Pedido <span className="font-mono text-[var(--th-txt-2)]">{fmtDate(pNode.pedido.VENDA)}</span></span>
-                          )}
-                          {asText(pNode.pedido.PREVISAO) && (
-                            <span className="text-[11px] text-[var(--th-txt-4)]">Previsão <span className={`font-mono ${pedidoAtrasado ? 'text-red-400' : 'text-[var(--th-txt-2)]'}`}>{fmtDate(pNode.pedido.PREVISAO)}</span></span>
-                          )}
-                        </div>
                       </div>
-
-                      {/* Produtos distintos */}
-                      {produtosDistintos.length > 0 && (
-                        <div className="px-5 py-3 border-t border-[var(--th-border)]">
-                          <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)] mb-2">Produtos</p>
-                          <div className="flex flex-wrap gap-1.5">
-                            {produtosDistintos.map(([ref, nome]) => (
-                              <span key={ref} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] border bg-[var(--th-subtle)] border-[var(--th-border)]">
-                                <span className="font-mono text-[var(--th-txt-4)]">{ref}</span>
-                                {nome !== ref && <span className="text-[var(--th-txt-2)] font-medium">{nome}</span>}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
 
                       {/* Fluxo de Produção */}
                       <div className="border-t border-[var(--th-border)]">
-                        <div className="px-5 py-2.5 bg-[var(--th-subtle)] flex items-center justify-between">
-                          <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Fluxo de Produção</p>
+                        <div className="px-4 py-2 bg-[var(--th-subtle)] flex items-center justify-between">
+                          <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Fluxo de Produção</p>
                           <div className="flex items-center gap-2">
                             {fluxoVinculado && fluxoItem && (
                               <span className="text-[11px] font-medium text-[var(--th-txt-2)]">{fluxoItem.nome}</span>
                             )}
                             {fluxoVinculado && !passouExpedicaoPedido && (
                               <button type="button" onClick={() => void removePedidoFluxo(pc)}
-                                className="text-[11px] text-[var(--th-txt-4)] hover:text-red-400 transition-colors">Remover</button>
+                                className="text-[11px] text-[var(--th-txt-4)] hover:text-red-400 transition-colors">
+                                Remover
+                              </button>
                             )}
                             {passouExpedicaoPedido && fluxoVinculado && (
                               <span className="text-[11px] px-2 py-0.5 rounded-full bg-green-500/15 text-green-400 border border-green-500/30 font-medium">Finalizado</span>
@@ -1524,27 +1555,43 @@ export default function AdminPanel() {
                           const effectiveId = pedidoFluxoSelect !== '' ? pedidoFluxoSelect : (fluxoVinculado?.item_id ?? '')
                           const displayNome = prodItems.find(i => i.id === effectiveId)?.nome
                           return (
-                            <div className="px-5 py-3 border-b border-[var(--th-border)] flex items-center gap-2">
-                              <div className="relative flex-1 sm:flex-none sm:w-44">
-                                <button type="button" onClick={() => setFluxoDropdownOpen(o => !o)}
-                                  className={`w-full flex items-center justify-between gap-2 pl-3 pr-2 py-1.5 rounded-lg border text-xs transition-colors ${fluxoDropdownOpen ? 'border-orange-500/50 bg-[var(--th-card)] ring-2 ring-orange-500/20 text-[var(--th-txt-1)]' : 'border-[var(--th-border)] bg-[var(--th-subtle)] text-[var(--th-txt-4)] hover:border-orange-500/30 hover:text-[var(--th-txt-1)]'}`}>
+                            <div className="px-4 py-3 border-b border-[var(--th-border)] flex items-center gap-2">
+                              <div className="relative flex-1 sm:flex-none sm:w-40">
+                                <button
+                                  type="button"
+                                  onClick={() => setFluxoDropdownOpen(o => !o)}
+                                  className={`w-full flex items-center justify-between gap-2 pl-3 pr-2 py-1.5 rounded-lg border text-xs transition-colors ${
+                                    fluxoDropdownOpen
+                                      ? 'border-orange-500/50 bg-[var(--th-card)] ring-2 ring-orange-500/20 text-[var(--th-txt-1)]'
+                                      : 'border-[var(--th-border)] bg-[var(--th-subtle)] text-[var(--th-txt-4)] hover:border-orange-500/30 hover:text-[var(--th-txt-1)]'
+                                  }`}
+                                >
                                   <span className="truncate">{displayNome ?? 'Selecionar fluxo…'}</span>
                                   <ChevronDown strokeWidth={2} className={`w-3 h-3 transition-transform shrink-0 ${fluxoDropdownOpen ? 'rotate-180' : ''}`} />
                                 </button>
                                 {fluxoDropdownOpen && (
                                   <div className="absolute z-50 top-full mt-1 left-0 right-0 rounded-lg border border-[var(--th-border)] bg-[var(--th-card)] shadow-lg overflow-hidden">
                                     {prodItems.map(item => (
-                                      <button key={item.id} type="button" onClick={() => { setPedidoFluxoSelect(item.id); setFluxoDropdownOpen(false) }}
-                                        className={`w-full text-left px-3 py-2 text-xs transition-colors hover:bg-[var(--th-hover)] ${effectiveId === item.id ? 'text-orange-400 bg-orange-500/8 font-semibold' : 'text-[var(--th-txt-1)]'}`}>
+                                      <button
+                                        key={item.id}
+                                        type="button"
+                                        onClick={() => { setPedidoFluxoSelect(item.id); setFluxoDropdownOpen(false) }}
+                                        className={`w-full text-left px-3 py-2 text-xs transition-colors hover:bg-[var(--th-hover)] ${
+                                          effectiveId === item.id ? 'text-orange-400 bg-orange-500/8 font-semibold' : 'text-[var(--th-txt-1)]'
+                                        }`}
+                                      >
                                         {item.nome}
                                       </button>
                                     ))}
                                   </div>
                                 )}
                               </div>
-                              <button type="button" disabled={effectiveId === '' || pedidoFluxoSaving}
+                              <button
+                                type="button"
+                                disabled={effectiveId === '' || pedidoFluxoSaving}
                                 onClick={() => { if (effectiveId !== '') void savePedidoFluxo(pc, effectiveId as number) }}
-                                className="px-3 py-1.5 rounded-lg bg-orange-500 text-white text-xs font-medium disabled:opacity-40 hover:bg-orange-600 transition-colors shrink-0">
+                                className="px-3 py-1.5 rounded-lg bg-orange-500 text-white text-xs font-medium disabled:opacity-40 hover:bg-orange-600 transition-colors shrink-0"
+                              >
                                 {pedidoFluxoSaving ? '…' : fluxoVinculado ? 'Alterar' : 'Atribuir'}
                               </button>
                             </div>
@@ -1552,17 +1599,21 @@ export default function AdminPanel() {
                         })()}
 
                         {fluxoVinculado && fluxoEtapas.length > 0 && (
-                          <div className="px-5 py-3 flex flex-wrap gap-2 items-center">
+                          <div className="px-4 py-3 flex flex-wrap gap-1.5 items-center">
                             {fluxoEtapas.map((etapa, idx) => {
                               const done = passouExpedicaoPedido || etapaConcluida(etapa.nome)
                               const isLast = idx === fluxoEtapas.length - 1
                               return (
                                 <React.Fragment key={etapa.id}>
-                                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-all ${done ? 'bg-green-500/10 border-green-500/25 text-green-400' : 'bg-[var(--th-subtle)] border-[var(--th-border)] text-[var(--th-txt-4)]'}`}>
+                                  <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium border transition-all ${
+                                    done
+                                      ? 'bg-green-500/10 border-green-500/25 text-green-400'
+                                      : 'bg-[var(--th-subtle)] border-[var(--th-border)] text-[var(--th-txt-4)]'
+                                  }`}>
                                     <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${done ? 'bg-green-400' : 'bg-[var(--th-border)]'}`} />
                                     {etapa.nome}
                                   </span>
-                                  {!isLast && <span className="text-[var(--th-txt-4)] text-sm leading-none">›</span>}
+                                  {!isLast && <span className="text-[var(--th-txt-4)] text-[11px]">›</span>}
                                 </React.Fragment>
                               )
                             })}
@@ -1570,28 +1621,27 @@ export default function AdminPanel() {
                         )}
                       </div>
 
-                      {/* Grade Agregada */}
+                      {/* Grade do Pedido */}
                       {gradeAgregada.length > 0 && (
                         <div className="border-t border-[var(--th-border)]">
-                          <div className="px-5 py-2.5 bg-[var(--th-subtle)] flex items-center justify-between">
-                            <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Grade do Pedido</p>
-                            <span className="text-[11px] text-[var(--th-txt-4)]">
-                              <span className="font-mono font-bold text-orange-400">{gradeAgregada.reduce((s, x) => s + x.qty, 0).toLocaleString('pt-BR')}</span> pares
-                            </span>
+                          <div className="px-4 py-2 bg-[var(--th-subtle)] flex items-center justify-between">
+                            <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Grade do Pedido</p>
+                            <p className="text-[11px] text-[var(--th-txt-4)]">
+                              Total: <span className="font-mono font-bold text-orange-400">{gradeAgregada.reduce((s, x) => s + x.qty, 0).toLocaleString('pt-BR')}</span> pares
+                            </p>
                           </div>
-                          <div className="px-5 py-3 flex flex-wrap gap-1.5">
+                          <div className="px-4 py-3 flex flex-wrap gap-1.5">
                             {gradeAgregada.map(({ slot, qty }) => (
-                              <div key={slot} className="flex flex-col items-center rounded-xl border border-[var(--th-border)] bg-[var(--th-subtle)] overflow-hidden" style={{ minWidth: 44 }}>
-                                <span className="px-2 py-1.5 text-[10px] font-semibold font-mono text-[var(--th-txt-3)] text-center w-full leading-none">{slot}</span>
+                              <div key={slot} className="flex flex-col items-center rounded-lg border border-[var(--th-border)] bg-[var(--th-subtle)] overflow-hidden" style={{ minWidth: 44 }}>
+                                <span className="px-2 py-1.5 text-[11px] font-bold font-mono text-[var(--th-txt-2)] text-center w-full leading-none">{slot}</span>
                                 <div className="w-full border-t border-[var(--th-border)]" />
-                                <span className="px-2 py-2 text-sm font-bold font-mono text-orange-400 text-center w-full leading-none">{qty}</span>
+                                <span className="px-2 py-1.5 text-sm font-bold font-mono text-orange-400 text-center w-full leading-none">{qty}</span>
                               </div>
                             ))}
                           </div>
                         </div>
                       )}
                     </div>
-
 
                     {/* Talões — search + filter */}
                     {pNode.taloes.length > 0 && (
@@ -1633,9 +1683,10 @@ export default function AdminPanel() {
                     {taloesFiltrados.length === 0 && pNode.taloes.length > 0 && (
                       <p className="text-sm text-center text-[var(--th-txt-3)] py-6">Nenhum talão encontrado para os filtros aplicados.</p>
                     )}
-                    <div className="flex flex-col gap-3 mt-6">
+                    <div className="flex flex-col gap-3 mt-8">
                       {taloesFiltrados.map(tNode => {
                         const tc = asText(tNode.talao.CODIGO).trim() || '—'
+                        // Resolve referência: direto do talão → fallback via peditens (PEDIDO+ITEM)
                         const fcDireto = asText(tNode.talao.REFERENCIA).trim()
                         const pedidoCod = asText(tNode.talao.PEDIDO).trim()
                         const itemCod = asText(tNode.talao.ITEM).trim()
@@ -1663,21 +1714,21 @@ export default function AdminPanel() {
                         )
                         const finalizado = !canc && (fat || passouExpedicao)
                         const grade = parseNumeros(tNode.talao.NUMEROS)
-                        const statusBorder = canc ? 'border-red-500/30' : finalizado ? 'border-green-500/30' : 'border-[var(--th-border)]'
-                        const statusAccent = canc ? 'bg-red-500' : finalizado ? 'bg-green-500' : 'bg-[var(--th-accent)]'
-                        const hasficha = fMatriz || fNavalha || fCor || fObs || fConstruc || fSalto || fPalmilha || fForma || fLinha || fProdTxt
+                        const statusBorder = canc ? 'border-red-500/25' : finalizado ? 'border-green-500/25' : 'border-[var(--th-border)]'
+                        const statusBar = canc ? 'bg-red-500' : finalizado ? 'bg-green-500' : 'bg-[var(--th-accent)]'
                         return (
-                          <div key={tc} className={`rounded-2xl border ${statusBorder} bg-[var(--th-card)] overflow-hidden`}>
-
-                            {/* Accent top line */}
-                            <div className={`h-0.5 w-full ${statusAccent} opacity-70`} />
-
+                          <div key={tc} className={`rounded-xl border ${statusBorder} bg-[var(--th-card)] overflow-hidden`}>
                             {/* Header */}
-                            <div className="p-4">
-                              <div className="flex items-start gap-3 mb-3">
-                                <div className="min-w-0 flex-1">
-                                  <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                                    <span className="font-mono font-bold text-base text-[var(--th-txt-1)] tracking-wide">{tc}</span>
+                            <div className="flex items-stretch gap-0">
+                              {/* Status accent bar */}
+                              <div className={`w-1 shrink-0 ${statusBar} opacity-60`} />
+                              <div className="flex-1 flex items-center justify-between gap-4 px-4 py-3">
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-2.5 mb-1 flex-wrap">
+                                    <span className="inline-flex items-center gap-1.5 bg-[var(--th-subtle)] border border-[var(--th-border)] px-2.5 py-1 rounded-md">
+                                      <span className="text-[11px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Talão</span>
+                                      <span className="font-mono font-bold text-sm text-[var(--th-txt-1)] tracking-wide leading-none">{tc}</span>
+                                    </span>
                                     {canc
                                       ? <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border bg-red-500/15 text-red-400 border-red-500/30">Cancelado</span>
                                       : finalizado
@@ -1685,65 +1736,114 @@ export default function AdminPanel() {
                                         : <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border bg-orange-500/15 text-orange-400 border-orange-500/30">Em produção</span>
                                     }
                                   </div>
-                                  {fn && <p className="text-sm font-semibold text-[var(--th-txt-2)] leading-snug">{fn}</p>}
+                                  {fn && <p className="text-xs text-[var(--th-txt-3)] truncate max-w-[320px]">{fn}</p>}
                                 </div>
-                                <div className="shrink-0 text-right bg-[var(--th-subtle)] border border-[var(--th-border)] rounded-xl px-3 py-2">
-                                  <p className="text-[10px] text-[var(--th-txt-4)] uppercase tracking-wider mb-0.5">Total</p>
-                                  <p className="text-xl font-bold font-mono text-orange-400 leading-none">{fmtNumber(tNode.talao.TOTAL)}</p>
+                                <div className="shrink-0 text-right">
+                                  <p className="text-[11px] text-[var(--th-txt-4)] mb-0.5 uppercase tracking-widest">Total</p>
+                                  <p className="text-lg font-bold font-mono text-orange-400 leading-none">{fmtNumber(tNode.talao.TOTAL)}</p>
                                 </div>
-                              </div>
-                              {/* ID row */}
-                              <div className="flex flex-wrap gap-x-4 gap-y-1">
-                                <span className="text-[11px] text-[var(--th-txt-4)]">Item <span className="font-mono text-[var(--th-txt-2)]">{asText(tNode.talao.ITEM) || '—'}</span></span>
-                                <span className="text-[11px] text-[var(--th-txt-4)]">Ref <span className="font-mono text-[var(--th-txt-2)]">{fc || '—'}</span></span>
-                                <span className="text-[11px] text-[var(--th-txt-4)]">Remessa <span className="font-mono text-[var(--th-txt-2)]">{asText(tNode.talao.REMESSA) || '—'}</span></span>
-                                {asText(pNode.pedido.PEDCLIENTE) && (
-                                  <span className="text-[11px] text-[var(--th-txt-4)]">O.C. <span className="font-mono text-[var(--th-txt-2)]">{asText(pNode.pedido.PEDCLIENTE)}</span></span>
-                                )}
                               </div>
                             </div>
-
-                            {/* Ficha details grid */}
-                            {hasficha && (
-                              <div className="border-t border-[var(--th-border)] px-4 py-3">
-                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2.5">
-                                  {fMatriz && <div><p className="text-[10px] text-[var(--th-txt-4)] mb-0.5">Matriz</p><p className="text-xs font-mono font-medium text-[var(--th-txt-2)]">{fMatriz}</p></div>}
-                                  {fNavalha && <div><p className="text-[10px] text-[var(--th-txt-4)] mb-0.5">Navalha</p><p className="text-xs font-mono font-medium text-[var(--th-txt-2)]">{fNavalha}</p></div>}
-                                  {fCor && <div><p className="text-[10px] text-[var(--th-txt-4)] mb-0.5">Cor</p><p className="text-xs font-mono font-medium text-[var(--th-txt-2)]">{fCor}</p></div>}
-                                  {fProdTxt && <div><p className="text-[10px] text-[var(--th-txt-4)] mb-0.5">Tipo</p><p className="text-xs font-mono font-medium text-[var(--th-txt-2)]">{fProdTxt}</p></div>}
-                                  {fLinha && <div><p className="text-[10px] text-[var(--th-txt-4)] mb-0.5">Linha</p><p className="text-xs font-mono font-medium text-[var(--th-txt-2)]">{fLinha}</p></div>}
-                                  {fConstruc && <div><p className="text-[10px] text-[var(--th-txt-4)] mb-0.5">Construção</p><p className="text-xs font-mono font-medium text-[var(--th-txt-2)]">{fConstruc}</p></div>}
-                                  {fSalto && <div><p className="text-[10px] text-[var(--th-txt-4)] mb-0.5">Salto</p><p className="text-xs font-mono font-medium text-[var(--th-txt-2)]">{fSalto}</p></div>}
-                                  {fPalmilha && <div><p className="text-[10px] text-[var(--th-txt-4)] mb-0.5">Palmilha</p><p className="text-xs font-mono font-medium text-[var(--th-txt-2)]">{fPalmilha}</p></div>}
-                                  {fForma && <div><p className="text-[10px] text-[var(--th-txt-4)] mb-0.5">Forma</p><p className="text-xs font-mono font-medium text-[var(--th-txt-2)]">{fForma}</p></div>}
+                            {/* Meta strip — linha 1: identificação */}
+                            <div className="flex gap-4 px-4 py-1.5 bg-[var(--th-subtle)] border-t border-[var(--th-border)] flex-wrap">
+                              <span className="text-[11px] text-[var(--th-txt-4)]">Item <span className="font-mono text-[var(--th-txt-2)]">{asText(tNode.talao.ITEM) || '—'}</span></span>
+                              <span className="text-[11px] text-[var(--th-txt-4)]">Ref <span className="font-mono text-[var(--th-txt-2)]">{fc || '—'}</span></span>
+                              <span className="text-[11px] text-[var(--th-txt-4)]">Remessa <span className="font-mono text-[var(--th-txt-2)]">{asText(tNode.talao.REMESSA) || '—'}</span></span>
+                              {asText(pNode.pedido.PEDCLIENTE) && (
+                                <span className="text-[11px] text-[var(--th-txt-4)]">O.C. <span className="font-mono text-[var(--th-txt-2)]">{asText(pNode.pedido.PEDCLIENTE)}</span></span>
+                              )}
+                            </div>
+                            {/* Fluxo de Produção — baseado em sequeset (rota por ficha) + talsetor/moviprod (scans) */}
+                            {(() => {
+                              const steps = sequesetByFicha.get(fc) ?? []
+                              if (steps.length === 0) return null
+                              const tsForTalao = talsetorByTalao.get(tc) ?? []
+                              const passedSetores = new Set(tsForTalao.map(mv => asText(mv.SETOR).trim()))
+                              const currentMovi = moviprodByTalao.get(tc)
+                              const currentSetor = (currentMovi && !asText(currentMovi.DATASDA).trim()) ? asText(currentMovi.SETOR).trim() : null
+                              const scanSteps = steps.filter(s => s.TALAO !== false)
+                              const passedCount = scanSteps.filter(s => passedSetores.has(asText(s.SETOR).trim())).length
+                              const totalCount = scanSteps.length
+                              const progress = totalCount > 0 ? (passedCount / totalCount) * 100 : 0
+                              return (
+                                <div className="px-4 py-3 border-t border-[var(--th-border)]">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <span className="text-[11px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Fluxo</span>
+                                    <span className="text-[11px] font-mono text-[var(--th-txt-3)]">{passedCount}/{totalCount} setores</span>
+                                  </div>
+                                  <div className="h-1 rounded-full bg-[var(--th-border)] mb-3 overflow-hidden">
+                                    <div className={`h-full rounded-full transition-all duration-500 ${canc ? 'bg-red-500' : passedCount === totalCount && totalCount > 0 ? 'bg-green-500' : 'bg-[var(--th-accent)]'}`} style={{ width: `${progress}%` }} />
+                                  </div>
+                                  <div className="flex flex-wrap gap-1">
+                                    {steps.map((step, idx) => {
+                                      const sc = asText(step.SETOR).trim()
+                                      const needsScan = step.TALAO !== false
+                                      const passed = passedSetores.has(sc)
+                                      const isCurrent = sc === currentSetor
+                                      const latestMv = tsForTalao.filter(mv => asText(mv.SETOR).trim() === sc).sort((a, b) => asText(b.DATA).localeCompare(asText(a.DATA)))[0]
+                                      const sName = asText(latestMv?.NOMESET).trim() || setorNameMap.get(sc) || sc
+                                      const short = sName.length > 11 ? sName.slice(0, 10) + '…' : sName
+                                      return (
+                                        <div key={idx} title={`${sName}${latestMv?.DATA ? ' — ' + fmtDate(latestMv.DATA) : ''}`}
+                                          className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium border ${
+                                            !needsScan ? 'opacity-40 bg-[var(--th-subtle)] border-[var(--th-border)] text-[var(--th-txt-4)]'
+                                            : passed ? 'bg-green-500/10 border-green-500/25 text-green-400'
+                                            : isCurrent ? 'bg-orange-500/15 border-orange-500/30 text-orange-400 ring-1 ring-orange-500/20'
+                                            : 'bg-[var(--th-subtle)] border-[var(--th-border)] text-[var(--th-txt-4)]'
+                                          }`}>
+                                          <span className="shrink-0 leading-none">{passed ? '✓' : isCurrent ? '●' : '○'}</span>
+                                          <span>{short}</span>
+                                        </div>
+                                      )
+                                    })}
+                                  </div>
                                 </div>
-                                {fObs && <p className="mt-2.5 text-[11px] text-[var(--th-txt-4)]">Obs <span className="text-[var(--th-txt-2)]">{fObs}</span></p>}
+                              )
+                            })()}
+                            {/* Meta strip — linha 2: dados da ficha (matriz, navalha, cor) */}
+                            {(fMatriz || fNavalha || fCor) && (
+                              <div className="flex gap-4 px-4 py-1.5 border-t border-[var(--th-border)] flex-wrap">
+                                {fMatriz && <span className="text-[11px] text-[var(--th-txt-4)]">Matriz <span className="font-mono text-[var(--th-txt-2)]">{fMatriz}</span></span>}
+                                {fNavalha && <span className="text-[11px] text-[var(--th-txt-4)]">Navalha <span className="font-mono text-[var(--th-txt-2)]">{fNavalha}</span></span>}
+                                {fCor && <span className="text-[11px] text-[var(--th-txt-4)]">Cor <span className="font-mono text-[var(--th-txt-2)]">{fCor}</span></span>}
                               </div>
                             )}
-
+                            {/* OBS da ficha */}
+                            {fObs && (
+                              <div className="px-4 py-1.5 border-t border-[var(--th-border)]">
+                                <span className="text-[11px] text-[var(--th-txt-4)]">Obs. <span className="text-[var(--th-txt-2)]">{fObs}</span></span>
+                              </div>
+                            )}
+                            {/* Meta strip — linha 3: detalhes de construção da ficha */}
+                            {(fConstruc || fSalto || fPalmilha || fForma || fLinha || fProdTxt) && (
+                              <div className="flex gap-4 px-4 py-1.5 border-t border-[var(--th-border)] flex-wrap">
+                                {fProdTxt && <span className="text-[11px] text-[var(--th-txt-4)]">Tipo <span className="font-mono text-[var(--th-txt-2)]">{fProdTxt}</span></span>}
+                                {fLinha && <span className="text-[11px] text-[var(--th-txt-4)]">Linha <span className="font-mono text-[var(--th-txt-2)]">{fLinha}</span></span>}
+                                {fConstruc && <span className="text-[11px] text-[var(--th-txt-4)]">Construção <span className="font-mono text-[var(--th-txt-2)]">{fConstruc}</span></span>}
+                                {fSalto && <span className="text-[11px] text-[var(--th-txt-4)]">Salto <span className="font-mono text-[var(--th-txt-2)]">{fSalto}</span></span>}
+                                {fPalmilha && <span className="text-[11px] text-[var(--th-txt-4)]">Palmilha <span className="font-mono text-[var(--th-txt-2)]">{fPalmilha}</span></span>}
+                                {fForma && <span className="text-[11px] text-[var(--th-txt-4)]">Forma <span className="font-mono text-[var(--th-txt-2)]">{fForma}</span></span>}
+                              </div>
+                            )}
                             {/* Grade */}
                             {grade.length > 0 && (
-                              <div className="border-t border-[var(--th-border)] px-4 py-3">
-                                <div className="flex items-center justify-between mb-2.5">
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Grade</span>
-                                    {gradeCode && <span className="font-mono text-[11px] text-[var(--th-txt-4)]">{gradeCode}</span>}
-                                    {gradeName && <span className="text-[11px] text-[var(--th-txt-4)]">· {gradeName}</span>}
-                                  </div>
-                                  <span className="text-[11px] font-mono font-bold text-orange-400">{grade.reduce((s, x) => s + x.qty, 0).toLocaleString('pt-BR')}</span>
+                              <div className="px-4 py-3 border-t border-[var(--th-border)]">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <span className="text-[11px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Grade</span>
+                                  {gradeCode && <span className="font-mono text-[11px] text-[var(--th-txt-3)]">{gradeCode}</span>}
+                                  {gradeName && <span className="text-[11px] text-[var(--th-txt-3)]">— {gradeName}</span>}
                                 </div>
                                 <div className="flex flex-wrap gap-1.5">
                                   {grade.map(({ slot, qty }) => (
                                     <div key={slot} className="flex flex-col items-center rounded-lg border border-[var(--th-border)] bg-[var(--th-subtle)] overflow-hidden" style={{ minWidth: 38 }}>
-                                      <span className="px-1.5 py-1 text-[10px] font-semibold font-mono text-[var(--th-txt-3)] text-center w-full leading-none">{slot}</span>
+                                      <span className="px-1.5 py-1 text-[11px] font-bold font-mono text-[var(--th-txt-2)] text-center w-full leading-none">{slot}</span>
                                       <div className="w-full border-t border-[var(--th-border)]" />
-                                      <span className="px-1.5 py-1.5 text-xs font-bold font-mono text-orange-400 text-center w-full leading-none">{qty}</span>
+                                      <span className="px-1.5 py-1 text-[11px] font-bold font-mono text-orange-400 text-center w-full leading-none">{qty}</span>
                                     </div>
                                   ))}
                                 </div>
                               </div>
                             )}
-
                             {/* Materiais (BOM) */}
                             {bomItems.length > 0 && (
                               <div className="border-t border-[var(--th-border)]">
@@ -1754,13 +1854,10 @@ export default function AdminPanel() {
                                     next.has(tc) ? next.delete(tc) : next.add(tc)
                                     return next
                                   })}
-                                  className="w-full px-4 py-2.5 bg-[var(--th-subtle)] flex items-center justify-between hover:bg-[var(--th-hover)] transition-colors"
+                                  className="w-full px-4 py-2 bg-[var(--th-subtle)] flex items-center justify-between hover:bg-[var(--th-hover)] transition-colors"
                                 >
-                                  <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Materiais</span>
-                                  <div className="flex items-center gap-1.5">
-                                    <span className="text-[11px] text-[var(--th-txt-4)]">{bomItems.length}</span>
-                                    <ChevronDown strokeWidth={2} className={`w-3.5 h-3.5 text-[var(--th-txt-4)] transition-transform ${bomExpanded ? 'rotate-180' : ''}`} />
-                                  </div>
+                                  <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Materiais</p>
+                                  <span className="text-[11px] text-[var(--th-txt-4)]">{bomExpanded ? '▲' : '▼'} {bomItems.length}</span>
                                 </button>
                                 {bomExpanded && (
                                   <div className="divide-y divide-[var(--th-border)]">
@@ -1779,26 +1876,25 @@ export default function AdminPanel() {
                                 )}
                               </div>
                             )}
-
-                            {/* Histórico */}
+                            {/* Histórico de setores */}
                             {(() => {
                               const movs = [...(talsetorByTalao.get(tc) ?? [])].sort((a, b) => asText(b.DATA).localeCompare(asText(a.DATA), 'pt-BR'))
                               if (movs.length === 0) return null
                               return (
                                 <div className="border-t border-[var(--th-border)]">
-                                  <div className="px-4 py-2.5 bg-[var(--th-subtle)] flex items-center justify-between">
-                                    <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Histórico</span>
-                                    <span className="text-[11px] text-[var(--th-txt-4)]">{movs.length} registro{movs.length !== 1 ? 's' : ''}</span>
+                                  <div className="px-4 py-2 bg-[var(--th-subtle)] flex items-center justify-between">
+                                    <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Histórico</p>
+                                    <span className="text-[11px] text-[var(--th-txt-4)]">{movs.length} registro(s)</span>
                                   </div>
-                                  <div className="px-4 py-1.5 space-y-px">
+                                  <div className="divide-y divide-[var(--th-border)]">
                                     {movs.map((mv, i) => (
-                                      <div key={i} className="flex items-center gap-3 py-1.5 rounded-lg px-2 hover:bg-[var(--th-hover)] transition-colors -mx-2">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-[var(--th-accent)] opacity-60 shrink-0" />
+                                      <div key={i} className="flex items-center gap-3 px-4 py-2 hover:bg-[var(--th-hover)] transition-colors">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-orange-500/50 shrink-0" />
                                         <span className="text-[11px] font-mono text-[var(--th-txt-4)] shrink-0 w-[72px]">{fmtDate(mv.DATA)}</span>
                                         <span className="text-[11px] font-medium text-[var(--th-txt-2)] flex-1 truncate">{asText(mv.NOMESET) || asText(mv.SETOR) || '—'}</span>
-                                        <span className="text-[11px] font-mono font-bold text-orange-400 shrink-0">{fmtNumber(mv.QTDE)}</span>
+                                        <span className="text-[11px] font-mono text-orange-400 shrink-0">{fmtNumber(mv.QTDE)}</span>
                                         {asText(mv.REMESSA) && (
-                                          <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-[var(--th-subtle)] text-[var(--th-txt-4)] border border-[var(--th-border)] shrink-0 font-mono">{asText(mv.REMESSA)}</span>
+                                          <span className="text-[11px] px-1.5 py-0.5 rounded bg-[var(--th-subtle)] text-[var(--th-txt-4)] border border-[var(--th-border)] shrink-0 font-mono">{asText(mv.REMESSA)}</span>
                                         )}
                                       </div>
                                     ))}
@@ -1812,8 +1908,7 @@ export default function AdminPanel() {
                     </div>
                   </div>
                 )
-              })()
-}
+              })()}
 
               {/* Remessa detail — empty state */}
               {ordersSubTab === 'remessas' && !selectedRemessaDetail && (
