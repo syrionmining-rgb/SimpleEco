@@ -1067,45 +1067,80 @@ export default function AdminPanel() {
       const BD = (globalThis as any).BarcodeDetector
 
       if (BD) {
-        // PATH A — Native BarcodeDetector, detect(video) directly.
-        // Passing HTMLVideoElement skips all canvas/bitmap overhead; the browser
-        // (ML Kit on Android, Vision on iOS) samples the frame internally.
-        // No crop: avoids false-misses when the barcode is slightly off-centre.
-        // No time throttle: `detecting` flag self-limits to detector speed.
-        let nativeDetector: { detect: (src: HTMLVideoElement) => Promise<Array<{ rawValue: string; format: string }>> } | null = null
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        type NDResult = Array<{ rawValue: string; format: string }>
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        let nativeDetector: { detect: (src: any) => Promise<NDResult> } | null = null
         try {
-          nativeDetector = new BD({ formats: ['itf', 'code_128', 'code_39', 'ean_13', 'ean_8', 'codabar', 'upc_a', 'code_93'] })
+          nativeDetector = new BD({ formats: ['itf', 'code_128', 'code_39', 'ean_13', 'ean_8', 'upc_a'] })
         } catch {
           try { nativeDetector = new BD() } catch { /* not available */ }
         }
 
         if (nativeDetector) {
           const nd = nativeDetector
-          let detecting = false
 
+          const onResult = (results: NDResult) => {
+            if (!cancelled && results.length > 0) {
+              setLastScannedCode(results[0].rawValue)
+              setLastScannedFormat(results[0].format)
+              onScanRef.current?.(results[0].rawValue)
+            }
+          }
+
+          // ── PATH A1: MediaStreamTrackProcessor + VideoFrame ───────────────
+          // Camera frames delivered directly from GPU, no DOM/canvas overhead.
+          // Same pipeline used by banking apps (Bradesco, Itaú, etc).
+          // Available: Chrome 94+ / Android Chrome / Edge.
+          const stream = video.srcObject as MediaStream | null
+          const track = stream?.getVideoTracks()[0]
+
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          if (track && 'MediaStreamTrackProcessor' in (globalThis as any)) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const processor = new (globalThis as any).MediaStreamTrackProcessor({ track })
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const frameReader: { read: () => Promise<{ value: any; done: boolean }>; cancel: () => Promise<void> } =
+              processor.readable.getReader()
+
+            // Override cleanup to also release the frame reader
+            scannerControlsRef.current = { stop: () => { frameReader.cancel().catch(() => {}); stopAll() } }
+
+            void (async () => {
+              while (!cancelled) {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                let frame: any = null
+                try {
+                  const { value, done } = await frameReader.read()
+                  if (done || cancelled) break
+                  frame = value
+                  const results = await nd.detect(frame)
+                  onResult(results)
+                } catch { /* NotFoundException / frame error — continue */ }
+                finally { frame?.close() }
+              }
+            })()
+            return
+          }
+
+          // ── PATH A2: rAF + detect(video) — fallback for Safari / older Chrome ──
+          let detecting = false
           const loop = () => {
             if (cancelled) return
             rafId = requestAnimationFrame(loop)
             if (detecting || video.readyState < 2) return
             detecting = true
             nd.detect(video)
-              .then(results => {
-                detecting = false
-                if (!cancelled && results.length > 0) {
-                  setLastScannedCode(results[0].rawValue)
-                  setLastScannedFormat(results[0].format)
-                  onScanRef.current?.(results[0].rawValue)
-                }
-              })
+              .then(r => { detecting = false; onResult(r) })
               .catch(() => { detecting = false })
           }
           rafId = requestAnimationFrame(loop)
-          return // BarcodeDetector handles everything — no ZXing needed
+          return
         }
       }
 
-      // PATH B — ZXing BrowserMultiFormatReader fallback (when BarcodeDetector unavailable)
-      // decodeFromVideoElement decodes the full frame at native video resolution.
+      // PATH B — ZXing fallback (when BarcodeDetector unavailable: iOS < 17.2, Firefox…)
+      // Only ITF + CODE_128: the two formats used on talões — ~4x faster than 8 formats.
       try {
         const [zxBrowser, zxLib] = await Promise.all([
           import('@zxing/browser'),
@@ -1115,19 +1150,17 @@ export default function AdminPanel() {
 
         const hints = new Map()
         hints.set(zxLib.DecodeHintType.POSSIBLE_FORMATS, [
-          zxLib.BarcodeFormat.ITF, zxLib.BarcodeFormat.CODE_128, zxLib.BarcodeFormat.CODE_39,
-          zxLib.BarcodeFormat.EAN_13, zxLib.BarcodeFormat.EAN_8, zxLib.BarcodeFormat.CODABAR,
-          zxLib.BarcodeFormat.UPC_A, zxLib.BarcodeFormat.CODE_93,
+          zxLib.BarcodeFormat.ITF,
+          zxLib.BarcodeFormat.CODE_128,
         ])
         hints.set(zxLib.DecodeHintType.TRY_HARDER, true)
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const reader = new (zxBrowser as any).BrowserMultiFormatReader(hints, {
-          delayBetweenScanAttempts: 100,
-          delayBetweenScanSuccess: 600,
+          delayBetweenScanAttempts: 0,   // scan as fast as possible
+          delayBetweenScanSuccess: 500,
         })
 
-        // Camera is already started — just attach decoder to the video element
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const controls = await reader.decodeFromVideoElement(video, (result: any) => {
           if (result && !cancelled) {
