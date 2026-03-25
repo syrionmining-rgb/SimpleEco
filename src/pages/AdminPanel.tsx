@@ -1302,19 +1302,9 @@ export default function AdminPanel() {
               <span>Sair</span>
             </button>
           </div>
-          {/* User chip */}
-          <div className="mt-3 px-3 py-2.5 rounded-xl bg-white/5 flex items-center gap-2.5">
-            <div className="w-6 h-6 rounded-full bg-[#FF8C00] flex items-center justify-center shrink-0">
-              <span className="text-white text-[10px] font-bold leading-none">
-                {(localStorage.getItem('se_user') || 'A')[0].toUpperCase()}
-              </span>
-            </div>
-            <div className="min-w-0">
-              <p className="text-[12px] font-medium text-white truncate leading-none">
-                {localStorage.getItem('se_user') || 'Administrador'}
-              </p>
-              <p className="text-[10px] text-[#555] leading-none mt-0.5">v2.0</p>
-            </div>
+          {/* Version badge */}
+          <div className="mt-3 px-3 py-1.5 rounded-xl bg-white/5 flex items-center justify-center">
+            <span className="text-[11px] text-[#555] tracking-wide">v2.0</span>
           </div>
         </div>
       </aside>
