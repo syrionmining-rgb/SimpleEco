@@ -182,7 +182,6 @@ export default function AdminPanel() {
   // ── Orders state ─────────────────────────────────────────────────────────
   const [ordersSubTab, setOrdersSubTab] = useState<'pedidos' | 'remessas'>('pedidos')
   const [ordersSubTabOpen, setOrdersSubTabOpen] = useState(false)
-  const [totalOrders, setTotalOrders] = useState<number | null>(null)
   const [orders, setOrders] = useState<PedidoRow[]>([])
   const [taloes, setTaloes] = useState<TalaoRow[]>([])
   const [talsetor, setTalsetor] = useState<TalsetorRow[]>([])
@@ -253,6 +252,14 @@ export default function AdminPanel() {
   const [seLinkLogs, setSeLinkLogs] = useState<SeLinkLog[]>([])
   const [seLinkLogsClearing, setSeLinkLogsClearing] = useState(false)
   const [seLinkLogsFilter, setSeLinkLogsFilter] = useState<'ALL' | 'INFO' | 'WARNING' | 'ERROR'>('ALL')
+
+  // ── Dashboard summary state ────────────────────────────────────────────────
+  const [dashCounts, setDashCounts] = useState<{
+    pedidos: number | null; taloes: number | null; clientes: number | null
+    fichas: number | null; materiais: number | null; setores: number | null
+  }>({ pedidos: null, taloes: null, clientes: null, fichas: null, materiais: null, setores: null })
+  const [dashLoading, setDashLoading] = useState(false)
+  const dashIntervalRef = React.useRef<ReturnType<typeof setInterval> | null>(null)
   const [syncConfig, setSyncConfig] = useState<SyncConfigRow[]>([])
   const [syncConfigLoading, setSyncConfigLoading] = useState(false)
   const [syncConfigToggles, setSyncConfigToggles] = useState<Record<string, boolean>>({})
@@ -293,6 +300,29 @@ export default function AdminPanel() {
       }
       return null
     } catch { return null }
+  }
+
+  async function fetchDashCounts() {
+    setDashLoading(true)
+    try {
+      const [r0, r1, r2, r3, r4, r5] = await Promise.all([
+        supabase.from('pedidos').select('*', { count: 'exact', head: true }),
+        supabase.from('taloes').select('*', { count: 'exact', head: true }),
+        supabase.from('clientes').select('*', { count: 'exact', head: true }),
+        supabase.from('fichas').select('*', { count: 'exact', head: true }),
+        supabase.from('material').select('*', { count: 'exact', head: true }),
+        supabase.from('setores').select('*', { count: 'exact', head: true }),
+      ])
+      setDashCounts({
+        pedidos:   r0.count ?? null,
+        taloes:    r1.count ?? null,
+        clientes:  r2.count ?? null,
+        fichas:    r3.count ?? null,
+        materiais: r4.count ?? null,
+        setores:   r5.count ?? null,
+      })
+    } catch { /* ignore */ }
+    setDashLoading(false)
   }
 
   async function fetchSyncFlags() {
@@ -453,6 +483,21 @@ export default function AdminPanel() {
     }
   }, [selectedModule])
 
+  useEffect(() => {
+    if (selectedModule === 'dashboard') {
+      void fetchDashCounts()
+      void fetchLastSync()
+      void fetchSeLinkLogs()
+      dashIntervalRef.current = setInterval(() => {
+        void fetchDashCounts()
+        void fetchLastSync()
+      }, 30_000)
+    }
+    return () => {
+      if (dashIntervalRef.current) { clearInterval(dashIntervalRef.current); dashIntervalRef.current = null }
+    }
+  }, [selectedModule])
+
   // ── Production Flow state ──────────────────────────────────────────────────
   const [prodItems, setProdItems] = useState<ProdItem[]>([])
   const [prodItemsLoading, setProdItemsLoading] = useState(false)
@@ -517,12 +562,6 @@ export default function AdminPanel() {
     },
   ]
 
-  const recentActivities = [
-    { title: 'Backup Automático', description: 'Backup completo do banco de dados executado com sucesso.', timestamp: '2h atrás', tag: 'sistema' },
-    { title: 'Novo Usuário Cadastrado', description: 'João Silva foi adicionado ao sistema com permissões de operador.', timestamp: '4h atrás', tag: 'usuários' },
-    { title: 'Erro de Sincronização', description: 'Falha na sincronização com o servidor externo. Necessária intervenção manual.', timestamp: '6h atrás', tag: 'erro' },
-    { title: 'Atualização de Sistema', description: 'Nova versão disponível v2.1.3 com correções de bugs.', timestamp: '1 dia atrás', tag: 'atualização' },
-  ]
 
   // ── Fetch helpers ─────────────────────────────────────────────────────────
 
@@ -638,10 +677,6 @@ export default function AdminPanel() {
   // ── Effects ───────────────────────────────────────────────────────────────
   useEffect(() => { localStorage.setItem(ADMIN_MODULE_STORAGE_KEY, selectedModule) }, [selectedModule])
 
-  useEffect(() => {
-    async function run() { const { count, error } = await supabase.from('pedidos').select('*', { count: 'exact', head: true }); if (!error) setTotalOrders(count ?? 0) }
-    void run(); const id = setInterval(() => { void run() }, 60_000); return () => clearInterval(id)
-  }, [])
 
   useEffect(() => {
     if (selectedModule !== 'orders' && selectedModule !== 'clients') return
@@ -2756,48 +2791,99 @@ export default function AdminPanel() {
           <div className="flex-1 overflow-y-auto p-6">
 
             {/* DASHBOARD */}
-            {selectedModule === 'dashboard' && (
-              <div>
-                <div className="mb-6">
-                  <h1 className="text-xl font-bold text-[var(--th-txt-1)] mb-1">Dashboard Administrativo</h1>
-                  <p className="text-sm text-[var(--th-txt-3)] mb-6">Visão geral do sistema Simple&amp;Eco</p>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-                  <div className="rounded-xl border border-[var(--th-border)] bg-[var(--th-card)]">
-                    <div className="p-5 flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-lg bg-[var(--th-subtle)] border border-[var(--th-border)] flex items-center justify-center shrink-0">
-                        <Box strokeWidth={1.5} className="w-5 h-5 text-[var(--th-txt-4)]" />
-                      </div>
-                      <div>
-                        <p className="text-[11px] text-[var(--th-txt-4)] uppercase tracking-widest font-medium mb-0.5">Pedidos Totais</p>
-                        <p className="text-xl font-bold text-orange-400">{totalOrders !== null ? totalOrders.toLocaleString('pt-BR') : '—'}</p>
-                      </div>
+            {selectedModule === 'dashboard' && (() => {
+              const kpis: Array<{ label: string; value: number | null; icon: LucideIcon; module: AdminModuleId | null; accent: string }> = [
+                { label: 'Pedidos',    value: dashCounts.pedidos,   icon: Box,       module: 'orders',   accent: 'text-orange-400' },
+                { label: 'Talões',     value: dashCounts.taloes,    icon: ScrollText,module: 'orders',   accent: 'text-sky-400'    },
+                { label: 'Clientes',   value: dashCounts.clientes,  icon: Users,     module: 'clients',  accent: 'text-emerald-400'},
+                { label: 'Fichas',     value: dashCounts.fichas,    icon: Package,   module: 'products', accent: 'text-violet-400' },
+                { label: 'Materiais',  value: dashCounts.materiais, icon: Database,  module: 'database', accent: 'text-yellow-400' },
+                { label: 'Setores',    value: dashCounts.setores,   icon: GitBranch, module: 'sectors',  accent: 'text-rose-400'   },
+              ]
+              const lastLogs = [...seLinkLogs].reverse().slice(0, 6)
+              return (
+                <div className="space-y-6">
+                  {/* Header */}
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h1 className="text-lg font-bold text-[var(--th-txt-1)]">Dashboard</h1>
+                      <p className="text-xs text-[var(--th-txt-4)] mt-0.5">Visão geral do projeto</p>
                     </div>
+                    <button onClick={() => { void fetchDashCounts(); void fetchLastSync(); void fetchSeLinkLogs() }}
+                      className="p-2 rounded-lg hover:bg-[var(--th-hover)] text-[var(--th-txt-4)] hover:text-[var(--th-txt-1)] transition-colors">
+                      <RefreshCw strokeWidth={1.5} className={`w-4 h-4 ${dashLoading ? 'animate-spin' : ''}`} />
+                    </button>
                   </div>
-                </div>
-                <div className="rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] p-5 overflow-hidden">
-                  <div className="pb-3 mb-3 border-b border-[var(--th-border)]">
-                    <h3 className="text-xs font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Atividades Recentes</h3>
-                  </div>
-                  <div className="space-y-1">
-                    {recentActivities.map((a, i) => (
-                      <div key={i} className="rounded-xl border border-[var(--th-border)] bg-[var(--th-subtle)] px-4 py-3 hover:border-orange-500/30 hover:bg-orange-500/5 transition-all">
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="min-w-0">
-                            <p className="text-sm font-medium text-[var(--th-txt-1)] mb-0.5">{a.title}</p>
-                            <p className="text-xs text-[var(--th-txt-3)] line-clamp-1">{a.description}</p>
-                          </div>
-                          <div className="flex items-center gap-2 shrink-0">
-                            <span className="text-[11px] px-1.5 py-0.5 rounded bg-[var(--th-card)] text-[var(--th-txt-4)] border border-[var(--th-border)]">{a.tag}</span>
-                            <span className="text-[11px] text-[var(--th-txt-4)]">{a.timestamp}</span>
-                          </div>
+
+                  {/* KPI grid */}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {kpis.map(k => (
+                      <button key={k.label} onClick={() => k.module && setSelectedModule(k.module)}
+                        className={`rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] p-4 text-left transition-all ${k.module ? 'hover:border-orange-500/30 hover:bg-orange-500/5 cursor-pointer' : 'cursor-default'}`}>
+                        <div className="flex items-center gap-2 mb-3">
+                          <k.icon strokeWidth={1.5} className={`w-4 h-4 ${k.accent}`} />
+                          <span className="text-[11px] font-medium uppercase tracking-wider text-[var(--th-txt-4)]">{k.label}</span>
                         </div>
-                      </div>
+                        <p className={`text-2xl font-bold ${k.accent}`}>
+                          {k.value !== null ? k.value.toLocaleString('pt-BR') : <span className="text-[var(--th-txt-4)] text-lg">—</span>}
+                        </p>
+                      </button>
                     ))}
                   </div>
+
+                  {/* Bottom row */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+
+                    {/* SE Link status */}
+                    <div className="rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] p-4">
+                      <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--th-txt-4)] mb-3">SE Link</p>
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className={`w-2 h-2 rounded-full shrink-0 ${seLinkOnline === true ? 'bg-emerald-400' : seLinkOnline === false ? 'bg-red-400' : 'bg-[var(--th-txt-4)]'}`} />
+                        <span className="text-sm font-medium text-[var(--th-txt-1)]">
+                          {seLinkOnline === true ? 'Online' : seLinkOnline === false ? 'Offline' : 'Verificando...'}
+                        </span>
+                      </div>
+                      {lastSyncTime && (
+                        <p className="text-xs text-[var(--th-txt-3)] mb-4">
+                          Última sync: <span className="text-[var(--th-txt-1)]">{lastSyncTime}</span>
+                        </p>
+                      )}
+                      <button onClick={() => void requestForceSync()}
+                        disabled={forceSyncLoading || forceSyncStatus === 'waiting'}
+                        className="w-full flex items-center justify-center gap-2 py-2 rounded-lg border border-[var(--th-border)] text-xs font-medium text-[var(--th-txt-3)] hover:border-orange-500/40 hover:text-orange-400 hover:bg-orange-500/5 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                        <RefreshCw strokeWidth={1.5} className={`w-3.5 h-3.5 ${forceSyncStatus === 'waiting' ? 'animate-spin' : ''}`} />
+                        {forceSyncStatus === 'waiting' ? 'Sincronizando...' : forceSyncStatus === 'done' ? 'Concluído!' : 'Forçar Sync'}
+                      </button>
+                    </div>
+
+                    {/* Recent logs */}
+                    <div className="rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--th-txt-4)]">Logs Recentes</p>
+                        <button onClick={() => setSelectedModule('database')} className="text-[11px] text-orange-400 hover:underline">ver todos</button>
+                      </div>
+                      {lastLogs.length === 0 ? (
+                        <p className="text-xs text-[var(--th-txt-4)] py-4 text-center">Sem logs recentes</p>
+                      ) : (
+                        <div className="space-y-1.5">
+                          {lastLogs.map(log => (
+                            <div key={log.id} className="flex items-start gap-2">
+                              <span className={`shrink-0 text-[10px] font-bold uppercase px-1.5 py-0.5 rounded mt-0.5 ${
+                                log.level === 'ERROR' ? 'bg-red-500/15 text-red-400' :
+                                log.level === 'WARNING' ? 'bg-yellow-500/15 text-yellow-400' :
+                                'bg-[var(--th-subtle)] text-[var(--th-txt-4)]'
+                              }`}>{log.level}</span>
+                              <p className="text-xs text-[var(--th-txt-3)] line-clamp-1 min-w-0">{log.message}</p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                  </div>
                 </div>
-              </div>
-            )}
+              )
+            })()}
 
             {/* CLIENTS MODULE */}
             {selectedModule === 'clients' && (() => {
