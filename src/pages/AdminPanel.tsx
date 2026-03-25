@@ -1489,37 +1489,49 @@ export default function AdminPanel() {
                           ? `w-full text-left rounded-xl border px-4 py-3 transition-all ${cancelado ? 'border-[var(--th-border)] bg-[var(--th-subtle)]' : atrasado ? 'border-red-500/40 bg-red-500/8' : 'border-orange-500/40 bg-orange-500/8'}`
                           : `w-full text-left rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] px-4 py-3 transition-all ${cancelado ? 'opacity-60 hover:opacity-80' : atrasado ? 'hover:border-red-500/30 hover:bg-red-500/5' : 'hover:border-orange-500/30 hover:bg-orange-500/5'}`}
                       >
-                        <div className="flex items-start gap-3 min-w-0 w-full">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-1.5 mb-1 flex-wrap">
-                              <span className="text-[11px] font-mono font-semibold text-[var(--th-txt-2)]">{pc}</span>
-                              <span className="text-[var(--th-txt-4)] select-none">·</span>
-                              <span className={`text-[11px] font-medium ${atrasado ? 'text-red-400' : 'text-[var(--th-txt-4)]'}`}>{fmtDate(pNode.pedido.PREVISAO)}</span>
-                            </div>
-                            <p className="text-[13px] font-medium text-[var(--th-txt-1)] truncate mb-0.5">{cliNome}</p>
-                            {asText(pNode.pedido.PEDCLIENTE) && (
-                              <p className="text-[11px] text-[var(--th-txt-4)] mb-1.5">O.C. <span className="font-mono text-[var(--th-txt-3)]">{asText(pNode.pedido.PEDCLIENTE)}</span></p>
-                            )}
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[var(--th-subtle)] border border-[var(--th-border)] text-[11px] font-medium text-[var(--th-txt-4)]">
-                                {pNode.taloes.length} Talões
-                              </span>
-                              {saldo > 0 && (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[var(--th-subtle)] border border-[var(--th-border)] text-[11px] font-medium text-[var(--th-txt-4)]">Unidades {fmtNumber(saldo)}</span>
-                              )}
-                            </div>
-                          </div>
-                          <div className="shrink-0 flex flex-col items-end gap-1.5 pt-0.5">
-                            {cancelado
-                              ? <span className="text-[11px] px-1.5 py-0.5 rounded-full bg-[var(--th-subtle)] text-[var(--th-txt-4)] border border-[var(--th-border)] font-medium">Cancelado</span>
-                              : pedidoFinalizado
-                                ? <span className="text-[11px] px-1.5 py-0.5 rounded-full bg-green-500/15 text-green-400 border border-green-500/20 font-medium">Finalizado</span>
-                                : atrasado
-                                  ? <span className="text-[11px] px-1.5 py-0.5 rounded-full bg-red-500/15 text-red-400 border border-red-500/20 font-medium">Atrasado</span>
-                                  : <span className="text-[11px] px-1.5 py-0.5 rounded-full bg-orange-500/15 text-orange-400 border border-orange-500/20 font-medium">Em produção</span>
-                            }
-                          </div>
+                        {/* Status badge no topo */}
+                        <div className="flex items-center gap-1.5 mb-2">
+                          {cancelado
+                            ? <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border bg-[var(--th-subtle)] text-[var(--th-txt-4)] border-[var(--th-border)]">Cancelado</span>
+                            : pedidoFinalizado
+                              ? <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border bg-green-500/15 text-green-400 border-green-500/20">Finalizado</span>
+                              : <>
+                                  {atrasado && <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border bg-red-500/15 text-red-400 border-red-500/20">Atrasado</span>}
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border bg-orange-500/15 text-orange-400 border-orange-500/20">Em produção</span>
+                                </>
+                          }
                         </div>
+                        {/* Blocos de meta */}
+                        <div className="flex items-end gap-4 flex-wrap mb-2">
+                          <div className="flex flex-col">
+                            <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Pedido</span>
+                            <span className="text-sm font-mono font-bold text-[var(--th-txt-1)]">{pc}</span>
+                          </div>
+                          {asText(pNode.pedido.PREVISAO) && (
+                            <div className="flex flex-col">
+                              <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Entrega</span>
+                              <span className={`text-sm font-mono ${atrasado ? 'text-red-400' : 'text-[var(--th-txt-2)]'}`}>{fmtDate(pNode.pedido.PREVISAO)}</span>
+                            </div>
+                          )}
+                          {asText(pNode.pedido.PEDCLIENTE) && (
+                            <div className="flex flex-col">
+                              <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">O.C.</span>
+                              <span className="text-sm font-mono text-[var(--th-txt-2)]">{asText(pNode.pedido.PEDCLIENTE)}</span>
+                            </div>
+                          )}
+                          <div className="flex flex-col">
+                            <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Talões</span>
+                            <span className="text-sm font-mono text-[var(--th-txt-2)]">{pNode.taloes.length}</span>
+                          </div>
+                          {saldo > 0 && (
+                            <div className="flex flex-col">
+                              <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Saldo</span>
+                              <span className="text-sm font-mono text-[var(--th-txt-2)]">{fmtNumber(saldo)}</span>
+                            </div>
+                          )}
+                        </div>
+                        {/* Nome do cliente */}
+                        <p className="text-[13px] font-medium text-[var(--th-txt-1)] truncate">{cliNome}</p>
                       </button>
                     )
                   }
@@ -1756,9 +1768,10 @@ export default function AdminPanel() {
                                 ? <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border bg-[var(--th-subtle)] text-[var(--th-txt-4)] border-[var(--th-border)]">Cancelado</span>
                                 : saldo === 0
                                   ? <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border bg-green-500/15 text-green-400 border-green-500/30">Finalizado</span>
-                                  : pedidoAtrasado
-                                    ? <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border bg-red-500/15 text-red-400 border-red-500/20">Atrasado</span>
-                                    : <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[var(--th-subtle)] border border-[var(--th-border)] text-[11px] font-medium text-[var(--th-txt-4)]">Unidades {fmtNumber(saldo)}</span>
+                                  : <>
+                                      {pedidoAtrasado && <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border bg-red-500/15 text-red-400 border-red-500/20">Atrasado</span>}
+                                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border bg-orange-500/15 text-orange-400 border-orange-500/30">Em produção</span>
+                                    </>
                               }
                             </div>
                             {/* Produtos */}
@@ -1867,7 +1880,8 @@ export default function AdminPanel() {
                         {fluxoVinculado && fluxoEtapas.length > 0 && (
                           <div className="px-4 py-3 flex flex-wrap gap-1.5 items-center">
                             {fluxoEtapas.map((etapa, idx) => {
-                              const done = passouExpedicaoPedido || etapaConcluida(etapa.nome)
+                              const pedidoFinalizado2 = saldo === 0 && toNumber(pNode.pedido.TOTAL) > 0
+                              const done = pedidoFinalizado2 || passouExpedicaoPedido || etapaConcluida(etapa.nome)
                               const isLast = idx === fluxoEtapas.length - 1
                               return (
                                 <React.Fragment key={etapa.id}>
@@ -1978,7 +1992,8 @@ export default function AdminPanel() {
                         const passouExpedicao = (talsetorByTalao.get(tc) ?? []).some(mv =>
                           /expedi/i.test(asText(mv.NOMESET) + asText(mv.SETOR))
                         )
-                        const finalizado = !canc && (fat || passouExpedicao)
+                        const pedidoSaldoZero = toNumber(pNode.pedido.SALDO) === 0 && toNumber(pNode.pedido.TOTAL) > 0
+                        const finalizado = !canc && (fat || passouExpedicao || pedidoSaldoZero)
                         const tGradeCode = asText(tNode.talao.GRADE).trim() || asText(ficha?.GRADE).trim()
                         const tGradeSizes = tGradeCode ? parseGradeSizes(gradeMap.get(tGradeCode)?.GRADE) : undefined
                         const grade = parseNumeros(tNode.talao.NUMEROS, tGradeSizes)
@@ -1987,53 +2002,69 @@ export default function AdminPanel() {
                         return (
                           <div key={tc} className={`rounded-xl border ${statusBorder} bg-[var(--th-card)] overflow-hidden`}>
                             {/* Header */}
-                            <div className="flex items-stretch gap-0">
-                              {/* Status accent bar */}
+                            <div className="flex items-stretch">
                               <div className={`w-1 shrink-0 ${statusBar} opacity-60`} />
-                              <div className="flex-1 flex items-center justify-between gap-4 px-4 py-3">
-                                <div className="min-w-0">
-                                  <div className="flex items-center gap-2.5 mb-1 flex-wrap">
-                                    <span className="inline-flex items-center gap-1.5 bg-[var(--th-subtle)] border border-[var(--th-border)] px-2.5 py-1 rounded-md">
-                                      <span className="text-[11px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Talão</span>
-                                      <span className="font-mono font-bold text-sm text-[var(--th-txt-1)] tracking-wide leading-none">{tc}</span>
-                                    </span>
-                                    {canc
-                                      ? <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border bg-red-500/15 text-red-400 border-red-500/30">Cancelado</span>
-                                      : finalizado
-                                        ? <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border bg-green-500/15 text-green-400 border-green-500/30">{fat ? 'Faturado' : 'Finalizado'}</span>
-                                        : <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border bg-orange-500/15 text-orange-400 border-orange-500/30">Em produção</span>
-                                    }
+                              <div className="flex-1 px-4 pt-3 pb-3">
+                                {/* Status no topo */}
+                                <div className="mb-2">
+                                  {canc
+                                    ? <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border bg-red-500/15 text-red-400 border-red-500/30">Cancelado</span>
+                                    : finalizado
+                                      ? <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border bg-green-500/15 text-green-400 border-green-500/30">{fat ? 'Faturado' : 'Finalizado'}</span>
+                                      : <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border bg-orange-500/15 text-orange-400 border-orange-500/30">Em produção</span>
+                                  }
+                                </div>
+                                {/* Blocos de meta */}
+                                <div className="flex items-end gap-5 flex-wrap mb-2">
+                                  <div className="flex flex-col">
+                                    <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Talão</span>
+                                    <span className="text-sm font-mono font-bold text-[var(--th-txt-1)]">{tc}</span>
                                   </div>
-                                  {fn && <p className="text-xs text-[var(--th-txt-3)] truncate max-w-[320px]">{fn}</p>}
+                                  <div className="flex flex-col">
+                                    <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Item</span>
+                                    <span className="text-sm font-mono text-[var(--th-txt-2)]">{asText(tNode.talao.ITEM) || '—'}</span>
+                                  </div>
+                                  <div className="flex flex-col">
+                                    <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Ref</span>
+                                    <span className="text-sm font-mono text-[var(--th-txt-2)]">{fc || '—'}</span>
+                                  </div>
+                                  <div className="flex flex-col">
+                                    <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Remessa</span>
+                                    <span className="text-sm font-mono text-[var(--th-txt-2)]">{asText(tNode.talao.REMESSA) || '—'}</span>
+                                  </div>
+                                  {asText(pNode.pedido.PEDCLIENTE) && (
+                                    <div className="flex flex-col">
+                                      <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">O.C.</span>
+                                      <span className="text-sm font-mono text-[var(--th-txt-2)]">{asText(pNode.pedido.PEDCLIENTE)}</span>
+                                    </div>
+                                  )}
+                                  {asText(tNode.talao.ATUALIZADO) && (
+                                    <div className="flex flex-col">
+                                      <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Criado</span>
+                                      <span className="text-sm font-mono text-[var(--th-txt-2)]">{fmtDate(tNode.talao.ATUALIZADO)}</span>
+                                    </div>
+                                  )}
+                                  <div className="flex flex-col ml-auto">
+                                    <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Total</span>
+                                    <span className="text-lg font-bold font-mono text-orange-400 leading-none">{fmtNumber(tNode.talao.TOTAL)}</span>
+                                  </div>
                                 </div>
-                                <div className="shrink-0 text-right">
-                                  <p className="text-[11px] text-[var(--th-txt-4)] mb-0.5 uppercase tracking-widest">Total</p>
-                                  <p className="text-lg font-bold font-mono text-orange-400 leading-none">{fmtNumber(tNode.talao.TOTAL)}</p>
-                                </div>
+                                {/* Nome do produto */}
+                                {fn && <p className="text-sm font-semibold text-[var(--th-txt-1)] mb-0">{fn}</p>}
                               </div>
-                            </div>
-                            {/* Meta strip — linha 1: identificação */}
-                            <div className="flex gap-4 px-4 py-1.5 bg-[var(--th-subtle)] border-t border-[var(--th-border)] flex-wrap">
-                              <span className="text-[11px] text-[var(--th-txt-4)]">Item <span className="font-mono text-[var(--th-txt-2)]">{asText(tNode.talao.ITEM) || '—'}</span></span>
-                              <span className="text-[11px] text-[var(--th-txt-4)]">Ref <span className="font-mono text-[var(--th-txt-2)]">{fc || '—'}</span></span>
-                              <span className="text-[11px] text-[var(--th-txt-4)]">Remessa <span className="font-mono text-[var(--th-txt-2)]">{asText(tNode.talao.REMESSA) || '—'}</span></span>
-                              {asText(pNode.pedido.PEDCLIENTE) && (
-                                <span className="text-[11px] text-[var(--th-txt-4)]">O.C. <span className="font-mono text-[var(--th-txt-2)]">{asText(pNode.pedido.PEDCLIENTE)}</span></span>
-                              )}
-                              {asText(tNode.talao.ATUALIZADO) && (
-                                <span className="text-[11px] text-[var(--th-txt-4)]">Criado <span className="font-mono text-[var(--th-txt-2)]">{fmtDate(tNode.talao.ATUALIZADO)}</span></span>
-                              )}
                             </div>
                             {/* Fluxo de Produção — baseado em sequeset (rota por ficha) + talsetor/moviprod (scans) */}
                             {(() => {
                               const steps = sequesetByFicha.get(fc) ?? []
                               if (steps.length === 0) return null
                               const tsForTalao = talsetorByTalao.get(tc) ?? []
-                              const passedSetores = new Set(tsForTalao.map(mv => asText(mv.SETOR).trim()))
+                              const scannedSetores = new Set(tsForTalao.map(mv => asText(mv.SETOR).trim()))
+                              const allScanSetores = new Set(steps.filter(s => s.TALAO !== false).map(s => asText(s.SETOR).trim()))
+                              const passedSetores = finalizado ? allScanSetores : scannedSetores
                               const currentMovi = moviprodByTalao.get(tc)
                               const currentSetor = (currentMovi && !asText(currentMovi.DATASDA).trim()) ? asText(currentMovi.SETOR).trim() : null
                               const scanSteps = steps.filter(s => s.TALAO !== false)
-                              const passedCount = scanSteps.filter(s => passedSetores.has(asText(s.SETOR).trim())).length
+                              const passedCount = finalizado ? scanSteps.length : scanSteps.filter(s => scannedSetores.has(asText(s.SETOR).trim())).length
                               const totalCount = scanSteps.length
                               const progress = totalCount > 0 ? (passedCount / totalCount) * 100 : 0
                               return (
@@ -2071,29 +2102,19 @@ export default function AdminPanel() {
                                 </div>
                               )
                             })()}
-                            {/* Meta strip — linha 2: dados da ficha (matriz, navalha, cor) */}
-                            {(fMatriz || fNavalha || fCor) && (
-                              <div className="flex gap-4 px-4 py-1.5 border-t border-[var(--th-border)] flex-wrap">
-                                {fMatriz && <span className="text-[11px] text-[var(--th-txt-4)]">Matriz <span className="font-mono text-[var(--th-txt-2)]">{fMatriz}</span></span>}
-                                {fNavalha && <span className="text-[11px] text-[var(--th-txt-4)]">Navalha <span className="font-mono text-[var(--th-txt-2)]">{fNavalha}</span></span>}
-                                {fCor && <span className="text-[11px] text-[var(--th-txt-4)]">Cor <span className="font-mono text-[var(--th-txt-2)]">{fCor}</span></span>}
-                              </div>
-                            )}
-                            {/* OBS da ficha */}
-                            {fObs && (
-                              <div className="px-4 py-1.5 border-t border-[var(--th-border)]">
-                                <span className="text-[11px] text-[var(--th-txt-4)]">Obs. <span className="text-[var(--th-txt-2)]">{fObs}</span></span>
-                              </div>
-                            )}
-                            {/* Meta strip — linha 3: detalhes de construção da ficha */}
-                            {(fConstruc || fSalto || fPalmilha || fForma || fLinha || fProdTxt) && (
-                              <div className="flex gap-4 px-4 py-1.5 border-t border-[var(--th-border)] flex-wrap">
-                                {fProdTxt && <span className="text-[11px] text-[var(--th-txt-4)]">Tipo <span className="font-mono text-[var(--th-txt-2)]">{fProdTxt}</span></span>}
-                                {fLinha && <span className="text-[11px] text-[var(--th-txt-4)]">Linha <span className="font-mono text-[var(--th-txt-2)]">{fLinha}</span></span>}
-                                {fConstruc && <span className="text-[11px] text-[var(--th-txt-4)]">Construção <span className="font-mono text-[var(--th-txt-2)]">{fConstruc}</span></span>}
-                                {fSalto && <span className="text-[11px] text-[var(--th-txt-4)]">Salto <span className="font-mono text-[var(--th-txt-2)]">{fSalto}</span></span>}
-                                {fPalmilha && <span className="text-[11px] text-[var(--th-txt-4)]">Palmilha <span className="font-mono text-[var(--th-txt-2)]">{fPalmilha}</span></span>}
-                                {fForma && <span className="text-[11px] text-[var(--th-txt-4)]">Forma <span className="font-mono text-[var(--th-txt-2)]">{fForma}</span></span>}
+                            {/* Meta strip — dados da ficha em blocos */}
+                            {(fMatriz || fNavalha || fCor || fObs || fProdTxt || fLinha || fConstruc || fSalto || fPalmilha || fForma) && (
+                              <div className="flex gap-5 px-4 py-2.5 bg-[var(--th-subtle)] border-t border-[var(--th-border)] flex-wrap">
+                                {fMatriz && <div className="flex flex-col"><span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Matriz</span><span className="text-sm font-mono text-[var(--th-txt-2)]">{fMatriz}</span></div>}
+                                {fNavalha && <div className="flex flex-col"><span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Navalha</span><span className="text-sm font-mono text-[var(--th-txt-2)]">{fNavalha}</span></div>}
+                                {fCor && <div className="flex flex-col"><span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Cor</span><span className="text-sm font-mono text-[var(--th-txt-2)]">{fCor}</span></div>}
+                                {fProdTxt && <div className="flex flex-col"><span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Tipo</span><span className="text-sm font-mono text-[var(--th-txt-2)]">{fProdTxt}</span></div>}
+                                {fLinha && <div className="flex flex-col"><span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Linha</span><span className="text-sm font-mono text-[var(--th-txt-2)]">{fLinha}</span></div>}
+                                {fConstruc && <div className="flex flex-col"><span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Construção</span><span className="text-sm font-mono text-[var(--th-txt-2)]">{fConstruc}</span></div>}
+                                {fSalto && <div className="flex flex-col"><span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Salto</span><span className="text-sm font-mono text-[var(--th-txt-2)]">{fSalto}</span></div>}
+                                {fPalmilha && <div className="flex flex-col"><span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Palmilha</span><span className="text-sm font-mono text-[var(--th-txt-2)]">{fPalmilha}</span></div>}
+                                {fForma && <div className="flex flex-col"><span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Forma</span><span className="text-sm font-mono text-[var(--th-txt-2)]">{fForma}</span></div>}
+                                {fObs && <div className="flex flex-col"><span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Obs</span><span className="text-sm text-[var(--th-txt-2)]">{fObs}</span></div>}
                               </div>
                             )}
                             {/* Grade */}
