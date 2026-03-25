@@ -1303,8 +1303,9 @@ export default function AdminPanel() {
             </button>
           </div>
           {/* Version badge */}
-          <div className="mt-3 px-3 py-1.5 rounded-xl bg-white/5 flex items-center justify-center">
-            <span className="text-[11px] text-[#555] tracking-wide">v2.0</span>
+          <div className="mt-3 px-3 py-1.5 rounded-xl bg-white/5 flex items-center justify-center gap-1.5">
+            <span className="text-[11px] text-[#555] tracking-wide">v</span>
+            <span className="text-[11px] text-[#555] font-mono tracking-wide">{__COMMIT__}</span>
           </div>
         </div>
       </aside>
