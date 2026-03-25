@@ -39,7 +39,7 @@ function SidebarItem({ title, icon: Icon, active, onClick }: SidebarItemProps) {
 
 function SidebarSection({ label }: { label: string }) {
   return (
-    <p className="px-3 pt-5 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#8B7355]">
+    <p className="px-3 pt-5 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-white">
       {label}
     </p>
   )
@@ -1222,7 +1222,7 @@ export default function AdminPanel() {
         <div className="border-t border-white/8 px-3 pb-4 bg-[#111111] overflow-y-auto max-h-[calc(100vh-54px)]">
           {sidebarSections.map(section => (
             <div key={section.label}>
-              <p className="px-3 pt-4 pb-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#8B7355]">{section.label}</p>
+              <p className="px-3 pt-4 pb-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-white">{section.label}</p>
               <div className="space-y-0.5">
                 {section.items.map(m => (
                   <button key={m.id} onClick={() => { setSelectedModule(m.id); setMobileMenuOpen(false) }}
