@@ -1260,7 +1260,7 @@ export default function AdminPanel() {
             <img src="/ICONSE.png" alt="SimpleEco" className="w-8 h-8 rounded-lg shrink-0 object-cover" />
             <div>
               <p className="text-[13px] font-bold text-[var(--th-txt-1)] leading-none">Simple&amp;Eco</p>
-              <p className="text-[11px] text-[var(--th-txt-4)] leading-none mt-0.5">Painel Admin</p>
+              <p className="text-[11px] text-[#FF8C00] leading-none mt-0.5">Administrador</p>
             </div>
           </div>
         </div>
