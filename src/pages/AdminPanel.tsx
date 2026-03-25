@@ -1257,7 +1257,9 @@ export default function AdminPanel() {
         {/* Logo */}
         <div className="px-4 py-4 shrink-0">
           <div className="flex items-center gap-2.5">
-            <img src="/ICONSE.png" alt="SimpleEco" className="w-8 h-8 rounded-lg shrink-0 object-cover" />
+            <div className="w-8 h-8 rounded-lg bg-[#FF8C00] flex items-center justify-center shrink-0">
+              <span className="text-white text-[13px] font-bold leading-none">S</span>
+            </div>
             <div>
               <p className="text-[13px] font-bold text-[var(--th-txt-1)] leading-none">Simple&amp;Eco</p>
               <p className="text-[11px] text-[var(--th-txt-4)] leading-none mt-0.5">Painel Admin</p>
