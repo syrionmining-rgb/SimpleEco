@@ -27,7 +27,7 @@ function SidebarItem({ title, icon: Icon, active, onClick }: SidebarItemProps) {
       onClick={onClick}
       className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-sm font-medium transition-all ${
         active
-          ? 'bg-[#2a2a2a] text-white'
+          ? 'bg-[#FF8C00] text-white shadow-sm'
           : 'text-[#888888] hover:bg-white/6 hover:text-white'
       }`}
     >
@@ -39,7 +39,7 @@ function SidebarItem({ title, icon: Icon, active, onClick }: SidebarItemProps) {
 
 function SidebarSection({ label }: { label: string }) {
   return (
-    <p className="px-3 pt-5 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-white">
+    <p className="px-3 pt-5 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#FF8C00]/70">
       {label}
     </p>
   )
@@ -1222,12 +1222,12 @@ export default function AdminPanel() {
         <div className="px-3 pb-4 bg-[#111111] overflow-y-auto max-h-[calc(100vh-54px)]">
           {sidebarSections.map(section => (
             <div key={section.label}>
-              <p className="px-3 pt-4 pb-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-white">{section.label}</p>
+              <p className="px-3 pt-4 pb-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#FF8C00]/70">{section.label}</p>
               <div className="space-y-0.5">
                 {section.items.map(m => (
                   <button key={m.id} onClick={() => { setSelectedModule(m.id); setMobileMenuOpen(false) }}
                     className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-sm font-medium transition-all ${
-                      selectedModule === m.id ? 'bg-[#2a2a2a] text-white' : 'text-[#888] hover:bg-white/6 hover:text-white'
+                      selectedModule === m.id ? 'bg-[#FF8C00] text-white shadow-sm' : 'text-[#888] hover:bg-white/6 hover:text-white'
                     }`}>
                     <m.icon strokeWidth={1.5} className="w-4 h-4 shrink-0" />
                     <span>{m.title}</span>
