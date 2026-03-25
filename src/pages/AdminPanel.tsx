@@ -1258,7 +1258,7 @@ export default function AdminPanel() {
         <div className="px-4 py-4 shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-[#FF8C00] flex items-center justify-center shrink-0">
-              <span className="text-white text-[13px] font-bold leading-none">S</span>
+              <Box strokeWidth={1.8} className="w-4 h-4 text-white" />
             </div>
             <div>
               <p className="text-[13px] font-bold text-[var(--th-txt-1)] leading-none">Simple&amp;Eco</p>
