@@ -27,7 +27,7 @@ function SidebarItem({ title, icon: Icon, active, onClick }: SidebarItemProps) {
       onClick={onClick}
       className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-sm font-medium transition-all ${
         active
-          ? 'bg-[#FF8C00] text-white shadow-sm'
+          ? 'bg-[var(--th-accent)] text-white shadow-sm'
           : 'text-[var(--th-txt-3)] hover:bg-[var(--th-hover)] hover:text-[var(--th-txt-1)]'
       }`}
     >
@@ -488,6 +488,23 @@ export default function AdminPanel() {
   }
 
   const isDark = document.documentElement.classList.contains('dark')
+
+  // ── Accent color ─────────────────────────────────────────────────────────
+  const [accentColor, setAccentColor] = useState(() => localStorage.getItem('se_accent') || '#FF8C00')
+
+  function applyAccent(color: string) {
+    document.documentElement.style.setProperty('--th-accent', color)
+    localStorage.setItem('se_accent', color)
+    setAccentColor(color)
+  }
+
+  useEffect(() => {
+    const saved = localStorage.getItem('se_accent')
+    if (saved) document.documentElement.style.setProperty('--th-accent', saved)
+  }, [])
+
+  // ── Settings tab ─────────────────────────────────────────────────────────
+  const [settingsTab, setSettingsTab] = useState<'appearance'>('appearance')
 
   // ── Sidebar modules ───────────────────────────────────────────────────────
 
@@ -1257,7 +1274,7 @@ export default function AdminPanel() {
         {/* Logo */}
         <div className="px-4 py-4 shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-[#FF8C00] flex items-center justify-center shrink-0">
+            <div className="w-8 h-8 rounded-lg bg-[var(--th-accent)] flex items-center justify-center shrink-0">
               <Box strokeWidth={1.8} className="w-4 h-4 text-white" />
             </div>
             <div>
@@ -3345,7 +3362,110 @@ export default function AdminPanel() {
             )}
 
             {/* OTHER MODULES */}
-            {selectedModule !== 'dashboard' && selectedModule !== 'database' && selectedModule !== 'clients' && (
+            {/* SETTINGS */}
+            {selectedModule === 'settings' && (() => {
+              const accentPresets = [
+                { label: 'Laranja',  color: '#FF8C00' },
+                { label: 'Rosa',     color: '#D81B60' },
+                { label: 'Azul',     color: '#3B82F6' },
+                { label: 'Verde',    color: '#10B981' },
+                { label: 'Violeta',  color: '#8B5CF6' },
+                { label: 'Âmbar',   color: '#F59E0B' },
+              ]
+              return (
+                <div className="max-w-xl space-y-6">
+                  {/* Header */}
+                  <div>
+                    <h1 className="text-lg font-bold text-[var(--th-txt-1)]">Configurações</h1>
+                    <p className="text-xs text-[var(--th-txt-4)] mt-0.5">Personalize a aparência do painel</p>
+                  </div>
+
+                  {/* Tab bar */}
+                  <div className="flex gap-1 p-1 rounded-xl bg-[var(--th-subtle)] w-fit">
+                    <button
+                      onClick={() => setSettingsTab('appearance')}
+                      className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                        settingsTab === 'appearance'
+                          ? 'bg-[var(--th-card)] text-[var(--th-txt-1)] shadow-sm'
+                          : 'text-[var(--th-txt-4)] hover:text-[var(--th-txt-1)]'
+                      }`}
+                    >
+                      Aparência
+                    </button>
+                  </div>
+
+                  {settingsTab === 'appearance' && (
+                    <div className="space-y-6">
+
+                      {/* Tema */}
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-wider text-[var(--th-txt-4)] mb-3">Tema</p>
+                        <div className="grid grid-cols-2 gap-3">
+                          {/* Dark */}
+                          <button onClick={() => { if (!isDark) toggleTheme() }}
+                            className={`rounded-xl p-4 border-2 transition-all text-left ${isDark ? 'border-[var(--th-accent)]' : 'border-[var(--th-border)] hover:border-[var(--th-accent)]/40'}`}>
+                            <div className="w-full h-16 rounded-lg bg-[#111] mb-3 overflow-hidden flex flex-col gap-1 p-2">
+                              <div className="h-2 w-3/4 rounded bg-[#2a2a2a]" />
+                              <div className="h-2 w-1/2 rounded bg-[#2a2a2a]" />
+                              <div className="mt-auto h-2 w-2/3 rounded" style={{ backgroundColor: accentColor }} />
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-semibold text-[var(--th-txt-1)]">Escuro</span>
+                              {isDark && <div className="w-4 h-4 rounded-full flex items-center justify-center" style={{ backgroundColor: accentColor }}><Check strokeWidth={3} className="w-2.5 h-2.5 text-white" /></div>}
+                            </div>
+                          </button>
+                          {/* Light */}
+                          <button onClick={() => { if (isDark) toggleTheme() }}
+                            className={`rounded-xl p-4 border-2 transition-all text-left ${!isDark ? 'border-[var(--th-accent)]' : 'border-[var(--th-border)] hover:border-[var(--th-accent)]/40'}`}>
+                            <div className="w-full h-16 rounded-lg bg-white mb-3 overflow-hidden flex flex-col gap-1 p-2 border border-gray-100">
+                              <div className="h-2 w-3/4 rounded bg-gray-200" />
+                              <div className="h-2 w-1/2 rounded bg-gray-200" />
+                              <div className="mt-auto h-2 w-2/3 rounded" style={{ backgroundColor: accentColor }} />
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-semibold text-[var(--th-txt-1)]">Claro</span>
+                              {!isDark && <div className="w-4 h-4 rounded-full flex items-center justify-center" style={{ backgroundColor: accentColor }}><Check strokeWidth={3} className="w-2.5 h-2.5 text-white" /></div>}
+                            </div>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Cor de destaque */}
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-wider text-[var(--th-txt-4)] mb-3">Cor de Destaque</p>
+                        <div className="flex flex-wrap gap-2">
+                          {accentPresets.map(p => (
+                            <button key={p.color} onClick={() => applyAccent(p.color)}
+                              title={p.label}
+                              className={`w-9 h-9 rounded-xl transition-all ${accentColor === p.color ? 'ring-2 ring-offset-2 ring-offset-[var(--th-card)] scale-110' : 'hover:scale-105'}`}
+                              style={{ backgroundColor: p.color, '--tw-ring-color': p.color } as React.CSSProperties}
+                            />
+                          ))}
+                        </div>
+                        <p className="text-[11px] text-[var(--th-txt-4)] mt-2">Cor atual: <span className="font-mono">{accentColor}</span></p>
+                      </div>
+
+                      {/* Preview */}
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-wider text-[var(--th-txt-4)] mb-3">Preview</p>
+                        <div className="rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] p-4 flex items-center gap-3">
+                          <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: accentColor }}>
+                            <Box strokeWidth={1.8} className="w-4 h-4 text-white" />
+                          </div>
+                          <div>
+                            <p className="text-[13px] font-bold text-[var(--th-txt-1)] leading-none">Simple&amp;Eco</p>
+                            <p className="text-[11px] leading-none mt-0.5 font-semibold" style={{ color: accentColor }}>Administrador</p>
+                          </div>
+                        </div>
+                      </div>
+
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
+
+            {selectedModule !== 'dashboard' && selectedModule !== 'database' && selectedModule !== 'clients' && selectedModule !== 'settings' && (
               <div className="flex flex-col items-center justify-center h-full text-[var(--th-txt-4)]">
                 <Package strokeWidth={1} className="w-14 h-14 mb-4 opacity-30" />
                 <p className="text-base font-medium text-[var(--th-txt-3)] mb-1">Módulo em desenvolvimento</p>
