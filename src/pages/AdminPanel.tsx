@@ -1255,7 +1255,7 @@ export default function AdminPanel() {
     <div className="flex h-screen overflow-hidden bg-[var(--th-page)] text-[var(--th-txt-1)] pt-[54px] sm:pt-0">
 
       {/* ── Sidebar ── */}
-      <aside className="hidden sm:flex w-[260px] shrink-0 border-r border-white/8 flex-col bg-[#111111]">
+      <aside className="hidden sm:flex w-[260px] shrink-0 flex-col bg-[#111111]">
 
         {/* Header */}
         <div className="px-4 h-14 flex items-center justify-between shrink-0">
@@ -1291,7 +1291,7 @@ export default function AdminPanel() {
         </nav>
 
         {/* Footer */}
-        <div className="px-3 py-3 border-t border-white/8 shrink-0">
+        <div className="px-3 py-3 shrink-0">
           <div className="space-y-0.5">
             <button onClick={toggleTheme} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-[#888] hover:bg-white/6 hover:text-white transition-all">
               {isDark ? <Sun strokeWidth={1.5} className="w-4 h-4 shrink-0" /> : <Moon strokeWidth={1.5} className="w-4 h-4 shrink-0" />}
