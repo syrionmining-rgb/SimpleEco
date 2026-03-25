@@ -25,13 +25,13 @@ function SidebarItem({ title, icon: Icon, active, onClick }: SidebarItemProps) {
   return (
     <button
       onClick={onClick}
-      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-sm font-medium transition-all ${
+      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-sm font-medium transition-all ${
         active
-          ? 'bg-[#FF8C00] text-white shadow-sm'
+          ? 'bg-[var(--th-txt-1)]/10 text-[var(--th-txt-1)] ring-1 ring-[var(--th-txt-1)]/10'
           : 'text-[var(--th-txt-3)] hover:bg-[var(--th-hover)] hover:text-[var(--th-txt-1)]'
       }`}
     >
-      <Icon strokeWidth={1.5} className="w-4 h-4 shrink-0" />
+      <Icon strokeWidth={1.5} className={`w-4 h-4 shrink-0 transition-colors ${active ? 'text-[#FF8C00]' : ''}`} />
       <span className="flex-1">{title}</span>
     </button>
   )
@@ -39,7 +39,7 @@ function SidebarItem({ title, icon: Icon, active, onClick }: SidebarItemProps) {
 
 function SidebarSection({ label }: { label: string }) {
   return (
-    <p className="px-3 pt-5 pb-1.5 text-[11px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">
+    <p className="px-3 pt-5 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#FF8C00]/60">
       {label}
     </p>
   )
@@ -1219,17 +1219,19 @@ export default function AdminPanel() {
         </div>
       </div>
       {mobileMenuOpen && (
-        <div className="border-t border-[var(--th-border)] px-4 pb-4 bg-[var(--th-card)] overflow-y-auto max-h-[calc(100vh-54px)]">
+        <div className="border-t border-[var(--th-border)] px-3 pb-4 bg-[var(--th-card)] overflow-y-auto max-h-[calc(100vh-54px)]">
           {sidebarSections.map(section => (
             <div key={section.label}>
-              <p className="px-1 pt-4 pb-1 text-[11px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">{section.label}</p>
+              <p className="px-3 pt-4 pb-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#FF8C00]/60">{section.label}</p>
               <div className="space-y-0.5">
                 {section.items.map(m => (
                   <button key={m.id} onClick={() => { setSelectedModule(m.id); setMobileMenuOpen(false) }}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-sm font-medium transition-all ${
-                      selectedModule === m.id ? 'bg-[#FF8C00] text-white shadow-sm' : 'text-[var(--th-txt-3)] hover:bg-[var(--th-hover)] hover:text-[var(--th-txt-1)]'
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-sm font-medium transition-all ${
+                      selectedModule === m.id
+                        ? 'bg-[var(--th-txt-1)]/10 text-[var(--th-txt-1)] ring-1 ring-[var(--th-txt-1)]/10'
+                        : 'text-[var(--th-txt-3)] hover:bg-[var(--th-hover)] hover:text-[var(--th-txt-1)]'
                     }`}>
-                    <m.icon strokeWidth={1.5} className="w-4 h-4 shrink-0" />
+                    <m.icon strokeWidth={1.5} className={`w-4 h-4 shrink-0 ${selectedModule === m.id ? 'text-[#FF8C00]' : ''}`} />
                     <span>{m.title}</span>
                   </button>
                 ))}
@@ -1237,11 +1239,11 @@ export default function AdminPanel() {
             </div>
           ))}
           <div className="border-t border-[var(--th-border)] pt-3 mt-4 space-y-0.5">
-            <button onClick={() => { toggleTheme(); setMobileMenuOpen(false) }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[var(--th-txt-3)] hover:bg-[var(--th-hover)] hover:text-[var(--th-txt-1)] transition-all">
+            <button onClick={() => { toggleTheme(); setMobileMenuOpen(false) }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-[var(--th-txt-3)] hover:bg-[var(--th-hover)] hover:text-[var(--th-txt-1)] transition-all">
               {isDark ? <Sun strokeWidth={1.5} className="w-4 h-4 shrink-0" /> : <Moon strokeWidth={1.5} className="w-4 h-4 shrink-0" />}
               <span>{isDark ? 'Modo Claro' : 'Modo Escuro'}</span>
             </button>
-            <button onClick={() => { void handleLogout(); setMobileMenuOpen(false) }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[var(--th-txt-3)] hover:bg-red-500/10 hover:text-red-400 transition-all">
+            <button onClick={() => { void handleLogout(); setMobileMenuOpen(false) }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-[var(--th-txt-3)] hover:bg-red-500/10 hover:text-red-400 transition-all">
               <LogOut strokeWidth={1.5} className="w-4 h-4 shrink-0" />
               <span>Sair</span>
             </button>
@@ -1254,16 +1256,23 @@ export default function AdminPanel() {
 
       {/* ── Sidebar ── */}
       <aside className="hidden sm:flex w-[260px] shrink-0 border-r border-[var(--th-border)] flex-col bg-[var(--th-card)]">
-        {/* Logo */}
-        <div className="px-4 py-4 border-b border-[var(--th-border)] shrink-0">
+
+        {/* Header */}
+        <div className="px-4 h-14 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-[#FF8C00] flex items-center justify-center shrink-0">
-              <span className="text-white text-[13px] font-bold leading-none">S</span>
+            <div className="w-7 h-7 rounded-lg bg-[#FF8C00] flex items-center justify-center shrink-0">
+              <span className="text-white text-[12px] font-bold leading-none">S</span>
             </div>
-            <div>
-              <p className="text-[13px] font-bold text-[var(--th-txt-1)] leading-none">Simple&amp;Eco</p>
-              <p className="text-[11px] text-[var(--th-txt-4)] leading-none mt-0.5">Painel Admin</p>
-            </div>
+            <span className="text-[13px] font-semibold text-[var(--th-txt-1)]">Simple&amp;Eco</span>
+          </div>
+          <ChevronLeft strokeWidth={1.5} className="w-4 h-4 text-[var(--th-txt-4)]" />
+        </div>
+
+        {/* Search */}
+        <div className="px-3 pb-2 shrink-0">
+          <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[var(--th-hover)] text-[var(--th-txt-3)] text-[13px] cursor-default select-none">
+            <Search strokeWidth={1.5} className="w-3.5 h-3.5 shrink-0" />
+            <span>Buscar módulo...</span>
           </div>
         </div>
 
@@ -1282,16 +1291,31 @@ export default function AdminPanel() {
         </nav>
 
         {/* Footer */}
-        <div className="px-3 py-3 border-t border-[var(--th-border)] shrink-0 space-y-0.5">
-          <button onClick={toggleTheme} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[var(--th-txt-3)] hover:bg-[var(--th-hover)] hover:text-[var(--th-txt-1)] transition-all">
-            {isDark ? <Sun strokeWidth={1.5} className="w-4 h-4 shrink-0" /> : <Moon strokeWidth={1.5} className="w-4 h-4 shrink-0" />}
-            <span>{isDark ? 'Modo Claro' : 'Modo Escuro'}</span>
-          </button>
-          <button onClick={() => { void handleLogout() }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[var(--th-txt-3)] hover:bg-red-500/10 hover:text-red-400 transition-all">
-            <LogOut strokeWidth={1.5} className="w-4 h-4 shrink-0" />
-            <span>Sair</span>
-          </button>
-          <p className="px-3 pt-1 text-[11px] text-[var(--th-txt-4)] tracking-wide">Versão 2.0</p>
+        <div className="px-3 py-3 border-t border-[var(--th-border)] shrink-0">
+          <div className="space-y-0.5">
+            <button onClick={toggleTheme} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-[var(--th-txt-3)] hover:bg-[var(--th-hover)] hover:text-[var(--th-txt-1)] transition-all">
+              {isDark ? <Sun strokeWidth={1.5} className="w-4 h-4 shrink-0" /> : <Moon strokeWidth={1.5} className="w-4 h-4 shrink-0" />}
+              <span>{isDark ? 'Modo Claro' : 'Modo Escuro'}</span>
+            </button>
+            <button onClick={() => { void handleLogout() }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-[var(--th-txt-3)] hover:bg-red-500/10 hover:text-red-400 transition-all">
+              <LogOut strokeWidth={1.5} className="w-4 h-4 shrink-0" />
+              <span>Sair</span>
+            </button>
+          </div>
+          {/* User chip */}
+          <div className="mt-3 px-3 py-2.5 rounded-xl bg-[var(--th-hover)] flex items-center gap-2.5">
+            <div className="w-6 h-6 rounded-full bg-[#FF8C00] flex items-center justify-center shrink-0">
+              <span className="text-white text-[10px] font-bold leading-none">
+                {(localStorage.getItem('se_user') || 'A')[0].toUpperCase()}
+              </span>
+            </div>
+            <div className="min-w-0">
+              <p className="text-[12px] font-medium text-[var(--th-txt-1)] truncate leading-none">
+                {localStorage.getItem('se_user') || 'Administrador'}
+              </p>
+              <p className="text-[10px] text-[var(--th-txt-4)] leading-none mt-0.5">v2.0</p>
+            </div>
+          </div>
         </div>
       </aside>
 
