@@ -1253,14 +1253,14 @@ export default function AdminPanel() {
     <div className="flex h-screen overflow-hidden bg-[var(--th-page)] text-[var(--th-txt-1)] pt-[54px] sm:pt-0">
 
       {/* ── Sidebar ── */}
-      <aside className="hidden sm:flex w-[260px] shrink-0 border-r border-[var(--th-border)] flex-col bg-[var(--th-card)]">
+      <aside className="hidden sm:flex w-[260px] shrink-0 flex-col bg-[var(--th-card)]">
         {/* Logo */}
-        <div className="px-4 py-4 border-b border-[var(--th-border)] shrink-0">
+        <div className="px-4 py-4 shrink-0">
           <div className="flex items-center gap-2.5">
             <img src="/ICONSE.png" alt="SimpleEco" className="w-8 h-8 rounded-lg shrink-0 object-cover" />
             <div>
               <p className="text-[13px] font-bold text-[var(--th-txt-1)] leading-none">Simple&amp;Eco</p>
-              <p className="text-[11px] leading-none mt-0.5 bg-gradient-to-r from-[#FF8C00] to-[#D81B60] bg-clip-text text-transparent">Administrador</p>
+              <p className="text-[11px] text-[var(--th-txt-4)] leading-none mt-0.5">Painel Admin</p>
             </div>
           </div>
         </div>
@@ -1280,7 +1280,7 @@ export default function AdminPanel() {
         </nav>
 
         {/* Footer */}
-        <div className="px-3 py-3 border-t border-[var(--th-border)] shrink-0 space-y-0.5">
+        <div className="px-3 py-3 shrink-0 space-y-0.5">
           <button onClick={toggleTheme} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[var(--th-txt-3)] hover:bg-[var(--th-hover)] hover:text-[var(--th-txt-1)] transition-all">
             {isDark ? <Sun strokeWidth={1.5} className="w-4 h-4 shrink-0" /> : <Moon strokeWidth={1.5} className="w-4 h-4 shrink-0" />}
             <span>{isDark ? 'Modo Claro' : 'Modo Escuro'}</span>
