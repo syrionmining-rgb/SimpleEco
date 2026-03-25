@@ -1289,7 +1289,11 @@ export default function AdminPanel() {
             <LogOut strokeWidth={1.5} className="w-4 h-4 shrink-0" />
             <span>Sair</span>
           </button>
-          <div className="px-3 pt-2 flex items-center gap-1.5">
+        </div>
+
+        {/* Version badge */}
+        <div className="px-3 pb-4 shrink-0 flex justify-center">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--th-subtle)] border border-[var(--th-border)]">
             <span className="text-[11px] text-[var(--th-txt-4)] tracking-wide">version.</span>
             <span className="text-[11px] text-[var(--th-txt-4)] font-mono">{__COMMIT__}</span>
           </div>
