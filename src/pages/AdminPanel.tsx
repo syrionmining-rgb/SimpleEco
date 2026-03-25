@@ -1289,7 +1289,10 @@ export default function AdminPanel() {
             <LogOut strokeWidth={1.5} className="w-4 h-4 shrink-0" />
             <span>Sair</span>
           </button>
-          <p className="px-3 pt-1 text-[11px] text-[var(--th-txt-4)] tracking-wide">Versão 2.0</p>
+          <div className="px-3 pt-2 flex items-center gap-1.5">
+            <span className="text-[11px] text-[var(--th-txt-4)] tracking-wide">version.</span>
+            <span className="text-[11px] text-[var(--th-txt-4)] font-mono">{__COMMIT__}</span>
+          </div>
         </div>
       </aside>
 
