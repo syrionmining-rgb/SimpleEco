@@ -25,10 +25,10 @@ function SidebarItem({ title, icon: Icon, active, onClick }: SidebarItemProps) {
   return (
     <button
       onClick={onClick}
-      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-sm font-medium transition-all ${
+      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-sm font-medium transition-all ${
         active
           ? 'bg-[#FF8C00] text-white shadow-sm'
-          : 'text-[#888888] hover:bg-white/6 hover:text-white'
+          : 'text-[var(--th-txt-3)] hover:bg-[var(--th-hover)] hover:text-[var(--th-txt-1)]'
       }`}
     >
       <Icon strokeWidth={1.5} className="w-4 h-4 shrink-0" />
@@ -39,7 +39,7 @@ function SidebarItem({ title, icon: Icon, active, onClick }: SidebarItemProps) {
 
 function SidebarSection({ label }: { label: string }) {
   return (
-    <p className="px-3 pt-5 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#FF8C00]/70">
+    <p className="px-3 pt-5 pb-1.5 text-[11px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">
       {label}
     </p>
   )
@@ -1219,15 +1219,15 @@ export default function AdminPanel() {
         </div>
       </div>
       {mobileMenuOpen && (
-        <div className="px-3 pb-4 bg-[#111111] overflow-y-auto max-h-[calc(100vh-54px)]">
+        <div className="border-t border-[var(--th-border)] px-4 pb-4 bg-[var(--th-card)] overflow-y-auto max-h-[calc(100vh-54px)]">
           {sidebarSections.map(section => (
             <div key={section.label}>
-              <p className="px-3 pt-4 pb-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#FF8C00]/70">{section.label}</p>
+              <p className="px-1 pt-4 pb-1 text-[11px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">{section.label}</p>
               <div className="space-y-0.5">
                 {section.items.map(m => (
                   <button key={m.id} onClick={() => { setSelectedModule(m.id); setMobileMenuOpen(false) }}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-sm font-medium transition-all ${
-                      selectedModule === m.id ? 'bg-[#FF8C00] text-white shadow-sm' : 'text-[#888] hover:bg-white/6 hover:text-white'
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-sm font-medium transition-all ${
+                      selectedModule === m.id ? 'bg-[#FF8C00] text-white shadow-sm' : 'text-[var(--th-txt-3)] hover:bg-[var(--th-hover)] hover:text-[var(--th-txt-1)]'
                     }`}>
                     <m.icon strokeWidth={1.5} className="w-4 h-4 shrink-0" />
                     <span>{m.title}</span>
@@ -1236,12 +1236,12 @@ export default function AdminPanel() {
               </div>
             </div>
           ))}
-          <div className="pt-3 mt-4 space-y-0.5">
-            <button onClick={() => { toggleTheme(); setMobileMenuOpen(false) }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-[#888] hover:bg-white/6 hover:text-white transition-all">
+          <div className="border-t border-[var(--th-border)] pt-3 mt-4 space-y-0.5">
+            <button onClick={() => { toggleTheme(); setMobileMenuOpen(false) }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[var(--th-txt-3)] hover:bg-[var(--th-hover)] hover:text-[var(--th-txt-1)] transition-all">
               {isDark ? <Sun strokeWidth={1.5} className="w-4 h-4 shrink-0" /> : <Moon strokeWidth={1.5} className="w-4 h-4 shrink-0" />}
               <span>{isDark ? 'Modo Claro' : 'Modo Escuro'}</span>
             </button>
-            <button onClick={() => { void handleLogout(); setMobileMenuOpen(false) }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-[#888] hover:bg-red-500/10 hover:text-red-400 transition-all">
+            <button onClick={() => { void handleLogout(); setMobileMenuOpen(false) }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[var(--th-txt-3)] hover:bg-red-500/10 hover:text-red-400 transition-all">
               <LogOut strokeWidth={1.5} className="w-4 h-4 shrink-0" />
               <span>Sair</span>
             </button>
@@ -1253,24 +1253,15 @@ export default function AdminPanel() {
     <div className="flex h-screen overflow-hidden bg-[var(--th-page)] text-[var(--th-txt-1)] pt-[54px] sm:pt-0">
 
       {/* ── Sidebar ── */}
-      <aside className="hidden sm:flex w-[260px] shrink-0 flex-col bg-[#111111]">
-
-        {/* Header */}
-        <div className="px-4 h-14 flex items-center justify-between shrink-0">
+      <aside className="hidden sm:flex w-[260px] shrink-0 border-r border-[var(--th-border)] flex-col bg-[var(--th-card)]">
+        {/* Logo */}
+        <div className="px-4 py-4 border-b border-[var(--th-border)] shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-[#FF8C00] flex items-center justify-center shrink-0">
-              <span className="text-white text-[12px] font-bold leading-none">S</span>
+            <img src="/ICONSE.png" alt="SimpleEco" className="w-8 h-8 rounded-lg shrink-0 object-cover" />
+            <div>
+              <p className="text-[13px] font-bold text-[var(--th-txt-1)] leading-none">Simple&amp;Eco</p>
+              <p className="text-[11px] text-[var(--th-txt-4)] leading-none mt-0.5">Painel Admin</p>
             </div>
-            <span className="text-[13px] font-semibold text-white">Simple&amp;Eco</span>
-          </div>
-          <ChevronLeft strokeWidth={1.5} className="w-4 h-4 text-[#555]" />
-        </div>
-
-        {/* Search */}
-        <div className="px-3 pb-2 shrink-0">
-          <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/6 text-[#666] text-[13px] cursor-default select-none">
-            <Search strokeWidth={1.5} className="w-3.5 h-3.5 shrink-0" />
-            <span>Buscar módulo...</span>
           </div>
         </div>
 
@@ -1289,21 +1280,16 @@ export default function AdminPanel() {
         </nav>
 
         {/* Footer */}
-        <div className="px-3 py-3 shrink-0">
-          <div className="space-y-0.5">
-            <button onClick={toggleTheme} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-[#888] hover:bg-white/6 hover:text-white transition-all">
-              {isDark ? <Sun strokeWidth={1.5} className="w-4 h-4 shrink-0" /> : <Moon strokeWidth={1.5} className="w-4 h-4 shrink-0" />}
-              <span>{isDark ? 'Modo Claro' : 'Modo Escuro'}</span>
-            </button>
-            <button onClick={() => { void handleLogout() }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-[#888] hover:bg-red-500/10 hover:text-red-400 transition-all">
-              <LogOut strokeWidth={1.5} className="w-4 h-4 shrink-0" />
-              <span>Sair</span>
-            </button>
-          </div>
-          <div className="mt-3 px-3 py-1.5 rounded-xl bg-white/5 flex items-center justify-center gap-1.5">
-            <span className="text-[11px] text-[#555] tracking-wide">version.</span>
-            <span className="text-[11px] text-[#444] font-mono">{__COMMIT__}</span>
-          </div>
+        <div className="px-3 py-3 border-t border-[var(--th-border)] shrink-0 space-y-0.5">
+          <button onClick={toggleTheme} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[var(--th-txt-3)] hover:bg-[var(--th-hover)] hover:text-[var(--th-txt-1)] transition-all">
+            {isDark ? <Sun strokeWidth={1.5} className="w-4 h-4 shrink-0" /> : <Moon strokeWidth={1.5} className="w-4 h-4 shrink-0" />}
+            <span>{isDark ? 'Modo Claro' : 'Modo Escuro'}</span>
+          </button>
+          <button onClick={() => { void handleLogout() }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[var(--th-txt-3)] hover:bg-red-500/10 hover:text-red-400 transition-all">
+            <LogOut strokeWidth={1.5} className="w-4 h-4 shrink-0" />
+            <span>Sair</span>
+          </button>
+          <p className="px-3 pt-1 text-[11px] text-[var(--th-txt-4)] tracking-wide">Versão 2.0</p>
         </div>
       </aside>
 
