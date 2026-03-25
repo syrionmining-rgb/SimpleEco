@@ -1293,9 +1293,9 @@ export default function AdminPanel() {
 
         {/* Version badge */}
         <div className="px-3 pb-4 shrink-0 flex justify-center">
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--th-subtle)] border border-[var(--th-border)]">
-            <span className="text-[11px] text-[var(--th-txt-4)] tracking-wide">version.</span>
-            <span className="text-[11px] text-[var(--th-txt-4)] font-mono">{__COMMIT__}</span>
+          <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#2a2a2a] text-white text-xs font-semibold">
+            <span className="tracking-wide opacity-60">version.</span>
+            <span className="font-mono">{__COMMIT__}</span>
           </div>
         </div>
       </aside>
