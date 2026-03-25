@@ -68,13 +68,13 @@ interface PedidoRow {
   CODIGO?: string; NOME?: string; CLIENTE?: string; PREVISAO?: string; VENDA?: string
   SALDO?: number | string | null; TOTAL?: number | string | null
   PRODUCAO?: number | string | null; FATURADOS?: number | string | null
-  OC?: string; PEDCLIENTE?: string | number | null
+  OC?: string; PEDCLIENTE?: string | number | null; DIGITACAO?: string
 }
 interface TalaoRow {
   [key: string]: unknown
   CODIGO?: string; PEDIDO?: string; ITEM?: string; REFERENCIA?: string
   REMESSA?: string; TOTAL?: number | string | null; CANCELADO?: unknown; FATURADO?: unknown
-  NUMEROS?: string; GRADE?: string; DE_ATE?: string
+  NUMEROS?: string; GRADE?: string; DE_ATE?: string; ATUALIZADO?: string
 }
 interface TalsetorRow {
   [key: string]: unknown
@@ -159,14 +159,27 @@ function isTruthy(value: unknown): boolean {
   const s = String(value).trim().toUpperCase()
   return s === '1' || s === 'S' || s === 'SIM' || s === 'TRUE'
 }
-function parseNumeros(numeros: unknown): Array<{ slot: number; qty: number }> {
+function parseGradeSizes(gradeStr: unknown): number[] {
+  const s = String(gradeStr ?? '').replace(/TOTAL\s*$/i, '').padEnd(60, ' ')
+  const sizes: number[] = []
+  for (let i = 0; i < 15; i++) {
+    const n = parseInt(s.slice(i * 4, i * 4 + 4).trim(), 10)
+    sizes.push(isNaN(n) ? 0 : n)
+  }
+  return sizes
+}
+
+function parseNumeros(numeros: unknown, gradeSizes?: number[]): Array<{ slot: number; qty: number }> {
   const s = String(numeros ?? '').trim()
   if (s.length < 63) return []
   const body = s.slice(0, 60)
   const result: Array<{ slot: number; qty: number }> = []
   for (let i = 0; i < 15; i++) {
     const qty = parseInt(body.slice(i * 4, i * 4 + 4), 10)
-    if (!isNaN(qty) && qty > 0) result.push({ slot: 32 + i, qty })
+    if (!isNaN(qty) && qty > 0) {
+      const slot = gradeSizes?.[i] || (32 + i)
+      result.push({ slot, qty })
+    }
   }
   return result
 }
@@ -203,7 +216,7 @@ export default function AdminPanel() {
   const [selectedRemessaDetail, setSelectedRemessaDetail] = useState<RemessaTreeNode | null>(null)
   const [talaoSearch, setTalaoSearch] = useState('')
   const [talaoStatusFilter, setTalaoStatusFilter] = useState<'todos' | 'em_producao' | 'finalizado' | 'cancelado'>('todos')
-  const [pedidoStatusFilter, setPedidoStatusFilter] = useState<'todos' | 'em_producao' | 'atrasado' | 'finalizado'>('todos')
+  const [pedidoStatusFilter, setPedidoStatusFilter] = useState<'todos' | 'em_producao' | 'atrasado' | 'finalizado' | 'cancelado'>('todos')
   const [pedidoFluxoMap, setPedidoFluxoMap] = useState<Map<string, PedidoFluxo>>(new Map())
   const [pedidoFluxoSaving, setPedidoFluxoSaving] = useState(false)
   const [pedidoFluxoSelect, setPedidoFluxoSelect] = useState<number | ''>('')
@@ -574,8 +587,8 @@ export default function AdminPanel() {
     setOrdersLoading(true); setOrdersError(null)
     try {
       const [pedidosRows, taloesRows, talsetorRows, clientesRows, fichasRows] = await Promise.all([
-        fetchTableRows<PedidoRow>('pedidos',  'CODIGO,NOME,CLIENTE,PREVISAO,VENDA,SALDO,TOTAL,PRODUCAO,FATURADOS,OC,PEDCLIENTE'),
-        fetchTableRows<TalaoRow>('taloes',    'CODIGO,PEDIDO,ITEM,REFERENCIA,REMESSA,TOTAL,CANCELADO,FATURADO,NUMEROS,GRADE,DE_ATE'),
+        fetchTableRows<PedidoRow>('pedidos',  'CODIGO,NOME,CLIENTE,PREVISAO,VENDA,SALDO,TOTAL,PRODUCAO,FATURADOS,OC,PEDCLIENTE,DIGITACAO'),
+        fetchTableRows<TalaoRow>('taloes',    'CODIGO,PEDIDO,ITEM,REFERENCIA,REMESSA,TOTAL,CANCELADO,FATURADO,NUMEROS,GRADE,DE_ATE,ATUALIZADO'),
         fetchTableRows<TalsetorRow>('talsetor','TALAO,SETOR,NOMESET,DATA,QTDE,REMESSA'),
         fetchTableRows<ClienteRow>('clientes', 'CODIGO,NOME,FANTASIA,CNPJ,CHAVE,ENDERECO,NUMERO,COMPL,BAIRRO,CIDADE,ESTADO,CEP,INCLUIDO,ATUALIZADO'),
         fetchTableRows<FichaRow>('fichas',     'CODIGO,NOME,REFER,NOMECOR,MATRIZ,NAVALHA,COR01,COR02,COR03,OBS,GRADE,CONSTRUC,SALTO,PALMILHA,FORMA,LINHA,PROD_TXT'),
@@ -879,11 +892,16 @@ export default function AdminPanel() {
     return m
   }, [grades])
 
-  const pedimateByTalao = useMemo(() => {
+  // pedimate é keyed por pedido|item (ex: "00004A|001")
+  const pedimateByPedidoItem = useMemo(() => {
     const m = new Map<string, PedimateRow[]>()
     for (const p of pedimate) {
-      const k = asText(p.CODIGO).trim(); if (!k) continue
-      if (!m.has(k)) m.set(k, []); m.get(k)!.push(p)
+      const pedido = asText(p.CODIGO).trim()
+      const item   = asText(p.ITEM).trim()
+      if (!pedido) continue
+      const k = `${pedido}|${item}`
+      if (!m.has(k)) m.set(k, [])
+      m.get(k)!.push(p)
     }
     return m
   }, [pedimate])
@@ -1391,6 +1409,7 @@ export default function AdminPanel() {
                       { key: 'em_producao',label: 'Em produção' },
                       { key: 'atrasado',   label: 'Atrasado' },
                       { key: 'finalizado', label: 'Finalizado' },
+                      { key: 'cancelado',  label: 'Cancelado' },
                     ] as const).map(({ key, label }) => {
                       const active = pedidoStatusFilter === key
                       return (
@@ -1424,12 +1443,15 @@ export default function AdminPanel() {
                 )}
                 {ordersSubTab === 'pedidos' && (() => {
                   const calcFinalizado = (pNode: PedidoNode) => {
+                    if (toNumber(pNode.pedido.SALDO) === 0 && toNumber(pNode.pedido.TOTAL) > 0) return true
                     const active = pNode.taloes.filter(t => !isTruthy(t.talao.CANCELADO))
                     return active.length > 0 && active.every(tNode => {
                       const tc = asText(tNode.talao.CODIGO).trim()
                       return isTruthy(tNode.talao.FATURADO) || (talsetorByTalao.get(tc) ?? []).some(mv => /expedi/i.test(asText(mv.NOMESET) + asText(mv.SETOR)))
                     })
                   }
+                  const calcCancelado = (pNode: PedidoNode) =>
+                    pNode.taloes.some(t => isTruthy(t.talao.CANCELADO))
                   const calcAtrasado = (pNode: PedidoNode, finalizado: boolean) => {
                     if (finalizado) return false
                     const raw = asText(pNode.pedido.PREVISAO).trim()
@@ -1438,8 +1460,9 @@ export default function AdminPanel() {
                     const hoje = new Date(); hoje.setHours(0, 0, 0, 0)
                     return d < hoje
                   }
-                  const todosEmProd = pedidoTree.filter(p => !calcFinalizado(p))
+                  const todosEmProd = pedidoTree.filter(p => !calcFinalizado(p) && !calcCancelado(p))
                   const todosFinalizados = pedidoTree.filter(p => calcFinalizado(p))
+                  const todosCancelados = pedidoTree.filter(p => calcCancelado(p))
                   const atrasados = todosEmProd.filter(p => calcAtrasado(p, false))
                   const emProdSemAtraso = todosEmProd.filter(p => !calcAtrasado(p, false))
                   const emProd = pedidoStatusFilter === 'todos'       ? todosEmProd
@@ -1447,26 +1470,28 @@ export default function AdminPanel() {
                                : pedidoStatusFilter === 'atrasado'    ? atrasados
                                : []
                   const finalizados = (pedidoStatusFilter === 'todos' || pedidoStatusFilter === 'finalizado') ? todosFinalizados : []
+                  const cancelados = (pedidoStatusFilter === 'todos' || pedidoStatusFilter === 'cancelado') ? todosCancelados : []
                   const renderCard = (pNode: PedidoNode) => {
                     const pc = asText(pNode.pedido.CODIGO).trim() || 'SEM-CODIGO'
                     const cli = cliMap.get(asText(pNode.pedido.CLIENTE).trim())
                     const cliNome = asText(cli?.FANTASIA || cli?.NOME) || asText(pNode.pedido.CLIENTE) || '—'
                     const saldo = toNumber(pNode.pedido.SALDO)
                     const isSelected = selectedPedidoDetail?.pedido.CODIGO === pNode.pedido.CODIGO
-                    const pedidoFinalizado = calcFinalizado(pNode)
-                    const atrasado = calcAtrasado(pNode, pedidoFinalizado)
+                    const cancelado = calcCancelado(pNode)
+                    const pedidoFinalizado = !cancelado && calcFinalizado(pNode)
+                    const atrasado = !cancelado && calcAtrasado(pNode, pedidoFinalizado)
                     return (
                       <button
                         key={pc}
                         type="button"
                         onClick={() => { setSelectedPedidoDetail(pNode); setTalaoSearch(''); setTalaoStatusFilter('todos') }}
                         className={isSelected
-                          ? `w-full text-left rounded-xl border px-4 py-3 transition-all ${atrasado ? 'border-red-500/40 bg-red-500/8' : 'border-orange-500/40 bg-orange-500/8'}`
-                          : `w-full text-left rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] px-4 py-3 transition-all ${atrasado ? 'hover:border-red-500/30 hover:bg-red-500/5' : 'hover:border-orange-500/30 hover:bg-orange-500/5'}`}
+                          ? `w-full text-left rounded-xl border px-4 py-3 transition-all ${cancelado ? 'border-[var(--th-border)] bg-[var(--th-subtle)]' : atrasado ? 'border-red-500/40 bg-red-500/8' : 'border-orange-500/40 bg-orange-500/8'}`
+                          : `w-full text-left rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] px-4 py-3 transition-all ${cancelado ? 'opacity-60 hover:opacity-80' : atrasado ? 'hover:border-red-500/30 hover:bg-red-500/5' : 'hover:border-orange-500/30 hover:bg-orange-500/5'}`}
                       >
                         <div className="flex items-start gap-3 min-w-0 w-full">
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-1.5 mb-1">
+                            <div className="flex items-center gap-1.5 mb-1 flex-wrap">
                               <span className="text-[11px] font-mono font-semibold text-[var(--th-txt-2)]">{pc}</span>
                               <span className="text-[var(--th-txt-4)] select-none">·</span>
                               <span className={`text-[11px] font-medium ${atrasado ? 'text-red-400' : 'text-[var(--th-txt-4)]'}`}>{fmtDate(pNode.pedido.PREVISAO)}</span>
@@ -1485,11 +1510,13 @@ export default function AdminPanel() {
                             </div>
                           </div>
                           <div className="shrink-0 flex flex-col items-end gap-1.5 pt-0.5">
-                            {pedidoFinalizado
-                              ? <span className="text-[11px] px-1.5 py-0.5 rounded-full bg-green-500/15 text-green-400 border border-green-500/20 font-medium">Finalizado</span>
-                              : atrasado
-                                ? <span className="text-[11px] px-1.5 py-0.5 rounded-full bg-red-500/15 text-red-400 border border-red-500/20 font-medium">Atrasado</span>
-                                : <span className="text-[11px] px-1.5 py-0.5 rounded-full bg-orange-500/15 text-orange-400 border border-orange-500/20 font-medium">Em produção</span>
+                            {cancelado
+                              ? <span className="text-[11px] px-1.5 py-0.5 rounded-full bg-[var(--th-subtle)] text-[var(--th-txt-4)] border border-[var(--th-border)] font-medium">Cancelado</span>
+                              : pedidoFinalizado
+                                ? <span className="text-[11px] px-1.5 py-0.5 rounded-full bg-green-500/15 text-green-400 border border-green-500/20 font-medium">Finalizado</span>
+                                : atrasado
+                                  ? <span className="text-[11px] px-1.5 py-0.5 rounded-full bg-red-500/15 text-red-400 border border-red-500/20 font-medium">Atrasado</span>
+                                  : <span className="text-[11px] px-1.5 py-0.5 rounded-full bg-orange-500/15 text-orange-400 border border-orange-500/20 font-medium">Em produção</span>
                             }
                           </div>
                         </div>
@@ -1520,7 +1547,13 @@ export default function AdminPanel() {
                           {finalizados.map(renderCard)}
                         </>
                       )}
-                      {emProd.length === 0 && finalizados.length === 0 && (
+                      {cancelados.length > 0 && (
+                        <>
+                          <div className="px-2 pt-3 pb-1 text-[11px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Cancelados · {cancelados.length}</div>
+                          {cancelados.map(renderCard)}
+                        </>
+                      )}
+                      {emProd.length === 0 && finalizados.length === 0 && cancelados.length === 0 && (
                         <div className="px-4 py-16 text-center text-sm text-[var(--th-txt-3)]">Nenhum pedido.</div>
                       )}
                     </>
@@ -1597,18 +1630,21 @@ export default function AdminPanel() {
 
                 // Grade agregada do pedido: soma de todos os talões por slot
                 const gradeAgregada = (() => {
-                  const agg = new Array<number>(15).fill(0)
+                  const agg = new Map<number, number>()
                   for (const tNode of pNode.taloes) {
-                    for (const { slot, qty } of parseNumeros(tNode.talao.NUMEROS)) {
-                      agg[slot - 32] += qty
+                    const tFcD = asText(tNode.talao.REFERENCIA).trim()
+                    const tFc = tFcD || peditemMap.get(`${asText(tNode.talao.PEDIDO).trim()}|${asText(tNode.talao.ITEM).trim()}`) || ''
+                    const tGradeCode = asText(tNode.talao.GRADE).trim() || asText(fichaMap.get(tFc)?.GRADE).trim()
+                    const tGradeSizes = tGradeCode ? parseGradeSizes(gradeMap.get(tGradeCode)?.GRADE) : undefined
+                    for (const { slot, qty } of parseNumeros(tNode.talao.NUMEROS, tGradeSizes)) {
+                      agg.set(slot, (agg.get(slot) ?? 0) + qty)
                     }
                   }
-                  return agg.map((qty, i) => ({ slot: 32 + i, qty })).filter(x => x.qty > 0)
+                  return [...agg.entries()].map(([slot, qty]) => ({ slot, qty })).sort((a, b) => a.slot - b.slot)
                 })()
 
                 // Fluxo de produção vinculado a este pedido
                 const fluxoVinculado = pedidoFluxoMap.get(pc)
-                const fluxoItem = fluxoVinculado ? prodItems.find(i => i.id === fluxoVinculado.item_id) : null
                 const fluxoEtapas = fluxoVinculado
                   ? prodItems.length > 0
                     ? (() => {
@@ -1626,8 +1662,9 @@ export default function AdminPanel() {
                 const passouExpedicaoPedido = allMovs.some(mv =>
                   /expedi/i.test(asText(mv.NOMESET) + asText(mv.SETOR))
                 )
+                const todosCancelados = pNode.taloes.some(t => isTruthy(t.talao.CANCELADO))
                 const pedidoAtrasado = (() => {
-                  if (passouExpedicaoPedido || saldo === 0) return false
+                  if (todosCancelados || passouExpedicaoPedido || saldo === 0) return false
                   const raw = asText(pNode.pedido.PREVISAO).trim()
                   if (!raw) return false
                   const d = new Date(raw); if (isNaN(d.getTime())) return false
@@ -1675,34 +1712,53 @@ export default function AdminPanel() {
                         <div className="flex items-start gap-3">
                           <div className="min-w-0 flex-1">
                             {/* Nº Pedido + data */}
-                            <div className="flex items-center gap-1.5 mb-1">
-                              <span className="text-sm font-mono font-semibold text-[var(--th-txt-2)]">{pc}</span>
-                              <span className="text-[var(--th-txt-4)] select-none">·</span>
-                              <span className="text-sm text-[var(--th-txt-4)]">{fmtDate(pNode.pedido.PREVISAO)}</span>
+                            <div className="flex items-center gap-4 mb-1 flex-wrap">
+                              <div className="flex flex-col">
+                                <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Pedido</span>
+                                <span className="text-sm font-mono font-bold text-[var(--th-txt-1)]">{pc}</span>
+                              </div>
+                              {asText(pNode.pedido.PREVISAO) && (
+                                <div className="flex flex-col">
+                                  <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Entrega</span>
+                                  <span className="text-sm font-mono text-[var(--th-txt-2)]">{fmtDate(pNode.pedido.PREVISAO)}</span>
+                                </div>
+                              )}
+                              {asText(pNode.pedido.DIGITACAO) && (
+                                <div className="flex flex-col">
+                                  <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Criado</span>
+                                  <span className="text-sm font-mono text-[var(--th-txt-2)]">{fmtDate(pNode.pedido.DIGITACAO)}</span>
+                                </div>
+                              )}
+                              {asText(pNode.pedido.PEDCLIENTE) && (
+                                <div className="flex flex-col">
+                                  <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">O.C.</span>
+                                  <span className="text-sm font-mono text-[var(--th-txt-2)]">{asText(pNode.pedido.PEDCLIENTE)}</span>
+                                </div>
+                              )}
+                              <div className="flex flex-col">
+                                <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Cliente</span>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const cliRow = cliMap.get(asText(pNode.pedido.CLIENTE).trim())
+                                    if (cliRow) { setSelectedCliente(cliRow); setSelectedModule('clients') }
+                                  }}
+                                  className="text-sm font-bold text-[var(--th-txt-1)] hover:text-orange-400 hover:underline transition-colors text-left leading-snug"
+                                >{cliNome}</button>
+                              </div>
                             </div>
-                            {/* Nome do cliente */}
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const cliRow = cliMap.get(asText(pNode.pedido.CLIENTE).trim())
-                                if (cliRow) { setSelectedCliente(cliRow); setSelectedModule('clients') }
-                              }}
-                              className="text-base font-bold text-[var(--th-txt-1)] hover:text-orange-400 hover:underline transition-colors text-left leading-snug mb-0.5 block"
-                            >{cliNome}</button>
-                            {/* O.C. */}
-                            {asText(pNode.pedido.PEDCLIENTE) && (
-                              <p className="text-[11px] text-[var(--th-txt-4)] mb-1.5">O.C. <span className="font-mono text-[var(--th-txt-2)]">{asText(pNode.pedido.PEDCLIENTE)}</span></p>
-                            )}
                             {/* Talões + Status badges */}
                             <div className="flex items-center gap-1.5 flex-wrap mb-1.5">
                               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[var(--th-subtle)] border border-[var(--th-border)] text-[11px] font-medium text-[var(--th-txt-4)]">
                                 {pNode.taloes.length} Talões
                               </span>
-                              {saldo === 0
-                                ? <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border bg-green-500/15 text-green-400 border-green-500/30">Finalizado</span>
-                                : pedidoAtrasado
-                                  ? <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border bg-red-500/15 text-red-400 border-red-500/20">Atrasado</span>
-                                  : <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[var(--th-subtle)] border border-[var(--th-border)] text-[11px] font-medium text-[var(--th-txt-4)]">Unidades {fmtNumber(saldo)}</span>
+                              {todosCancelados
+                                ? <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border bg-[var(--th-subtle)] text-[var(--th-txt-4)] border-[var(--th-border)]">Cancelado</span>
+                                : saldo === 0
+                                  ? <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border bg-green-500/15 text-green-400 border-green-500/30">Finalizado</span>
+                                  : pedidoAtrasado
+                                    ? <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border bg-red-500/15 text-red-400 border-red-500/20">Atrasado</span>
+                                    : <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[var(--th-subtle)] border border-[var(--th-border)] text-[11px] font-medium text-[var(--th-txt-4)]">Unidades {fmtNumber(saldo)}</span>
                               }
                             </div>
                             {/* Produtos */}
@@ -1727,67 +1783,83 @@ export default function AdminPanel() {
 
                       {/* Fluxo de Produção */}
                       <div className="border-t border-[var(--th-border)]">
-                        <div className="px-4 py-2 bg-[var(--th-subtle)] flex items-center justify-between">
-                          <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Fluxo de Produção</p>
-                          <div className="flex items-center gap-2">
-                            {fluxoVinculado && fluxoItem && (
-                              <span className="text-[11px] font-medium text-[var(--th-txt-2)]">{fluxoItem.nome}</span>
-                            )}
-                            {fluxoVinculado && !passouExpedicaoPedido && (
-                              <button type="button" onClick={() => void removePedidoFluxo(pc)}
-                                className="text-[11px] text-[var(--th-txt-4)] hover:text-red-400 transition-colors">
-                                Remover
-                              </button>
-                            )}
-                            {passouExpedicaoPedido && fluxoVinculado && (
-                              <span className="text-[11px] px-2 py-0.5 rounded-full bg-green-500/15 text-green-400 border border-green-500/30 font-medium">Finalizado</span>
-                            )}
-                          </div>
-                        </div>
-
-                        {!passouExpedicaoPedido && (() => {
+                        {(() => {
                           const effectiveId = pedidoFluxoSelect !== '' ? pedidoFluxoSelect : (fluxoVinculado?.item_id ?? '')
                           const displayNome = prodItems.find(i => i.id === effectiveId)?.nome
+                          const palmilha = (() => {
+                            for (const tNode of pNode.taloes) {
+                              const fcD = asText(tNode.talao.REFERENCIA).trim()
+                              const fc = fcD || peditemMap.get(`${asText(tNode.talao.PEDIDO).trim()}|${asText(tNode.talao.ITEM).trim()}`) || ''
+                              const val = asText(fichaMap.get(fc)?.PALMILHA).trim()
+                              if (val) return val
+                            }
+                            return ''
+                          })()
                           return (
-                            <div className="px-4 py-3 border-b border-[var(--th-border)] flex items-center gap-2">
-                              <div className="relative flex-1 sm:flex-none sm:w-40">
-                                <button
-                                  type="button"
-                                  onClick={() => setFluxoDropdownOpen(o => !o)}
-                                  className={`w-full flex items-center justify-between gap-2 pl-3 pr-2 py-1.5 rounded-lg border text-xs transition-colors ${
-                                    fluxoDropdownOpen
-                                      ? 'border-orange-500/50 bg-[var(--th-card)] ring-2 ring-orange-500/20 text-[var(--th-txt-1)]'
-                                      : 'border-[var(--th-border)] bg-[var(--th-subtle)] text-[var(--th-txt-4)] hover:border-orange-500/30 hover:text-[var(--th-txt-1)]'
-                                  }`}
-                                >
-                                  <span className="truncate">{displayNome ?? 'Selecionar fluxo…'}</span>
-                                  <ChevronDown strokeWidth={2} className={`w-3 h-3 transition-transform shrink-0 ${fluxoDropdownOpen ? 'rotate-180' : ''}`} />
-                                </button>
-                                {fluxoDropdownOpen && (
-                                  <div className="absolute z-50 top-full mt-1 left-0 right-0 rounded-lg border border-[var(--th-border)] bg-[var(--th-card)] shadow-lg overflow-hidden">
-                                    {prodItems.map(item => (
+                            <div className="px-4 py-2 bg-[var(--th-subtle)] flex items-center justify-between gap-4 flex-wrap">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)] shrink-0">Fluxo de Produção</p>
+                                {!passouExpedicaoPedido && (
+                                  <>
+                                    <div className="relative">
                                       <button
-                                        key={item.id}
                                         type="button"
-                                        onClick={() => { setPedidoFluxoSelect(item.id); setFluxoDropdownOpen(false) }}
-                                        className={`w-full text-left px-3 py-2 text-xs transition-colors hover:bg-[var(--th-hover)] ${
-                                          effectiveId === item.id ? 'text-orange-400 bg-orange-500/8 font-semibold' : 'text-[var(--th-txt-1)]'
+                                        onClick={() => setFluxoDropdownOpen(o => !o)}
+                                        className={`flex items-center justify-between gap-2 pl-3 pr-2 py-1 rounded-lg border text-xs transition-colors w-36 ${
+                                          fluxoDropdownOpen
+                                            ? 'border-orange-500/50 bg-[var(--th-card)] ring-2 ring-orange-500/20 text-[var(--th-txt-1)]'
+                                            : 'border-[var(--th-border)] bg-[var(--th-card)] text-[var(--th-txt-4)] hover:border-orange-500/30 hover:text-[var(--th-txt-1)]'
                                         }`}
                                       >
-                                        {item.nome}
+                                        <span className="truncate">{displayNome ?? 'Selecionar…'}</span>
+                                        <ChevronDown strokeWidth={2} className={`w-3 h-3 transition-transform shrink-0 ${fluxoDropdownOpen ? 'rotate-180' : ''}`} />
                                       </button>
-                                    ))}
-                                  </div>
+                                      {fluxoDropdownOpen && (
+                                        <div className="absolute z-50 top-full mt-1 left-0 w-44 rounded-lg border border-[var(--th-border)] bg-[var(--th-card)] shadow-lg overflow-hidden">
+                                          {prodItems.map(item => (
+                                            <button
+                                              key={item.id}
+                                              type="button"
+                                              onClick={() => { setPedidoFluxoSelect(item.id); setFluxoDropdownOpen(false) }}
+                                              className={`w-full text-left px-3 py-2 text-xs transition-colors hover:bg-[var(--th-hover)] ${
+                                                effectiveId === item.id ? 'text-orange-400 bg-orange-500/8 font-semibold' : 'text-[var(--th-txt-1)]'
+                                              }`}
+                                            >
+                                              {item.nome}
+                                            </button>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
+                                    <button
+                                      type="button"
+                                      disabled={effectiveId === '' || pedidoFluxoSaving}
+                                      onClick={() => { if (effectiveId !== '') void savePedidoFluxo(pc, effectiveId as number) }}
+                                      className="px-3 py-1 rounded-lg bg-orange-500 text-white text-xs font-medium disabled:opacity-40 hover:bg-orange-600 transition-colors shrink-0"
+                                    >
+                                      {pedidoFluxoSaving ? '…' : fluxoVinculado ? 'Alterar' : 'Atribuir'}
+                                    </button>
+                                  </>
+                                )}
+                                {passouExpedicaoPedido && fluxoVinculado && (
+                                  <span className="text-[11px] px-2 py-0.5 rounded-full bg-green-500/15 text-green-400 border border-green-500/30 font-medium">Finalizado</span>
                                 )}
                               </div>
-                              <button
-                                type="button"
-                                disabled={effectiveId === '' || pedidoFluxoSaving}
-                                onClick={() => { if (effectiveId !== '') void savePedidoFluxo(pc, effectiveId as number) }}
-                                className="px-3 py-1.5 rounded-lg bg-orange-500 text-white text-xs font-medium disabled:opacity-40 hover:bg-orange-600 transition-colors shrink-0"
-                              >
-                                {pedidoFluxoSaving ? '…' : fluxoVinculado ? 'Alterar' : 'Atribuir'}
-                              </button>
+                              <div className="flex items-center gap-3">
+                                {palmilha && (
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Palmilha</span>
+                                    <span className="text-[11px] font-mono text-[var(--th-txt-2)]">{palmilha}</span>
+                                    <button type="button" className="text-[11px] text-[var(--th-txt-4)] hover:text-orange-400 transition-colors">Alterar</button>
+                                  </div>
+                                )}
+                                {fluxoVinculado && !passouExpedicaoPedido && (
+                                  <button type="button" onClick={() => void removePedidoFluxo(pc)}
+                                    className="text-[11px] text-[var(--th-txt-4)] hover:text-red-400 transition-colors">
+                                    Remover
+                                  </button>
+                                )}
+                              </div>
                             </div>
                           )
                         })()}
@@ -1899,7 +1971,7 @@ export default function AdminPanel() {
                         const fProdTxt = asText(ficha?.PROD_TXT).trim()
                         const gradeCode = asText(tNode.talao.GRADE).trim()
                         const gradeName = asText(gradeMap.get(gradeCode)?.NOME).trim()
-                        const bomItems = pedimateByTalao.get(tc) ?? []
+                        const bomItems = pedimateByPedidoItem.get(`${asText(tNode.talao.PEDIDO).trim()}|${asText(tNode.talao.ITEM).trim()}`) ?? []
                         const bomExpanded = expandedBom.has(tc)
                         const canc = isTruthy(tNode.talao.CANCELADO)
                         const fat = isTruthy(tNode.talao.FATURADO)
@@ -1907,7 +1979,9 @@ export default function AdminPanel() {
                           /expedi/i.test(asText(mv.NOMESET) + asText(mv.SETOR))
                         )
                         const finalizado = !canc && (fat || passouExpedicao)
-                        const grade = parseNumeros(tNode.talao.NUMEROS)
+                        const tGradeCode = asText(tNode.talao.GRADE).trim() || asText(ficha?.GRADE).trim()
+                        const tGradeSizes = tGradeCode ? parseGradeSizes(gradeMap.get(tGradeCode)?.GRADE) : undefined
+                        const grade = parseNumeros(tNode.talao.NUMEROS, tGradeSizes)
                         const statusBorder = canc ? 'border-red-500/25' : finalizado ? 'border-green-500/25' : 'border-[var(--th-border)]'
                         const statusBar = canc ? 'bg-red-500' : finalizado ? 'bg-green-500' : 'bg-[var(--th-accent)]'
                         return (
@@ -1945,6 +2019,9 @@ export default function AdminPanel() {
                               <span className="text-[11px] text-[var(--th-txt-4)]">Remessa <span className="font-mono text-[var(--th-txt-2)]">{asText(tNode.talao.REMESSA) || '—'}</span></span>
                               {asText(pNode.pedido.PEDCLIENTE) && (
                                 <span className="text-[11px] text-[var(--th-txt-4)]">O.C. <span className="font-mono text-[var(--th-txt-2)]">{asText(pNode.pedido.PEDCLIENTE)}</span></span>
+                              )}
+                              {asText(tNode.talao.ATUALIZADO) && (
+                                <span className="text-[11px] text-[var(--th-txt-4)]">Criado <span className="font-mono text-[var(--th-txt-2)]">{fmtDate(tNode.talao.ATUALIZADO)}</span></span>
                               )}
                             </div>
                             {/* Fluxo de Produção — baseado em sequeset (rota por ficha) + talsetor/moviprod (scans) */}
