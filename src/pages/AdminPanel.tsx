@@ -27,7 +27,7 @@ function SidebarItem({ title, icon: Icon, active, onClick }: SidebarItemProps) {
       onClick={onClick}
       className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-sm font-medium transition-all ${
         active
-          ? 'bg-white text-[#111111] shadow-sm'
+          ? 'bg-[#2a2a2a] text-white'
           : 'text-[#888888] hover:bg-white/6 hover:text-white'
       }`}
     >
