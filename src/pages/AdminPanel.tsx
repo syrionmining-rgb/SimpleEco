@@ -1380,7 +1380,7 @@ export default function AdminPanel() {
       </div>
     </nav>
 
-    <div className="flex h-screen overflow-hidden bg-[var(--th-page)] text-[var(--th-txt-2)] pt-[59px] sm:pt-0">
+    <div className="flex h-screen overflow-hidden bg-[var(--th-page)] text-[var(--th-txt-2)] pt-[54px] sm:pt-0">
 
       {/* ── Sidebar ── */}
       <aside className="hidden sm:flex w-[260px] shrink-0 flex-col bg-[var(--th-page)] border-r border-[var(--th-border)]">

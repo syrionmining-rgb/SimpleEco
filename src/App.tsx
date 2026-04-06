@@ -201,7 +201,7 @@ export default function App() {
     .reduce((sum, order) => sum + order.qty, 0)
 
   return (
-    <div className="min-h-screen bg-[var(--th-page)] text-[var(--th-txt-1)] p-2 pt-[59px] sm:pt-6 sm:p-6 lg:p-8 pb-6">
+    <div className="min-h-screen bg-[var(--th-page)] text-[var(--th-txt-1)] p-2 pt-[54px] sm:pt-6 sm:p-6 lg:p-8 pb-6">
       <div className="max-w-[1920px] mx-auto space-y-3 sm:space-y-5">
           <Header
             toggleTheme={toggleTheme}
