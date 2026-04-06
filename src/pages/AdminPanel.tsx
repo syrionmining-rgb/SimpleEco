@@ -7,12 +7,6 @@ import {
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import type { LucideIcon } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
@@ -626,13 +620,6 @@ export default function AdminPanel() {
         { id: 'settings', title: 'Configuração',   icon: Settings },
       ],
     },
-  ]
-
-  const recentActivities = [
-    { title: 'Backup Automático', description: 'Backup completo do banco de dados executado com sucesso.', timestamp: '2h atrás', tag: 'sistema' },
-    { title: 'Novo Usuário Cadastrado', description: 'João Silva foi adicionado ao sistema com permissões de operador.', timestamp: '4h atrás', tag: 'usuários' },
-    { title: 'Erro de Sincronização', description: 'Falha na sincronização com o servidor externo. Necessária intervenção manual.', timestamp: '6h atrás', tag: 'erro' },
-    { title: 'Atualização de Sistema', description: 'Nova versão disponível v2.1.3 com correções de bugs.', timestamp: '1 dia atrás', tag: 'atualização' },
   ]
 
   // ── Fetch helpers ─────────────────────────────────────────────────────────

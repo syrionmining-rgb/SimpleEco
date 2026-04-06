@@ -22,21 +22,12 @@ function TronLines() {
     const DY = [0, 1, 0, -1]
 
     function resize() {
-      canvas.width = canvas.offsetWidth
-      canvas.height = canvas.offsetHeight
+      canvas!.width = canvas!.offsetWidth
+      canvas!.height = canvas!.offsetHeight
     }
     resize()
     const ro = new ResizeObserver(resize)
-    ro.observe(canvas)
-
-    // Zona proibida: elipse ao redor do centro (onde fica o título)
-    function inTitleZone(x: number, y: number): boolean {
-      const cx = canvas.width / 2
-      const cy = canvas.height / 2
-      const rx = canvas.width * 0.30
-      const ry = canvas.height * 0.38
-      return ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2 < 1
-    }
+    ro.observe(canvas!)
 
     type RGB = [number, number, number]
     interface Cycle {
@@ -51,7 +42,7 @@ function TronLines() {
 
     // Zona válida: somente acima do subtítulo (~top 50%)
     function safeY(): number {
-      const topMax = Math.floor(canvas.height * 0.50 / G) * G
+      const topMax = Math.floor(canvas!.height * 0.50 / G) * G
       const rows = Math.max(1, Math.ceil(topMax / G))
       return Math.floor(Math.random() * rows) * G
     }
@@ -59,7 +50,7 @@ function TronLines() {
     function rand(min: number, max: number) { return min + Math.random() * (max - min) }
 
     function make(rgb: RGB): Cycle {
-      const cx = Math.floor(Math.random() * (Math.ceil(canvas.width / G) + 2)) * G
+      const cx = Math.floor(Math.random() * (Math.ceil(canvas!.width / G) + 2)) * G
       const cy = safeY()
       const dir = (Math.random() < 0.5 ? 0 : 2) as Dir
       return {
@@ -97,7 +88,7 @@ function TronLines() {
     function frame(now: number) {
       const dt = Math.min((now - t0) / 1000, 0.05)
       t0 = now
-      ctx.clearRect(0, 0, canvas.width, canvas.height)
+      ctx!.clearRect(0, 0, canvas!.width, canvas!.height)
 
       for (const c of cycles) {
         c.sub += c.speed * dt
@@ -108,10 +99,10 @@ function TronLines() {
           c.cx += DX[c.dir] * G
           c.cy += DY[c.dir] * G
           // Wrap — limpa trail para não desenhar linha de travessia
-          if (c.cx < -G * 2)               { c.cx = canvas.width + G;  c.trail = [] }
-          if (c.cx > canvas.width + G * 2)  { c.cx = -G;               c.trail = [] }
-          if (c.cy < -G * 2)               { c.cy = canvas.height + G; c.trail = [] }
-          if (c.cy > canvas.height + G * 2) { c.cy = -G;               c.trail = [] }
+          if (c.cx < -G * 2)               { c.cx = canvas!.width + G;  c.trail = [] }
+          if (c.cx > canvas!.width + G * 2)  { c.cx = -G;               c.trail = [] }
+          if (c.cy < -G * 2)               { c.cy = canvas!.height + G; c.trail = [] }
+          if (c.cy > canvas!.height + G * 2) { c.cy = -G;               c.trail = [] }
 
           // Push APÓS mover — sem viradas, cada linha vai sempre na mesma direção
           c.trail.push({ x: c.cx, y: c.cy })
@@ -127,29 +118,29 @@ function TronLines() {
         for (let i = 1; i < pts.length; i++) {
           const frac = i / pts.length
           const alpha = Math.pow(frac, 2.5) * 0.75 * c.alpha
-          ctx.save()
-          ctx.globalAlpha = alpha
-          ctx.strokeStyle = `rgb(${r},${g},${b})`
-          ctx.lineWidth = 1.5
-          ctx.shadowColor = `rgb(${r},${g},${b})`
-          ctx.shadowBlur = 10 * frac
-          ctx.lineCap = 'square'
-          ctx.beginPath()
-          ctx.moveTo(pts[i - 1].x, pts[i - 1].y)
-          ctx.lineTo(pts[i].x, pts[i].y)
-          ctx.stroke()
-          ctx.restore()
+          ctx!.save()
+          ctx!.globalAlpha = alpha
+          ctx!.strokeStyle = `rgb(${r},${g},${b})`
+          ctx!.lineWidth = 1.5
+          ctx!.shadowColor = `rgb(${r},${g},${b})`
+          ctx!.shadowBlur = 10 * frac
+          ctx!.lineCap = 'square'
+          ctx!.beginPath()
+          ctx!.moveTo(pts[i - 1].x, pts[i - 1].y)
+          ctx!.lineTo(pts[i].x, pts[i].y)
+          ctx!.stroke()
+          ctx!.restore()
         }
 
-        ctx.save()
-        ctx.globalAlpha = 1
-        ctx.fillStyle = `rgb(${r},${g},${b})`
-        ctx.shadowColor = `rgb(${r},${g},${b})`
-        ctx.shadowBlur = 18
-        ctx.beginPath()
-        ctx.arc(hx, hy, 2, 0, Math.PI * 2)
-        ctx.fill()
-        ctx.restore()
+        ctx!.save()
+        ctx!.globalAlpha = 1
+        ctx!.fillStyle = `rgb(${r},${g},${b})`
+        ctx!.shadowColor = `rgb(${r},${g},${b})`
+        ctx!.shadowBlur = 18
+        ctx!.beginPath()
+        ctx!.arc(hx, hy, 2, 0, Math.PI * 2)
+        ctx!.fill()
+        ctx!.restore()
       }
 
       raf = requestAnimationFrame(frame)
@@ -184,7 +175,7 @@ function GlassInput({ children }: { children: React.ReactNode }) {
 }
 
 export default function LoginPage() {
-  const { login, loginWithGoogle, loginWithApple, isAuthenticated, isLoadingAuth } = useAuth()
+  const { login, isAuthenticated, isLoadingAuth } = useAuth()
   const navigate = useNavigate()
   const [showPass, setShowPass] = useState(false)
   const [error, setError] = useState('')
