@@ -70,8 +70,8 @@ export default function Header({ toggleTheme, isDark }: HeaderProps) {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-lg font-bold leading-tight">
               <span className="text-[var(--th-txt-1)] font-surgena leading-none">{COMPANY_NAME}</span>
-              <span className="inline-flex rounded-md bg-gradient-to-r from-[#FF8C00] to-[#D81B60] p-[1px] translate-y-[1px]">
-                <span className="inline-flex items-center px-2 py-0.5 rounded-[5px] text-[10px] font-medium uppercase tracking-widest bg-[var(--th-card)]">
+              <span className="inline-flex rounded-[5px] bg-gradient-to-r from-[#FF8C00] to-[#D81B60] p-[1px] translate-y-[1px]">
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded-[4px] text-[9px] font-medium uppercase tracking-widest bg-[var(--th-card)]">
                   <span className="bg-gradient-to-r from-[#FF8C00] to-[#D81B60] bg-clip-text text-transparent">{currentPageText}</span>
                 </span>
               </span>
@@ -144,8 +144,8 @@ export default function Header({ toggleTheme, isDark }: HeaderProps) {
           <div className="flex flex-col gap-1">
             <div className="flex items-end gap-2 font-bold">
               <span className="text-[var(--th-txt-1)] font-surgena leading-none" style={{ fontSize: '25px' }}>{COMPANY_NAME}</span>
-              <span className="inline-flex rounded-md bg-gradient-to-r from-[#FF8C00] to-[#D81B60] p-[1px] mb-[3px]">
-                <span className="inline-flex items-center px-2 py-0.5 rounded-[5px] text-xs font-medium uppercase tracking-widest bg-[var(--th-card)]">
+              <span className="inline-flex rounded-[5px] bg-gradient-to-r from-[#FF8C00] to-[#D81B60] p-[1px] mb-[5px]">
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded-[4px] text-[9px] font-medium uppercase tracking-widest bg-[var(--th-card)]">
                   <span className="bg-gradient-to-r from-[#FF8C00] to-[#D81B60] bg-clip-text text-transparent">{currentPageText}</span>
                 </span>
               </span>

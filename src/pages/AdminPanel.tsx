@@ -3,7 +3,16 @@ import {
   Sun, Moon, LogOut, Settings, Users, Database, Package, Home, Box, ArrowLeftRight,
   ScrollText, RefreshCw, Search, ChevronDown, ChevronUp, ChevronLeft,
   GitBranch, Plus, X, Check, Monitor, Smartphone, ScanLine, Trash2, Pencil, Menu, MapPin,
+  TrendingUp, CalendarDays, BarChart2, ShoppingBag,
 } from 'lucide-react'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Separator } from '@/components/ui/separator'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import type { LucideIcon } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
@@ -147,6 +156,7 @@ interface PedidoFluxo {
 
 function asText(value: unknown): string { return value === null || value === undefined ? '' : String(value) }
 function stripLeadingNum(s: string): string { return s.replace(/^[\d.]+\s*/, '').trim() }
+function decodeEntities(s: string): string { return s.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'") }
 const BR_ESTADOS: Record<string, string> = {
   AC:'Acre',AL:'Alagoas',AP:'Amapá',AM:'Amazonas',BA:'Bahia',CE:'Ceará',DF:'Distrito Federal',
   ES:'Espírito Santo',GO:'Goiás',MA:'Maranhão',MT:'Mato Grosso',MS:'Mato Grosso do Sul',
@@ -290,6 +300,7 @@ export default function AdminPanel() {
   const [seLinkLogs, setSeLinkLogs] = useState<SeLinkLog[]>([])
   const [seLinkLogsClearing, setSeLinkLogsClearing] = useState(false)
   const [seLinkLogsFilter, setSeLinkLogsFilter] = useState<'ALL' | 'INFO' | 'WARNING' | 'ERROR'>('ALL')
+  const [syncTablesOpen, setSyncTablesOpen] = useState(false)
   const [syncConfig, setSyncConfig] = useState<SyncConfigRow[]>([])
   const [syncConfigLoading, setSyncConfigLoading] = useState(false)
   const [syncConfigToggles, setSyncConfigToggles] = useState<Record<string, boolean>>({})
@@ -1963,7 +1974,7 @@ export default function AdminPanel() {
                                       type="button"
                                       disabled={effectiveId === '' || pedidoFluxoSaving}
                                       onClick={() => { if (effectiveId !== '') void savePedidoFluxo(pc, effectiveId as number) }}
-                                      className="px-3 py-0 h-7 rounded-lg bg-[var(--th-card)] text-[var(--th-txt-1)] text-xs font-medium disabled:opacity-40 hover:bg-[var(--th-hover)] transition-colors shrink-0 inline-flex items-center justify-center"
+                                      className="px-3 py-0 h-7 rounded-lg bg-[var(--th-hover)] text-[var(--th-txt-1)] text-xs font-medium disabled:opacity-40 hover:bg-white hover:text-black transition-colors shrink-0 inline-flex items-center justify-center"
                                     >
                                       {pedidoFluxoSaving ? '…' : fluxoVinculado ? 'Alterar' : 'Atribuir'}
                                     </button>
@@ -2749,7 +2760,7 @@ export default function AdminPanel() {
                       <div className="flex gap-2">
                         <button type="button" onClick={() => void createProdItem()}
                           disabled={newItemSaving || !newItemName.trim()}
-                          className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg bg-white text-black text-xs font-medium hover:bg-white/90 disabled:opacity-40 transition-colors">
+                          className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg bg-[var(--th-hover)] text-[var(--th-txt-1)] text-xs font-medium hover:bg-white hover:text-black disabled:opacity-40 transition-colors">
                           {newItemSaving ? <RefreshCw strokeWidth={2} className="w-3 h-3 animate-spin" /> : <Check strokeWidth={2} className="w-3 h-3" />}
                           Criar
                         </button>
@@ -2830,7 +2841,7 @@ export default function AdminPanel() {
                               className="flex-1 rounded-lg border border-[var(--th-border)] bg-[var(--th-page)] px-3 py-1.5 text-lg font-bold text-[var(--th-txt-2)] focus:outline-none focus:ring-1 focus:ring-white/10"
                             />
                             <button type="button" onClick={() => void saveItemName()}
-                              className="p-1.5 rounded-lg bg-white text-black hover:bg-white/90 transition-colors">
+                              className="p-1.5 rounded-lg bg-[var(--th-hover)] text-[var(--th-txt-1)] hover:bg-white hover:text-black transition-colors">
                               <Check strokeWidth={2} className="w-4 h-4" />
                             </button>
                             <button type="button" onClick={() => setEditItemMode(false)}
@@ -2894,7 +2905,7 @@ export default function AdminPanel() {
                                     className="flex-1 rounded-lg border border-[var(--th-border)] bg-[var(--th-page)] px-3 py-1.5 text-xs text-[var(--th-txt-2)] focus:outline-none focus:ring-1 focus:ring-white/10"
                                   />
                                   <button type="button" onClick={() => void saveEtapaName(etapa.id)}
-                                    className="p-1 rounded bg-white text-black hover:bg-white/90">
+                                    className="p-1 rounded bg-[var(--th-hover)] text-[var(--th-txt-1)] hover:bg-white hover:text-black">
                                     <Check strokeWidth={2} className="w-3 h-3" />
                                   </button>
                                   <button type="button" onClick={() => setEtapaEditId(null)}
@@ -2950,7 +2961,7 @@ export default function AdminPanel() {
                           />
                           <button type="button" onClick={() => void createProdEtapa()}
                             disabled={newEtapaSaving || !newEtapaName.trim()}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white hover:bg-white/90 disabled:opacity-40 text-black text-xs font-medium transition-colors">
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--th-hover)] hover:bg-white hover:text-black disabled:opacity-40 text-[var(--th-txt-1)] text-xs font-medium transition-colors">
                             {newEtapaSaving ? <RefreshCw strokeWidth={2} className="w-3 h-3 animate-spin" /> : <Plus strokeWidth={2} className="w-3 h-3" />}
                             Adicionar
                           </button>
@@ -2998,101 +3009,120 @@ export default function AdminPanel() {
             {/* DASHBOARD */}
             {selectedModule === 'dashboard' && (
               <div className="space-y-6">
+                {/* Header */}
                 <div>
                   <h1 className="text-xl font-bold text-[var(--th-txt-2)] mb-1">Dashboard Administrativo</h1>
                   <p className="text-sm text-[var(--th-txt-3)]">Visão geral do sistema <span className="font-surgena">{COMPANY_NAME}</span></p>
                 </div>
 
-                {/* Metric cards */}
+                {/* Metric Cards */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                   {/* Em Produção */}
-                  <div className="rounded-2xl border border-[var(--th-border)] bg-[var(--th-card)] p-5 flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
-                      <Box strokeWidth={1.5} className="w-5 h-5 text-emerald-400" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-[11px] text-[var(--th-txt-4)] uppercase tracking-widest font-medium mb-0.5">Em Produção</p>
+                  <Card className="bg-[var(--th-card)] border-[var(--th-border)] text-[var(--th-txt-1)] gap-3">
+                    <CardHeader className="pb-0">
+                      <div className="flex items-center justify-between">
+                        <CardDescription className="text-[11px] text-[var(--th-txt-4)] uppercase tracking-widest font-medium">Em Produção</CardDescription>
+                        <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+                          <TrendingUp strokeWidth={1.5} className="w-4 h-4 text-emerald-400" />
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
                       {dashStatsLoading && !dashStats
-                        ? <div className="h-7 w-14 rounded-md bg-[var(--th-subtle)] animate-pulse" />
-                        : <p className="text-xl font-bold text-emerald-400">{dashStats != null ? dashStats.emProducao.toLocaleString('pt-BR') : '—'}</p>
+                        ? <div className="h-8 w-16 rounded-md bg-[var(--th-subtle)] animate-pulse" />
+                        : <p className="text-2xl font-bold text-emerald-400 leading-none">{dashStats != null ? dashStats.emProducao.toLocaleString('pt-BR') : '—'}</p>
                       }
-                      <p className="text-[10px] text-[var(--th-txt-4)] mt-0.5">pedidos com saldo</p>
-                    </div>
-                  </div>
+                      <p className="text-[11px] text-[var(--th-txt-4)] mt-1">pedidos com saldo</p>
+                    </CardContent>
+                  </Card>
 
                   {/* Esta Semana */}
-                  <div className="rounded-2xl border border-[var(--th-border)] bg-[var(--th-card)] p-5 flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0">
-                      <Box strokeWidth={1.5} className="w-5 h-5 text-blue-400" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-[11px] text-[var(--th-txt-4)] uppercase tracking-widest font-medium mb-0.5">Esta Semana</p>
+                  <Card className="bg-[var(--th-card)] border-[var(--th-border)] text-[var(--th-txt-1)] gap-3">
+                    <CardHeader className="pb-0">
+                      <div className="flex items-center justify-between">
+                        <CardDescription className="text-[11px] text-[var(--th-txt-4)] uppercase tracking-widest font-medium">Esta Semana</CardDescription>
+                        <div className="w-8 h-8 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
+                          <BarChart2 strokeWidth={1.5} className="w-4 h-4 text-blue-400" />
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
                       {dashStatsLoading && !dashStats
-                        ? <div className="h-7 w-14 rounded-md bg-[var(--th-subtle)] animate-pulse" />
-                        : <p className="text-xl font-bold text-blue-400">{dashStats != null ? dashStats.semanal.toLocaleString('pt-BR') : '—'}</p>
+                        ? <div className="h-8 w-16 rounded-md bg-[var(--th-subtle)] animate-pulse" />
+                        : <p className="text-2xl font-bold text-blue-400 leading-none">{dashStats != null ? dashStats.semanal.toLocaleString('pt-BR') : '—'}</p>
                       }
-                      <p className="text-[10px] text-[var(--th-txt-4)] mt-0.5">novos pedidos</p>
-                    </div>
-                  </div>
+                      <p className="text-[11px] text-[var(--th-txt-4)] mt-1">novos pedidos</p>
+                    </CardContent>
+                  </Card>
 
                   {/* Este Mês */}
-                  <div className="rounded-2xl border border-[var(--th-border)] bg-[var(--th-card)] p-5 flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center shrink-0">
-                      <Box strokeWidth={1.5} className="w-5 h-5 text-purple-400" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-[11px] text-[var(--th-txt-4)] uppercase tracking-widest font-medium mb-0.5">Este Mês</p>
+                  <Card className="bg-[var(--th-card)] border-[var(--th-border)] text-[var(--th-txt-1)] gap-3">
+                    <CardHeader className="pb-0">
+                      <div className="flex items-center justify-between">
+                        <CardDescription className="text-[11px] text-[var(--th-txt-4)] uppercase tracking-widest font-medium">Este Mês</CardDescription>
+                        <div className="w-8 h-8 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center">
+                          <CalendarDays strokeWidth={1.5} className="w-4 h-4 text-purple-400" />
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
                       {dashStatsLoading && !dashStats
-                        ? <div className="h-7 w-14 rounded-md bg-[var(--th-subtle)] animate-pulse" />
-                        : <p className="text-xl font-bold text-purple-400">{dashStats != null ? dashStats.mensal.toLocaleString('pt-BR') : '—'}</p>
+                        ? <div className="h-8 w-16 rounded-md bg-[var(--th-subtle)] animate-pulse" />
+                        : <p className="text-2xl font-bold text-purple-400 leading-none">{dashStats != null ? dashStats.mensal.toLocaleString('pt-BR') : '—'}</p>
                       }
-                      <p className="text-[10px] text-[var(--th-txt-4)] mt-0.5">novos pedidos</p>
-                    </div>
-                  </div>
+                      <p className="text-[11px] text-[var(--th-txt-4)] mt-1">novos pedidos</p>
+                    </CardContent>
+                  </Card>
 
-                  {/* Pedidos Totais */}
-                  <div className="rounded-2xl border border-[var(--th-border)] bg-[var(--th-card)] p-5 flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-lg bg-[var(--th-subtle)] border border-[var(--th-border)] flex items-center justify-center shrink-0">
-                      <Box strokeWidth={1.5} className="w-5 h-5 text-[var(--th-txt-4)]" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-[11px] text-[var(--th-txt-4)] uppercase tracking-widest font-medium mb-0.5">Total</p>
-                      <p className="text-xl font-bold text-[var(--th-txt-1)]">{totalOrders !== null ? totalOrders.toLocaleString('pt-BR') : '—'}</p>
-                      <p className="text-[10px] text-[var(--th-txt-4)] mt-0.5">no banco de dados</p>
-                    </div>
-                  </div>
+                  {/* Total */}
+                  <Card className="bg-[var(--th-card)] border-[var(--th-border)] text-[var(--th-txt-1)] gap-3">
+                    <CardHeader className="pb-0">
+                      <div className="flex items-center justify-between">
+                        <CardDescription className="text-[11px] text-[var(--th-txt-4)] uppercase tracking-widest font-medium">Total</CardDescription>
+                        <div className="w-8 h-8 rounded-lg bg-[var(--th-subtle)] border border-[var(--th-border)] flex items-center justify-center">
+                          <ShoppingBag strokeWidth={1.5} className="w-4 h-4 text-[var(--th-txt-4)]" />
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-2xl font-bold text-[var(--th-txt-1)] leading-none">{totalOrders !== null ? totalOrders.toLocaleString('pt-BR') : '—'}</p>
+                      <p className="text-[11px] text-[var(--th-txt-4)] mt-1">no banco de dados</p>
+                    </CardContent>
+                  </Card>
                 </div>
 
                 {/* SE Link Heartbeat */}
-                <div className="rounded-2xl border border-[var(--th-border)] bg-[var(--th-card)] overflow-hidden">
-                  <div className="px-5 py-4 border-b border-[var(--th-border)] flex items-center justify-between gap-3 flex-wrap">
-                    <div className="flex items-center gap-3">
-                      <h3 className="text-xs font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">SE Link — Heartbeat</h3>
-                      {seLinkOnline === true && (
-                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                          Online
-                        </span>
-                      )}
-                      {seLinkOnline === false && (
-                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium bg-red-500/15 text-red-400 border border-red-500/30">
-                          <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
-                          Offline
-                        </span>
-                      )}
-                      {seLinkOnline === null && (
-                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium bg-[var(--th-subtle)] text-[var(--th-txt-4)] border border-[var(--th-border)]">
-                          <span className="w-1.5 h-1.5 rounded-full bg-[var(--th-txt-4)]" />
-                          Verificando
-                        </span>
-                      )}
+                <Card className="bg-[var(--th-card)] border-[var(--th-border)] text-[var(--th-txt-1)] gap-0">
+                  <CardHeader className="border-b border-[var(--th-border)] pb-3">
+                    <div className="flex items-center justify-between gap-3 flex-wrap">
+                      <div className="flex items-center gap-3">
+                        <CardTitle className="text-xs font-semibold uppercase tracking-widest text-[var(--th-txt-4)] font-heading-override">SE Link — Heartbeat</CardTitle>
+                        {seLinkOnline === true && (
+                          <Badge variant="outline" className="gap-1.5 px-2 py-0.5 rounded-full text-[11px] bg-emerald-500/15 text-emerald-400 border-emerald-500/30">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                            Online
+                          </Badge>
+                        )}
+                        {seLinkOnline === false && (
+                          <Badge variant="outline" className="gap-1.5 px-2 py-0.5 rounded-full text-[11px] bg-red-500/15 text-red-400 border-red-500/30">
+                            <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
+                            Offline
+                          </Badge>
+                        )}
+                        {seLinkOnline === null && (
+                          <Badge variant="outline" className="gap-1.5 px-2 py-0.5 rounded-full text-[11px] bg-[var(--th-subtle)] text-[var(--th-txt-4)] border-[var(--th-border)]">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[var(--th-txt-4)]" />
+                            Verificando
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-4">
+                        {lastSyncTime && <span className="text-[11px] text-[var(--th-txt-4)]">Última sync: {lastSyncTime}</span>}
+                        {heartbeatFetchedAt && <span className="text-[10px] text-[var(--th-txt-4)]/60">atualizado {heartbeatFetchedAt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>}
+                      </div>
                     </div>
-                    <div className="flex items-center gap-4">
-                      {lastSyncTime && <span className="text-[11px] text-[var(--th-txt-4)]">Última sync: {lastSyncTime}</span>}
-                      {heartbeatFetchedAt && <span className="text-[10px] text-[var(--th-txt-4)]/60">atualizado {heartbeatFetchedAt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>}
-                    </div>
-                  </div>
-                  <div className="px-5 pt-4 pb-5">
+                  </CardHeader>
+                  <CardContent className="pt-4">
                     <div className="mb-2 flex items-center justify-between">
                       <span className="text-[10px] text-[var(--th-txt-4)]/60 uppercase tracking-widest">Atividade por hora (últimas 24h)</span>
                       <span className="text-[10px] text-[var(--th-txt-4)]/60">← 24h atrás &nbsp;&nbsp; agora →</span>
@@ -3142,8 +3172,8 @@ export default function AdminPanel() {
                     {heartbeatBuckets.every(v => v === 0) && (
                       <p className="text-center text-[11px] text-[var(--th-txt-4)] mt-3">Nenhuma atividade registrada nas últimas 24 horas</p>
                     )}
-                  </div>
-                </div>
+                  </CardContent>
+                </Card>
               </div>
             )}
 
@@ -3156,7 +3186,6 @@ export default function AdminPanel() {
                 if (!q) return true
                 return [asText(c.CODIGO), asText(c.NOME), asText(c.FANTASIA), asText(c.CNPJ), asText(c.CHAVE), asText(c.CIDADE)].some(v => v.toLowerCase().includes(q))
               })
-              // Contagem de pedidos por cliente (para exibir na lista)
               const pedidosCountMap = new Map<string, number>()
               for (const p of orders) {
                 const k = asText(p.CLIENTE).trim(); if (!k) continue
@@ -3164,69 +3193,66 @@ export default function AdminPanel() {
               }
               return (
                 <div className="flex h-full gap-0 -m-6">
-                  {/* List panel */}
-                  <div className={`shrink-0 flex-col border-r border-[var(--th-border)] bg-[var(--th-page)] w-full sm:w-[340px] ${selectedCliente ? 'hidden sm:flex' : 'flex'}`}>
+                  {/* ── List panel ── */}
+                  <div className={`shrink-0 flex-col border-r border-[var(--th-border)] bg-[var(--th-page)] w-full sm:w-[380px] ${selectedCliente ? 'hidden sm:flex' : 'flex'}`}>
                     {/* Header */}
-                    <div className="px-4 py-4 border-b border-[var(--th-border)]">
+                    <div className="px-4 py-4 border-b border-[var(--th-border)] shrink-0">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
                           <h1 className="text-sm font-semibold text-[var(--th-txt-2)]">Clientes</h1>
-                          <span className="text-xs bg-[var(--th-subtle)] px-2 py-0.5 rounded-full text-[var(--th-txt-4)]">{filtered.length}</span>
+                          <span className="text-[11px] font-medium bg-[var(--th-card)] w-6 h-6 flex items-center justify-center rounded-full text-[var(--th-txt-1)] shrink-0">
+                            {filtered.length}
+                          </span>
                           {clientesEstado && (
-                            <span className="text-xs bg-[rgba(255,255,255,0.06)] text-[var(--th-txt-2)] border border-[var(--th-border)] px-2 py-0.5 rounded-full">{clientesEstado}</span>
+                            <span className="text-[11px] px-2 py-0.5 rounded-full border border-[var(--th-border)] bg-[var(--th-card)] text-[var(--th-txt-3)] font-medium">{clientesEstado}</span>
                           )}
                         </div>
-                        <button type="button" onClick={() => void fetchClientes()} className="p-1.5 rounded hover:bg-[var(--th-hover)] text-[var(--th-txt-4)]" title="Atualizar">
+                        <button type="button" onClick={() => void fetchClientes()} title="Atualizar"
+                          className="p-1.5 rounded text-[var(--th-txt-4)] hover:bg-[var(--th-hover)] transition-colors">
                           <RefreshCw strokeWidth={1.5} className={`w-3.5 h-3.5 ${clientesLoading ? 'animate-spin' : ''}`} />
                         </button>
                       </div>
+
                       {/* Search */}
                       <div className="relative mb-2">
                         <Search strokeWidth={1.5} className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--th-txt-4)]" />
-                        <input value={clientesQuery} onChange={e => setClientesQuery(e.target.value)}
+                        <input
+                          value={clientesQuery}
+                          onChange={e => setClientesQuery(e.target.value)}
                           placeholder="Nome, fantasia, CNPJ, cidade..."
-                          className="w-full rounded-lg border border-[var(--th-border)] bg-transparent pl-8 pr-8 py-1.5 text-xs text-[var(--th-txt-2)] placeholder:text-[var(--th-txt-4)] focus:outline-none focus:ring-1 focus:ring-white/10" />
+                          className="w-full rounded-lg border border-[var(--th-border)] bg-[var(--th-page)] pl-8 pr-7 py-1.5 text-xs text-[var(--th-txt-2)] placeholder:text-[var(--th-txt-4)] focus:outline-none focus:ring-1 focus:ring-white/10"
+                        />
                         {clientesQuery && (
-                          <button type="button" onClick={() => setClientesQuery('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--th-txt-4)] hover:text-[var(--th-txt-1)]">
+                          <button type="button" onClick={() => setClientesQuery('')}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--th-txt-4)] hover:text-[var(--th-txt-1)]">
                             <X strokeWidth={2} className="w-3 h-3" />
                           </button>
                         )}
                       </div>
+
                       {/* Estado filter */}
                       <div className="relative">
                         <button
                           type="button"
+                          className={`w-full flex items-center justify-between rounded-lg border border-[var(--th-border)] bg-[var(--th-page)] px-3 py-1.5 text-xs transition-colors hover:bg-[var(--th-hover)] ${clientesEstado ? 'text-[var(--th-txt-2)]' : 'text-[var(--th-txt-4)]'}`}
                           onClick={() => setClientesEstadoOpen(o => !o)}
-                          className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg border text-xs transition-colors ${
-                            clientesEstadoOpen
-                              ? 'border-[rgba(255,255,255,0.15)] bg-[rgba(255,255,255,0.05)] ring-1 ring-white/10'
-                              : clientesEstado
-                                ? 'border-[rgba(255,255,255,0.10)] bg-[rgba(255,255,255,0.04)]'
-                                : 'border-[var(--th-border)] bg-[var(--th-card)] hover:border-[rgba(255,255,255,0.10)]'
-                          }`}
                         >
-                          <span className={clientesEstado ? 'text-[var(--th-txt-1)] font-medium' : 'text-[var(--th-txt-4)]'}>
-                            {clientesEstado ? (BR_ESTADOS[clientesEstado] ?? clientesEstado) : 'Todos os estados'}
-                          </span>
-                          <ChevronDown strokeWidth={2} className={`w-3 h-3 text-[var(--th-txt-4)] transition-transform shrink-0 ml-1 ${clientesEstadoOpen ? 'rotate-180' : ''}`} />
+                          <span>{clientesEstado ? (BR_ESTADOS[clientesEstado] ?? clientesEstado) : 'Todos os estados'}</span>
+                          <ChevronDown strokeWidth={2} className={`w-3 h-3 transition-transform ml-1 ${clientesEstadoOpen ? 'rotate-180' : ''}`} />
                         </button>
                         {clientesEstadoOpen && (
-                          <div className="absolute z-50 top-full mt-1 left-0 right-0 max-h-48 overflow-y-auto rounded-lg border border-[var(--th-border)] bg-[var(--th-page)] shadow-lg">
+                          <div className="absolute z-50 top-full mt-1 left-0 right-0 max-h-48 overflow-y-auto rounded-lg border border-[var(--th-border)] bg-[var(--th-card)] shadow-lg">
                             <button
                               type="button"
                               onClick={() => { setClientesEstado(''); setClientesEstadoOpen(false) }}
-                              className={`w-full text-left px-3 py-2 text-xs transition-colors hover:bg-[var(--th-hover)] ${
-                                clientesEstado === '' ? 'text-[var(--th-txt-1)] font-semibold' : 'text-[var(--th-txt-3)]'
-                              }`}
+                              className={`w-full text-left px-3 py-2 text-xs hover:bg-[var(--th-hover)] transition-colors ${clientesEstado === '' ? 'text-[var(--th-txt-1)] font-semibold' : 'text-[var(--th-txt-4)]'}`}
                             >Todos os estados</button>
                             {estados.map(uf => (
                               <button
                                 key={uf}
                                 type="button"
                                 onClick={() => { setClientesEstado(uf); setClientesEstadoOpen(false) }}
-                                className={`w-full text-left px-3 py-2 text-xs transition-colors hover:bg-[var(--th-hover)] flex items-center justify-between ${
-                                  clientesEstado === uf ? 'text-[var(--th-txt-1)] font-semibold' : 'text-[var(--th-txt-2)]'
-                                }`}
+                                className={`w-full text-left px-3 py-2 text-xs hover:bg-[var(--th-hover)] transition-colors flex items-center justify-between ${clientesEstado === uf ? 'text-[var(--th-txt-1)] font-semibold' : 'text-[var(--th-txt-4)]'}`}
                               >
                                 <span>{BR_ESTADOS[uf] ?? uf}</span>
                                 <span className="text-[var(--th-txt-4)] font-normal">{clientesAll.filter(c => asText(c.ESTADO).trim() === uf).length}</span>
@@ -3236,14 +3262,19 @@ export default function AdminPanel() {
                         )}
                       </div>
                     </div>
+
                     {/* List */}
                     <div className="flex-1 overflow-y-auto p-2 space-y-1">
-                      {clientesLoading && <div className="px-4 py-8 text-center text-sm text-[var(--th-txt-3)]">Carregando...</div>}
-                      {clientesError && <div className="px-3 py-2 text-xs text-red-400 bg-red-500/10 rounded-lg border border-red-500/20">{clientesError}</div>}
-                      {!clientesLoading && filtered.length === 0 && <div className="px-4 py-16 text-center text-sm text-[var(--th-txt-3)]">Nenhum cliente encontrado.</div>}
+                      {clientesLoading && <p className="px-4 py-8 text-center text-sm text-[var(--th-txt-3)]">Carregando...</p>}
+                      {clientesError && (
+                        <div className="px-3 py-2 text-xs text-red-400 bg-red-500/10 rounded-lg border border-red-500/20">{clientesError}</div>
+                      )}
+                      {!clientesLoading && filtered.length === 0 && (
+                        <p className="px-4 py-16 text-center text-sm text-[var(--th-txt-3)]">Nenhum cliente encontrado.</p>
+                      )}
                       {filtered.map(c => {
-                        const fantasia = stripLeadingNum(asText(c.FANTASIA).trim())
-                        const nomeRaw = stripLeadingNum(asText(c.NOME).trim())
+                        const fantasia = decodeEntities(stripLeadingNum(asText(c.FANTASIA).trim()))
+                        const nomeRaw = decodeEntities(stripLeadingNum(asText(c.NOME).trim()))
                         const displayName = fantasia || nomeRaw || '—'
                         const subName = fantasia && nomeRaw && fantasia !== nomeRaw ? nomeRaw : ''
                         const cod = asText(c.CODIGO).trim()
@@ -3254,13 +3285,19 @@ export default function AdminPanel() {
                         const initials = displayName.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('')
                         const isSelected = selectedCliente?.CODIGO === c.CODIGO
                         return (
-                          <button key={cod} type="button" onClick={() => setSelectedCliente(c)}
-                            className={`w-full text-left rounded-2xl border px-3 py-2.5 transition-all flex items-center gap-3 ${isSelected ? 'border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.05)]' : 'border-[var(--th-border)] bg-[var(--th-card)] hover:border-[rgba(255,255,255,0.08)] hover:bg-[rgba(255,255,255,0.03)]'}`}>
-                            {/* Avatar */}
-                            <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 text-xs font-bold ${isSelected ? 'bg-[rgba(255,255,255,0.10)] text-[var(--th-txt-1)]' : 'bg-[var(--th-subtle)] text-[var(--th-txt-3)]'}`}>
+                          <button
+                            key={cod}
+                            type="button"
+                            onClick={() => setSelectedCliente(c)}
+                            className={`w-full text-left rounded-xl border px-3 py-2.5 transition-all flex items-center gap-3 ${
+                              isSelected
+                                ? 'border-[var(--th-border)] bg-[var(--th-card)]'
+                                : 'border-[var(--th-border)] bg-[var(--th-card)] hover:bg-[var(--th-hover)]'
+                            }`}
+                          >
+                            <div className={`h-9 w-9 shrink-0 rounded-full flex items-center justify-center text-xs font-bold ${isSelected ? 'bg-[rgba(255,255,255,0.12)] text-[var(--th-txt-1)]' : 'bg-[var(--th-subtle)] text-[var(--th-txt-3)]'}`}>
                               {initials || '?'}
                             </div>
-                            {/* Info */}
                             <div className="flex-1 min-w-0">
                               <p className="text-xs font-semibold text-[var(--th-txt-2)] truncate leading-snug mb-0.5">{displayName}</p>
                               {subName && <p className="text-[10px] text-[var(--th-txt-4)] truncate leading-none mb-0.5">{subName}</p>}
@@ -3270,24 +3307,28 @@ export default function AdminPanel() {
                                 {(cidade || uf) && cnpj && <span className="text-[10px] text-[var(--th-txt-4)] shrink-0">{uf}</span>}
                               </div>
                             </div>
-                            {/* Pedidos count */}
                             {nPedidos > 0 && (
-                              <span className={`text-[10px] font-mono w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${isSelected ? 'bg-[rgba(255,255,255,0.10)] text-[var(--th-txt-1)]' : 'bg-[var(--th-subtle)] text-[var(--th-txt-4)]'}`}>{nPedidos}</span>
+                              <span className="text-[10px] h-6 w-6 rounded-full border border-[var(--th-border)] bg-[var(--th-subtle)] flex items-center justify-center shrink-0 font-mono text-[var(--th-txt-3)]">
+                                {nPedidos}
+                              </span>
                             )}
                           </button>
                         )
                       })}
                     </div>
-                    {/* Footer count */}
-                    <div className="px-4 py-2 border-t border-[var(--th-border)] text-[11px] text-[var(--th-txt-4)] flex justify-between">
+
+                    {/* Footer */}
+                    <div className="px-4 py-2 border-t border-[var(--th-border)] text-[11px] text-[var(--th-txt-4)] flex justify-between shrink-0">
                       <span>{filtered.length} de {clientesAll.length} clientes</span>
                       {(clientesQuery || clientesEstado) && (
-                        <button type="button" onClick={() => { setClientesQuery(''); setClientesEstado('') }} className="text-[var(--th-txt-4)] hover:text-[var(--th-txt-1)] hover:underline transition-colors">Limpar filtros</button>
+                        <button type="button" onClick={() => { setClientesQuery(''); setClientesEstado('') }} className="hover:text-[var(--th-txt-1)] hover:underline transition-colors">
+                          Limpar filtros
+                        </button>
                       )}
                     </div>
                   </div>
 
-                  {/* Detail panel */}
+                  {/* ── Detail panel ── */}
                   <div className={`overflow-y-auto sm:flex-1 sm:p-6 ${selectedCliente ? 'fixed inset-0 top-[54px] z-40 bg-[var(--th-page)] p-4 sm:static sm:inset-auto sm:z-auto sm:bg-transparent' : 'hidden sm:block'}`}>
                     {!selectedCliente && (
                       <div className="flex flex-col items-center justify-center py-16 text-[var(--th-txt-4)]">
@@ -3295,10 +3336,11 @@ export default function AdminPanel() {
                         <p className="text-sm">Selecione um cliente para ver detalhes</p>
                       </div>
                     )}
+
                     {selectedCliente && (() => {
                       const c = selectedCliente
-                      const fantasia = stripLeadingNum(asText(c.FANTASIA).trim())
-                      const nomeRaw = stripLeadingNum(asText(c.NOME).trim())
+                      const fantasia = decodeEntities(stripLeadingNum(asText(c.FANTASIA).trim()))
+                      const nomeRaw = decodeEntities(stripLeadingNum(asText(c.NOME).trim()))
                       const displayName = fantasia || nomeRaw || '—'
                       const subName = fantasia && nomeRaw && fantasia !== nomeRaw ? nomeRaw : ''
                       const cnpj = asText(c.CNPJ || c.CHAVE).trim()
@@ -3315,152 +3357,163 @@ export default function AdminPanel() {
                       const initials = displayName.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('')
                       const mapsQuery = [endereco, bairro, cidade, uf, cep].filter(Boolean).join(', ')
                       return (
-                        <div className="space-y-4 max-w-2xl">
-                          <button className="sm:hidden flex items-center gap-1.5 text-sm text-[var(--th-txt-3)] hover:text-[var(--th-txt-1)] transition-colors py-1" onClick={() => setSelectedCliente(null)}>
+                        <div className="space-y-3 max-w-2xl">
+                          <button type="button" className="sm:hidden -ml-2 gap-1 flex items-center text-xs text-[var(--th-txt-4)] hover:text-[var(--th-txt-1)] transition-colors" onClick={() => setSelectedCliente(null)}>
                             <ChevronLeft className="w-4 h-4" />Voltar
                           </button>
 
-                          {/* Header card */}
-                          <div className="rounded-2xl border border-[var(--th-border)] bg-[var(--th-card)] p-5">
-                            <div className="flex items-start gap-4">
-                              {/* Avatar */}
-                              <div className="w-14 h-14 rounded-2xl bg-[rgba(255,255,255,0.06)] text-[var(--th-txt-2)] flex items-center justify-center text-xl font-bold shrink-0 border border-[var(--th-border)]">
-                                {initials || '?'}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <h2 className="text-base font-bold text-[var(--th-txt-2)] leading-snug mb-0.5">{displayName}</h2>
-                                {subName && <p className="text-xs text-[var(--th-txt-4)] mb-1.5 truncate">{subName}</p>}
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  <span className="inline-flex items-center gap-1 bg-[var(--th-subtle)] border border-[var(--th-border)] px-2 py-0.5 rounded text-[11px] font-mono text-[var(--th-txt-3)]">#{asText(c.CODIGO)}</span>
-                                  {cnpj && <span className="inline-flex items-center gap-1 bg-[var(--th-subtle)] border border-[var(--th-border)] px-2 py-0.5 rounded text-[11px] font-mono text-[var(--th-txt-3)]">{cnpj}</span>}
-                                  {uf && <span className="inline-flex items-center bg-[var(--th-subtle)] border border-[var(--th-border)] px-2 py-0.5 rounded text-[11px] text-[var(--th-txt-3)]">{uf}</span>}
+                          {/* ── Header card ── */}
+                          <div className="rounded-2xl border border-[var(--th-border)] bg-[var(--th-card)] relative">
+                            <button type="button" onClick={() => setSelectedCliente(null)}
+                              className="absolute top-3 right-3 h-7 w-7 rounded-lg flex items-center justify-center text-[var(--th-txt-4)] hover:bg-[var(--th-hover)] hover:text-[var(--th-txt-1)] transition-colors z-10">
+                              <X strokeWidth={1.5} className="w-4 h-4" />
+                            </button>
+                            <div className="p-5 pr-12">
+                              {/* Identity row */}
+                              <div className="flex items-center gap-4">
+                                <div className="h-14 w-14 rounded-xl shrink-0 flex items-center justify-center text-lg font-bold bg-[var(--th-subtle)] text-[var(--th-txt-3)]">
+                                  {initials || '?'}
                                 </div>
-                              </div>
-                              <button type="button" onClick={() => setSelectedCliente(null)} className="p-1.5 rounded hover:bg-[var(--th-hover)] text-[var(--th-txt-4)] shrink-0">
-                                <X strokeWidth={1.5} className="w-4 h-4" />
-                              </button>
-                            </div>
-
-                            {/* Stats strip */}
-                            <div className="grid grid-cols-4 gap-2 mt-4 pt-4 border-t border-[var(--th-border)]">
-                              {[
-                                { label: 'Pedidos', value: String(pedidosDoCliente.length) },
-                                { label: 'Em aberto', value: String(emAberto), highlight: emAberto > 0 },
-                                { label: 'Total pares', value: fmtNumber(totalPares) },
-                                { label: 'Faturados', value: fmtNumber(totalFaturados) },
-                              ].map(stat => (
-                                <div key={stat.label} className="text-center">
-                                  <p className={`text-sm font-bold font-mono ${stat.highlight ? 'text-[var(--th-txt-1)]' : 'text-[var(--th-txt-2)]'}`}>{stat.value}</p>
-                                  <p className="text-[10px] text-[var(--th-txt-4)] mt-0.5">{stat.label}</p>
-                                </div>
-                              ))}
-                            </div>
-
-                            {/* Datas */}
-                            {(asText(c.INCLUIDO) || asText(c.ATUALIZADO)) && (
-                              <div className="flex gap-4 mt-3 pt-3 border-t border-[var(--th-border)]">
-                                {asText(c.INCLUIDO) && <span className="text-[11px] text-[var(--th-txt-4)]">Incluído <span className="font-mono text-[var(--th-txt-3)]">{fmtDate(asText(c.INCLUIDO))}</span></span>}
-                                {asText(c.ATUALIZADO) && <span className="text-[11px] text-[var(--th-txt-4)]">Atualizado <span className="font-mono text-[var(--th-txt-3)]">{fmtDate(asText(c.ATUALIZADO))}</span></span>}
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Endereço */}
-                          {(endereco || cidade || bairro || cep) && (
-                            <div className="rounded-2xl border border-[var(--th-border)] bg-[var(--th-card)] overflow-hidden">
-                              <div className="flex">
-                                {/* Info de endereço */}
-                                <div className="flex-1 p-4">
-                                  <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)] mb-3">Endereço</p>
-                                  <div className="space-y-1 text-sm">
-                                    {endereco && <p className="text-[var(--th-txt-2)]">{endereco}</p>}
-                                    {(bairro || cidade || uf) && (
-                                      <p className="text-[var(--th-txt-3)] text-xs">{[bairro, cidade, uf].filter(Boolean).join(' · ')}</p>
-                                    )}
-                                    {cep && <p className="text-[var(--th-txt-4)] font-mono text-[11px]">CEP {cep}</p>}
+                                <div className="min-w-0">
+                                  <h2 className="text-[15px] font-bold text-[var(--th-txt-1)] leading-tight">{displayName}</h2>
+                                  {subName && <p className="text-xs text-[var(--th-txt-4)] mt-0.5 truncate">{subName}</p>}
+                                  <div className="flex items-center gap-1.5 flex-wrap mt-2">
+                                    <span className="text-[11px] font-mono px-1.5 py-0.5 rounded border border-[var(--th-border)] bg-[var(--th-subtle)] text-[var(--th-txt-3)]">#{asText(c.CODIGO)}</span>
+                                    {cnpj && <span className="text-[11px] font-mono px-1.5 py-0.5 rounded border border-[var(--th-border)] bg-[var(--th-subtle)] text-[var(--th-txt-3)]">{cnpj}</span>}
+                                    {uf && <span className="text-[11px] px-1.5 py-0.5 rounded border border-[var(--th-border)] bg-[var(--th-subtle)] text-[var(--th-txt-3)]">{uf}</span>}
                                   </div>
                                 </div>
-                                {/* Mapa borrado */}
-                                {mapsQuery && (
-                                  <div className="relative flex items-center justify-center shrink-0 overflow-hidden" style={{minWidth: 180}}>
-                                    <img
-                                      src="/map-bg.png"
-                                      alt=""
-                                      className="absolute inset-0 w-full h-full object-cover"
-                                      style={{filter: 'blur(1.5px)', transform: 'scale(1.15)'}}
-                                    />
-                                    <div className="absolute inset-0 bg-black/55" />
+                              </div>
+
+                              {/* Stats grid */}
+                              <div className="grid grid-cols-4 gap-2 mt-4">
+                                {[
+                                  { label: 'Pedidos',     value: String(pedidosDoCliente.length), accent: false },
+                                  { label: 'Em aberto',   value: String(emAberto),                accent: emAberto > 0 },
+                                  { label: 'Total pares', value: fmtNumber(totalPares),            accent: false },
+                                  { label: 'Faturados',   value: fmtNumber(totalFaturados),        accent: false },
+                                ].map(stat => (
+                                  <div key={stat.label} className="rounded-lg bg-[var(--th-subtle)] px-2 py-2.5 text-center">
+                                    <p className={`text-base font-bold font-mono leading-none mb-1 ${stat.accent ? 'text-amber-400' : 'text-[var(--th-txt-1)]'}`}>{stat.value}</p>
+                                    <p className="text-[10px] text-[var(--th-txt-4)] leading-none">{stat.label}</p>
+                                  </div>
+                                ))}
+                              </div>
+
+                              {/* Dates */}
+                              {(asText(c.INCLUIDO) || asText(c.ATUALIZADO)) && (
+                                <div className="flex gap-4 mt-3 pt-3 border-t border-[var(--th-border)]">
+                                  {asText(c.INCLUIDO) && (
+                                    <span className="text-[11px] text-[var(--th-txt-4)]">
+                                      Incluído <span className="font-mono text-[var(--th-txt-3)]">{fmtDate(asText(c.INCLUIDO))}</span>
+                                    </span>
+                                  )}
+                                  {asText(c.ATUALIZADO) && (
+                                    <span className="text-[11px] text-[var(--th-txt-4)]">
+                                      Atualizado <span className="font-mono text-[var(--th-txt-3)]">{fmtDate(asText(c.ATUALIZADO))}</span>
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* ── Endereço ── */}
+                          {(endereco || cidade || bairro || cep) && (
+                            <div className="rounded-2xl border border-[var(--th-border)] bg-[var(--th-card)]">
+                              <div className="px-4 py-3.5">
+                                <div className="flex items-start justify-between gap-4">
+                                  <div className="flex gap-3">
+                                    <MapPin strokeWidth={1.5} className="w-4 h-4 text-[var(--th-txt-4)] shrink-0 mt-0.5" />
+                                    <div className="space-y-0.5">
+                                      {endereco && <p className="text-sm text-[var(--th-txt-2)]">{endereco}</p>}
+                                      {(bairro || cidade || uf) && (
+                                        <p className="text-xs text-[var(--th-txt-4)]">{[bairro, cidade, uf].filter(Boolean).join(' · ')}</p>
+                                      )}
+                                      {cep && <p className="text-[11px] text-[var(--th-txt-4)] font-mono">CEP {cep}</p>}
+                                    </div>
+                                  </div>
+                                  {mapsQuery && (
                                     <a
                                       href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapsQuery)}`}
                                       target="_blank"
                                       rel="noopener noreferrer"
                                       onClick={e => e.stopPropagation()}
-                                      className="relative z-10 flex items-center justify-center gap-1.5 px-5 py-2 rounded-lg bg-white text-black text-[11px] font-semibold hover:bg-white/90 transition-colors"
                                     >
-                                      <MapPin strokeWidth={1.5} className="w-3.5 h-3.5" />
-                                      Ver no Maps
+                                      <button type="button" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--th-hover)] text-[var(--th-txt-1)] text-[11px] font-medium hover:bg-white hover:text-black transition-colors shrink-0">
+                                        <MapPin strokeWidth={1.5} className="w-3 h-3" />
+                                        Ver no Maps
+                                      </button>
                                     </a>
-                                  </div>
-                                )}
+                                  )}
+                                </div>
                               </div>
                             </div>
                           )}
 
-                          {/* Histórico de pedidos */}
+                          {/* ── Pedidos ── */}
                           <div className="rounded-2xl border border-[var(--th-border)] bg-[var(--th-card)] overflow-hidden">
-                            <div className="px-4 py-2.5 bg-[var(--th-subtle)] border-b border-[var(--th-border)] flex items-center justify-between">
-                              <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Pedidos</p>
-                              <span className="text-[11px] text-[var(--th-txt-4)]">{pedidosDoCliente.length}</span>
+                            <div className="px-4 py-2.5 flex items-center justify-between border-b border-[var(--th-border)] bg-[var(--th-subtle)]">
+                              <span className="text-[11px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Pedidos</span>
+                              <span className="text-[11px] font-mono px-1.5 py-0.5 rounded border border-[var(--th-border)] bg-[var(--th-card)] text-[var(--th-txt-3)]">{pedidosDoCliente.length}</span>
                             </div>
-                            {pedidosDoCliente.length === 0
-                              ? <p className="px-4 py-8 text-sm text-center text-[var(--th-txt-3)]">Nenhum pedido encontrado.</p>
-                              : <div className="divide-y divide-[var(--th-border)]">
+                            <div>
+                              {pedidosDoCliente.length === 0 ? (
+                                <p className="px-4 py-8 text-sm text-center text-[var(--th-txt-4)]">Nenhum pedido encontrado.</p>
+                              ) : (
+                                <div className="divide-y divide-[var(--th-border)]">
                                   {pedidosDoCliente.map(p => {
                                     const saldo = toNumber(p.SALDO)
                                     const total = toNumber(p.TOTAL)
                                     const faturados = toNumber(p.FATURADOS)
-                                    const pct = total > 0 ? Math.round(((total - saldo) / total) * 100) : 0
-                                    const nTaloes = (taloesByPedido.get(asText(p.CODIGO).trim()) ?? []).length
                                     const isFinalizado = saldo === 0 && total > 0
+                                    const pct = total > 0 ? Math.round(((total - saldo) / total) * 100) : 0
                                     return (
-                                      <div key={asText(p.CODIGO)} className="px-4 py-3 hover:bg-[var(--th-hover)] transition-colors">
-                                        <div className="flex items-start justify-between gap-3 mb-1.5">
-                                          <div className="flex items-center gap-2 min-w-0">
-                                            <button
-                                              type="button"
-                                              onClick={() => {
-                                                const pNode = pedidoTree.find(n => asText(n.pedido.CODIGO).trim() === asText(p.CODIGO).trim())
-                                                if (pNode) { setSelectedPedidoDetail(pNode); setSelectedModule('orders') }
-                                              }}
-                                              className="font-mono font-bold text-sm text-[var(--th-txt-2)] hover:text-[var(--th-txt-1)] transition-colors shrink-0"
-                                            >{asText(p.CODIGO)}</button>
-                                            {asText(p.NOME) && <span className="text-xs text-[var(--th-txt-4)] truncate">{asText(p.NOME)}</span>}
+                                      <div
+                                        key={asText(p.CODIGO)}
+                                        className="px-4 py-3 hover:bg-[var(--th-hover)] cursor-pointer transition-colors"
+                                        onClick={() => {
+                                          const pNode = pedidoTree.find(n => asText(n.pedido.CODIGO).trim() === asText(p.CODIGO).trim())
+                                          if (pNode) { setSelectedPedidoDetail(pNode); setSelectedModule('orders') }
+                                        }}
+                                      >
+                                        {/* Top row: code + dates + status */}
+                                        <div className="flex items-center justify-between gap-3 mb-2">
+                                          <div className="flex items-center gap-3 min-w-0">
+                                            <span className="font-mono font-bold text-sm text-[var(--th-txt-1)] shrink-0">{asText(p.CODIGO)}</span>
+                                            {asText(p.VENDA) && (
+                                              <span className="text-[11px] text-[var(--th-txt-4)] shrink-0">{fmtDate(asText(p.VENDA))}</span>
+                                            )}
+                                            {asText(p.PREVISAO) && (
+                                              <span className="text-[11px] text-[var(--th-txt-4)] shrink-0">→ {fmtDate(asText(p.PREVISAO))}</span>
+                                            )}
                                           </div>
-                                          <div className="flex items-center gap-1.5 shrink-0">
-                                            {isFinalizado
-                                              ? <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-500/15 text-green-400 border border-green-500/20">Finalizado</span>
-                                              : <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[rgba(255,255,255,0.06)] text-[var(--th-txt-3)] border border-[var(--th-border)]">Em aberto</span>
-                                            }
-                                          </div>
+                                          {isFinalizado
+                                            ? <span className="text-[10px] px-2 py-0.5 rounded-full border border-green-500/25 bg-green-500/15 text-green-400 shrink-0">Finalizado</span>
+                                            : <span className="text-[10px] px-2 py-0.5 rounded-full border border-[var(--th-border)] bg-[var(--th-subtle)] text-[var(--th-txt-4)] shrink-0">Em aberto</span>
+                                          }
                                         </div>
-                                        <div className="flex items-center gap-3 text-[11px] text-[var(--th-txt-4)] mb-2 flex-wrap">
-                                          {asText(p.VENDA) && <span>Pedido <span className="font-mono text-[var(--th-txt-2)]">{fmtDate(asText(p.VENDA))}</span></span>}
-                                          {asText(p.PREVISAO) && <span>Prev. <span className="font-mono text-[var(--th-txt-2)]">{fmtDate(asText(p.PREVISAO))}</span></span>}
-                                          <span className="font-mono text-[var(--th-txt-2)]">{fmtNumber(total)} pares</span>
-                                          {faturados > 0 && <span>Fat. <span className="font-mono text-[var(--th-txt-2)]">{fmtNumber(faturados)}</span></span>}
-                                          {saldo > 0 && <span>Saldo <span className="font-mono text-[var(--th-txt-2)]">{fmtNumber(saldo)}</span></span>}
-                                          {nTaloes > 0 && <span>{nTaloes} talão{nTaloes !== 1 ? 'ões' : ''}</span>}
+                                        {/* Bottom row: numbers + progress */}
+                                        <div className="flex items-center gap-4">
+                                          <span className="text-[11px] text-[var(--th-txt-4)] font-mono">{fmtNumber(total)} pares</span>
+                                          {faturados > 0 && <span className="text-[11px] text-[var(--th-txt-4)] font-mono">Fat. {fmtNumber(faturados)}</span>}
+                                          {saldo > 0 && <span className="text-[11px] font-mono font-semibold text-amber-400">Saldo {fmtNumber(saldo)}</span>}
+                                          {total > 0 && (
+                                            <div className="flex-1 h-1 rounded-full bg-[var(--th-border)] overflow-hidden">
+                                              <div
+                                                className={`h-full rounded-full transition-all ${isFinalizado ? 'bg-green-500' : 'bg-[var(--th-txt-3)]'}`}
+                                                style={{ width: `${pct}%` }}
+                                              />
+                                            </div>
+                                          )}
+                                          {total > 0 && <span className="text-[10px] text-[var(--th-txt-4)] font-mono shrink-0">{pct}%</span>}
                                         </div>
-                                        {total > 0 && (
-                                          <div className="h-1 rounded-full bg-[var(--th-border)] overflow-hidden">
-                                            <div className={`h-full rounded-full transition-all ${isFinalizado ? 'bg-green-500' : 'bg-white/40'}`} style={{ width: `${pct}%` }} />
-                                          </div>
-                                        )}
                                       </div>
                                     )
                                   })}
                                 </div>
-                            }
+                              )}
+                            </div>
                           </div>
                         </div>
                       )
@@ -3472,8 +3525,7 @@ export default function AdminPanel() {
 
             {/* DATABASE MODULE */}
             {selectedModule === 'database' && (
-              <div className="flex gap-5 h-full">
-              <div className="flex-1 min-w-0 max-w-xl flex flex-col gap-5">
+              <div className="flex flex-col gap-5 max-w-xl w-full overflow-y-auto">
                 <div>
                   <h1 className="text-xl font-bold text-[var(--th-txt-2)] mb-1">Banco de Dados</h1>
                   <p className="text-sm text-[var(--th-txt-3)] mb-6">Ômega ERP → SE Link → Supabase</p>
@@ -3517,7 +3569,7 @@ export default function AdminPanel() {
                       <div className="flex items-center gap-3">
                         <button type="button" onClick={() => void requestForceSync()}
                           disabled={forceSyncLoading || forceSyncStatus === 'waiting'}
-                          className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-white hover:bg-white/90 disabled:opacity-50 text-black text-xs font-semibold transition-colors">
+                          className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-[var(--th-hover)] hover:bg-white hover:text-black disabled:opacity-50 text-[var(--th-txt-1)] text-xs font-semibold transition-colors">
                           <RefreshCw strokeWidth={2} className={`w-3.5 h-3.5 ${forceSyncLoading || forceSyncStatus === 'waiting' ? 'animate-spin' : ''}`} />
                           {forceSyncLoading ? 'Solicitando...' : forceSyncStatus === 'waiting' ? 'Aguardando SE Link...' : 'Forçar Sincronização'}
                         </button>
@@ -3534,179 +3586,177 @@ export default function AdminPanel() {
                   </div>
                 </div>
 
-                {/* Sync config */}
-                <div className="rounded-2xl border border-[var(--th-border)] bg-[var(--th-card)] overflow-hidden flex flex-col flex-1 min-h-0">
-                  <div className="px-5 py-3 flex items-center justify-between gap-4 border-b border-[var(--th-border)]">
+                {/* Console do SE Link */}
+                <div className="flex flex-col rounded-2xl border border-[var(--th-border)] bg-[var(--th-card)] overflow-hidden h-[280px] shrink-0">
+                  <div className="px-5 py-3 flex items-center justify-between gap-4 border-b border-[var(--th-border)] shrink-0">
+                    <p className="text-xs font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Console do SE Link</p>
+                    <div className="flex items-center gap-2">
+                      <button type="button" onClick={() => void fetchSeLinkLogs()}
+                        className="p-1.5 rounded hover:bg-[var(--th-hover)] text-[var(--th-txt-4)]">
+                        <RefreshCw strokeWidth={1.5} className="w-3.5 h-3.5" />
+                      </button>
+                      <button type="button" onClick={() => void clearSeLinkLogs()} disabled={seLinkLogsClearing || seLinkLogs.length === 0}
+                        className="px-3 py-0 h-7 rounded-lg bg-[var(--th-hover)] text-[var(--th-txt-1)] text-xs font-medium disabled:opacity-40 hover:bg-white hover:text-black transition-colors inline-flex items-center justify-center gap-1.5">
+                        {seLinkLogsClearing ? 'Limpando...' : 'Limpar'}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="px-4 py-2 border-b border-[var(--th-border)] flex gap-1 shrink-0">
+                    {([
+                      { key: 'ALL',     label: 'Todos' },
+                      { key: 'INFO',    label: 'Info' },
+                      { key: 'WARNING', label: 'Warning' },
+                      { key: 'ERROR',   label: 'Error' },
+                    ] as const).map(({ key, label }) => (
+                      <button key={key} type="button" onClick={() => setSeLinkLogsFilter(key)}
+                        className={`text-[11px] px-2.5 py-1 rounded-md font-medium transition-all ${
+                          seLinkLogsFilter === key
+                            ? 'bg-[var(--th-card)] text-[var(--th-txt-1)]'
+                            : 'text-[var(--th-txt-4)] hover:text-[var(--th-txt-2)]'
+                        }`}>
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex-1 overflow-y-auto font-mono text-[11px] leading-relaxed">
+                    {seLinkLogs.length === 0 ? (
+                      <div className="flex items-center justify-center h-full text-[var(--th-txt-4)] text-center px-4">
+                        Nenhum log. Inicie o SE Link para ver o console aqui.
+                      </div>
+                    ) : (
+                      <div className="p-3 space-y-0.5">
+                        {seLinkLogs
+                          .filter(log => seLinkLogsFilter === 'ALL' || log.level === seLinkLogsFilter)
+                          .map(log => {
+                            const t = new Date(log.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+                            const levelColor =
+                              log.level === 'ERROR'   ? 'text-red-400' :
+                              log.level === 'WARNING' ? 'text-amber-400' :
+                              'text-green-400'
+                            return (
+                              <div key={log.id} className="flex gap-2 py-0.5">
+                                <span className="shrink-0 text-[var(--th-txt-4)] opacity-60">{t}</span>
+                                <span className={`shrink-0 w-14 ${levelColor}`}>{log.level}</span>
+                                <span className="text-[var(--th-txt-2)] break-all">{log.message}</span>
+                              </div>
+                            )
+                          })}
+                        <div ref={logsEndRef} />
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Sync config - collapsible */}
+                <div className="rounded-2xl border border-[var(--th-border)] bg-[var(--th-card)] overflow-hidden flex flex-col shrink-0">
+                  <button type="button" onClick={() => setSyncTablesOpen(v => !v)}
+                    className="px-5 py-3 flex items-center justify-between gap-4 w-full text-left hover:bg-[var(--th-hover)] transition-colors">
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-widest text-[var(--th-txt-2)]">Tabelas Sincronizadas</p>
                       <p className="text-[11px] text-[var(--th-txt-4)] mt-0.5">Ative ou desative quais DBFs o SE Link deve sincronizar</p>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      {syncConfigSavedToggles && (
-                        <button type="button" onClick={() => void restoreSyncSelection()}
-                          className="px-2.5 py-1 rounded text-[11px] font-medium border border-[var(--th-border)] bg-[rgba(255,255,255,0.05)] text-[var(--th-txt-3)] hover:bg-[rgba(255,255,255,0.08)] transition-colors">
-                          Restaurar
-                        </button>
-                      )}
-                      <button type="button" onClick={() => void clearSyncSelection()}
-                        disabled={Object.values(syncConfigToggles).every(v => !v)}
-                        className="px-3 py-0 h-7 rounded-lg bg-white text-black text-xs font-medium disabled:opacity-30 hover:bg-white/90 transition-colors inline-flex items-center justify-center">
-                        Limpar seleção
-                      </button>
-                      <button type="button" onClick={() => void fetchSyncConfig()}
-                        className="p-1.5 rounded hover:bg-[var(--th-hover)] text-[var(--th-txt-4)]">
-                        <RefreshCw strokeWidth={1.5} className={`w-3.5 h-3.5 ${syncConfigLoading ? 'animate-spin' : ''}`} />
-                      </button>
-                    </div>
-                  </div>
-                  {/* Search + filter */}
-                  <div className="px-4 py-2.5 border-b border-[var(--th-border)]">
-                    <div className="relative">
-                      <Search strokeWidth={1.5} className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--th-txt-4)]" />
-                      <input
-                        type="text"
-                        value={syncConfigSearch}
-                        onChange={e => setSyncConfigSearch(e.target.value)}
-                        placeholder="Buscar tabela..."
-                        className="w-full rounded-lg border border-[var(--th-border)] bg-transparent pl-8 pr-7 py-1.5 text-xs text-[var(--th-txt-2)] placeholder:text-[var(--th-txt-4)] focus:outline-none focus:ring-1 focus:ring-white/10"
-                      />
-                      {syncConfigSearch && (
-                        <button type="button" onClick={() => setSyncConfigSearch('')}
-                          className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--th-txt-4)] hover:text-[var(--th-txt-1)]">
-                          <X strokeWidth={2} className="w-3 h-3" />
-                        </button>
-                      )}
-                    </div>
-                    <div className="flex gap-1 mt-2">
-                      {([{ key: 'all', label: 'Todos' }, { key: 'active', label: 'Ativos' }] as const).map(({ key, label }) => (
-                        <button key={key} type="button" onClick={() => setSyncConfigFilter(key)}
-                          className={`text-[11px] px-2.5 py-1 rounded-md font-medium transition-all ${
-                            syncConfigFilter === key
-                              ? 'bg-[var(--th-card)] text-[var(--th-txt-1)]'
-                              : 'text-[var(--th-txt-4)] hover:text-[var(--th-txt-2)]'
-                          }`}>
-                          {label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="divide-y divide-[var(--th-border)] overflow-y-auto flex-1 min-h-0">
-                    {syncConfig.length === 0 && !syncConfigLoading && (
-                      <p className="px-5 py-4 text-sm text-[var(--th-txt-4)]">Inicie o SE Link para descobrir os DBFs disponíveis.</p>
-                    )}
-                    {syncConfig
-                      .filter(row => {
-                        const matchSearch = row.dbf_name.toLowerCase().includes(syncConfigSearch.toLowerCase())
-                        const matchFilter = syncConfigFilter === 'all' || (syncConfigToggles[row.dbf_name] ?? row.enabled)
-                        return matchSearch && matchFilter
-                      })
-                      .map(row => {
-                      const on = syncConfigToggles[row.dbf_name] ?? row.enabled
-                      const isDiscovered = row.discovered
-                      return (
-                        <div key={row.dbf_name} className="flex items-center gap-3 px-5 py-3">
-                          {/* Toggle */}
-                          <button
-                            type="button"
-                            onClick={() => void toggleSyncConfig(row.dbf_name, !on)}
-                            className={`relative shrink-0 w-9 h-5 rounded-full transition-colors ${on ? 'bg-[var(--th-accent)]' : 'bg-[rgba(255,255,255,0.12)]'}`}
-                          >
-                            <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${on ? 'translate-x-4' : 'translate-x-0'}`} />
+                    <ChevronDown strokeWidth={1.5} className={`w-4 h-4 text-[var(--th-txt-4)] transition-transform shrink-0 ${syncTablesOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                  {syncTablesOpen && (
+                    <div className="flex flex-col border-t border-[var(--th-border)]">
+                      <div className="px-5 py-2 flex items-center justify-end gap-2 border-b border-[var(--th-border)]">
+                        {syncConfigSavedToggles && (
+                          <button type="button" onClick={() => void restoreSyncSelection()}
+                            className="px-2.5 py-1 rounded text-[11px] font-medium bg-[var(--th-hover)] text-[var(--th-txt-1)] hover:bg-white hover:text-black transition-colors">
+                            Restaurar
                           </button>
-                          {/* DBF name */}
-                          <span className="font-mono text-sm text-[var(--th-txt-2)] w-28 shrink-0">{row.dbf_name}.dbf</span>
-                          {/* Arrow */}
-                          <span className="text-[var(--th-txt-4)] text-xs shrink-0">→</span>
-                          {/* Table name */}
-                          <span className="font-mono text-xs text-[var(--th-txt-3)] flex-1">{row.table_name ?? <span className="italic text-[var(--th-txt-4)]">não configurado</span>}</span>
-                          {/* Badges */}
-                          <div className="flex items-center gap-1.5 shrink-0">
-                            {isDiscovered ? (
-                              <span className="text-[10px] px-1.5 py-0.5 rounded border border-green-500/20 bg-green-500/10 text-green-400">Encontrado</span>
-                            ) : (
-                              <span className="text-[10px] px-1.5 py-0.5 rounded border border-[var(--th-border)] bg-[var(--th-subtle)] text-[var(--th-txt-4)]">Não detectado</span>
-                            )}
-                            {!row.pk_field && (
-                              <span className="text-[10px] px-1.5 py-0.5 rounded border border-amber-500/20 bg-amber-500/10 text-amber-400">PK composta</span>
-                            )}
-                          </div>
+                        )}
+                        <button type="button" onClick={() => void clearSyncSelection()}
+                          disabled={Object.values(syncConfigToggles).every(v => !v)}
+                          className="px-3 py-0 h-7 rounded-lg bg-[var(--th-hover)] text-[var(--th-txt-1)] text-xs font-medium disabled:opacity-30 hover:bg-white hover:text-black transition-colors inline-flex items-center justify-center">
+                          Limpar seleção
+                        </button>
+                        <button type="button" onClick={() => void fetchSyncConfig()}
+                          className="p-1.5 rounded hover:bg-[var(--th-hover)] text-[var(--th-txt-4)]">
+                          <RefreshCw strokeWidth={1.5} className={`w-3.5 h-3.5 ${syncConfigLoading ? 'animate-spin' : ''}`} />
+                        </button>
+                      </div>
+                      <div className="px-4 py-2.5 border-b border-[var(--th-border)]">
+                        <div className="relative">
+                          <Search strokeWidth={1.5} className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--th-txt-4)]" />
+                          <input
+                            type="text"
+                            value={syncConfigSearch}
+                            onChange={e => setSyncConfigSearch(e.target.value)}
+                            placeholder="Buscar tabela..."
+                            className="w-full rounded-lg border border-[var(--th-border)] bg-transparent pl-8 pr-7 py-1.5 text-xs text-[var(--th-txt-2)] placeholder:text-[var(--th-txt-4)] focus:outline-none focus:ring-1 focus:ring-white/10"
+                          />
+                          {syncConfigSearch && (
+                            <button type="button" onClick={() => setSyncConfigSearch('')}
+                              className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--th-txt-4)] hover:text-[var(--th-txt-1)]">
+                              <X strokeWidth={2} className="w-3 h-3" />
+                            </button>
+                          )}
                         </div>
-                      )
-                    })}
-                    {syncConfig.length > 0 && syncConfig.filter(row => {
-                        const matchSearch = row.dbf_name.toLowerCase().includes(syncConfigSearch.toLowerCase())
-                        const matchFilter = syncConfigFilter === 'all' || (syncConfigToggles[row.dbf_name] ?? row.enabled)
-                        return matchSearch && matchFilter
-                      }).length === 0 && (
-                      <p className="px-5 py-4 text-sm text-[var(--th-txt-4)]">
-                        {syncConfigFilter === 'active' && !syncConfigSearch ? 'Nenhuma tabela ativa.' : `Nenhuma tabela encontrada para "${syncConfigSearch}".`}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-              </div>
-
-              {/* Right col: Console do SE Link */}
-              <div className="w-96 shrink-0 flex flex-col rounded-2xl border border-[var(--th-border)] bg-[var(--th-card)] overflow-hidden min-h-0">
-                <div className="px-5 py-3 flex items-center justify-between gap-4 border-b border-[var(--th-border)] shrink-0">
-                  <p className="text-xs font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Console do SE Link</p>
-                  <div className="flex items-center gap-2">
-                    <button type="button" onClick={() => void fetchSeLinkLogs()}
-                      className="p-1.5 rounded hover:bg-[var(--th-hover)] text-[var(--th-txt-4)]">
-                      <RefreshCw strokeWidth={1.5} className="w-3.5 h-3.5" />
-                    </button>
-                    <button type="button" onClick={() => void clearSeLinkLogs()} disabled={seLinkLogsClearing || seLinkLogs.length === 0}
-                      className="px-3 py-0 h-7 rounded-lg bg-[var(--th-card)] text-[var(--th-txt-1)] text-xs font-medium disabled:opacity-40 hover:bg-[var(--th-hover)] transition-colors inline-flex items-center justify-center">
-                      {seLinkLogsClearing ? 'Limpando...' : 'Limpar'}
-                    </button>
-                  </div>
-                </div>
-                <div className="px-4 py-2 border-b border-[var(--th-border)] flex gap-1 shrink-0">
-                  {([
-                    { key: 'ALL',     label: 'Todos' },
-                    { key: 'INFO',    label: 'Info' },
-                    { key: 'WARNING', label: 'Warning' },
-                    { key: 'ERROR',   label: 'Error' },
-                  ] as const).map(({ key, label }) => (
-                    <button key={key} type="button" onClick={() => setSeLinkLogsFilter(key)}
-                      className={`text-[11px] px-2.5 py-1 rounded-md font-medium transition-all ${
-                        seLinkLogsFilter === key
-                          ? 'bg-[var(--th-card)] text-[var(--th-txt-1)]'
-                          : 'text-[var(--th-txt-4)] hover:text-[var(--th-txt-2)]'
-                      }`}>
-                      {label}
-                    </button>
-                  ))}
-                </div>
-                <div className="flex-1 overflow-y-auto font-mono text-[11px] leading-relaxed">
-                  {seLinkLogs.length === 0 ? (
-                    <div className="flex items-center justify-center h-full text-[var(--th-txt-4)] text-center px-4">
-                      Nenhum log. Inicie o SE Link para ver o console aqui.
-                    </div>
-                  ) : (
-                    <div className="p-3 space-y-0.5">
-                      {seLinkLogs
-                        .filter(log => seLinkLogsFilter === 'ALL' || log.level === seLinkLogsFilter)
-                        .map(log => {
-                          const t = new Date(log.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-                          const levelColor =
-                            log.level === 'ERROR'   ? 'text-red-400' :
-                            log.level === 'WARNING' ? 'text-amber-400' :
-                            'text-green-400'
+                        <div className="flex gap-1 mt-2">
+                          {([{ key: 'all', label: 'Todos' }, { key: 'active', label: 'Ativos' }] as const).map(({ key, label }) => (
+                            <button key={key} type="button" onClick={() => setSyncConfigFilter(key)}
+                              className={`text-[11px] px-2.5 py-1 rounded-md font-medium transition-all ${
+                                syncConfigFilter === key
+                                  ? 'bg-[var(--th-card)] text-[var(--th-txt-1)]'
+                                  : 'text-[var(--th-txt-4)] hover:text-[var(--th-txt-2)]'
+                              }`}>
+                              {label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="divide-y divide-[var(--th-border)] overflow-y-auto max-h-[320px]">
+                        {syncConfig.length === 0 && !syncConfigLoading && (
+                          <p className="px-5 py-4 text-sm text-[var(--th-txt-4)]">Inicie o SE Link para descobrir os DBFs disponíveis.</p>
+                        )}
+                        {syncConfig
+                          .filter(row => {
+                            const matchSearch = row.dbf_name.toLowerCase().includes(syncConfigSearch.toLowerCase())
+                            const matchFilter = syncConfigFilter === 'all' || (syncConfigToggles[row.dbf_name] ?? row.enabled)
+                            return matchSearch && matchFilter
+                          })
+                          .map(row => {
+                          const on = syncConfigToggles[row.dbf_name] ?? row.enabled
+                          const isDiscovered = row.discovered
                           return (
-                            <div key={log.id} className="flex gap-2 py-0.5">
-                              <span className="shrink-0 text-[var(--th-txt-4)] opacity-60">{t}</span>
-                              <span className={`shrink-0 w-14 ${levelColor}`}>{log.level}</span>
-                              <span className="text-[var(--th-txt-2)] break-all">{log.message}</span>
+                            <div key={row.dbf_name} className="flex items-center gap-3 px-5 py-3">
+                              <button
+                                type="button"
+                                onClick={() => void toggleSyncConfig(row.dbf_name, !on)}
+                                className={`relative shrink-0 w-9 h-5 rounded-full transition-colors ${on ? 'bg-[var(--th-accent)]' : 'bg-[rgba(255,255,255,0.12)]'}`}
+                              >
+                                <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${on ? 'translate-x-4' : 'translate-x-0'}`} />
+                              </button>
+                              <span className="font-mono text-sm text-[var(--th-txt-2)] w-28 shrink-0">{row.dbf_name}.dbf</span>
+                              <span className="text-[var(--th-txt-4)] text-xs shrink-0">→</span>
+                              <span className="font-mono text-xs text-[var(--th-txt-3)] flex-1">{row.table_name ?? <span className="italic text-[var(--th-txt-4)]">não configurado</span>}</span>
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                {isDiscovered ? (
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded border border-green-500/20 bg-green-500/10 text-green-400">Encontrado</span>
+                                ) : (
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded border border-[var(--th-border)] bg-[var(--th-subtle)] text-[var(--th-txt-4)]">Não detectado</span>
+                                )}
+                                {!row.pk_field && (
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded border border-amber-500/20 bg-amber-500/10 text-amber-400">PK composta</span>
+                                )}
+                              </div>
                             </div>
                           )
                         })}
-                      <div ref={logsEndRef} />
+                        {syncConfig.length > 0 && syncConfig.filter(row => {
+                            const matchSearch = row.dbf_name.toLowerCase().includes(syncConfigSearch.toLowerCase())
+                            const matchFilter = syncConfigFilter === 'all' || (syncConfigToggles[row.dbf_name] ?? row.enabled)
+                            return matchSearch && matchFilter
+                          }).length === 0 && (
+                          <p className="px-5 py-4 text-sm text-[var(--th-txt-4)]">
+                            {syncConfigFilter === 'active' && !syncConfigSearch ? 'Nenhuma tabela ativa.' : `Nenhuma tabela encontrada para "${syncConfigSearch}".`}
+                          </p>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
-              </div>
 
               </div>
             )}
