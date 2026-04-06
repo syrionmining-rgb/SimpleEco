@@ -1321,7 +1321,7 @@ export default function AdminPanel() {
           <div className="flex items-center gap-2 text-lg font-bold leading-tight">
             <span className="text-[var(--th-txt-1)] font-surgena leading-none">{COMPANY_NAME}</span>
             <span className="inline-flex rounded-[5px] bg-gradient-to-r from-[#FF8C00] to-[#D81B60] p-[1px] -translate-y-[2px]">
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded-[4px] text-[9px] font-medium uppercase tracking-widest bg-[var(--th-card)]">
+              <span className="inline-flex items-center px-2 py-1 rounded-[4px] text-[10px] font-bold uppercase tracking-widest bg-[var(--th-card)]">
                 <span className="bg-gradient-to-r from-[#FF8C00] to-[#D81B60] bg-clip-text text-transparent">Administrador</span>
               </span>
             </span>
@@ -1388,8 +1388,8 @@ export default function AdminPanel() {
         <div className="px-4 py-4 shrink-0 flex justify-center">
           <div className="flex items-end gap-2">
             <span className="text-[var(--th-txt-2)] font-surgena leading-none font-bold" style={{ fontSize: '25px' }}>{COMPANY_NAME}</span>
-            <span className="inline-flex rounded-[5px] bg-gradient-to-r from-[#FF8C00] to-[#D81B60] p-[1px] mb-[5px]">
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded-[4px] text-[9px] font-medium uppercase tracking-widest bg-[var(--th-card)]">
+            <span className="inline-flex rounded-[5px] bg-gradient-to-r from-[#FF8C00] to-[#D81B60] p-[1px] -translate-y-[2px]">
+              <span className="inline-flex items-center px-2 py-1 rounded-[4px] text-[10px] font-bold uppercase tracking-widest bg-[var(--th-card)]">
                 <span className="bg-gradient-to-r from-[#FF8C00] to-[#D81B60] bg-clip-text text-transparent">Administrador</span>
               </span>
             </span>
