@@ -201,8 +201,8 @@ export default function App() {
     .reduce((sum, order) => sum + order.qty, 0)
 
   return (
-    <div className="min-h-screen bg-[var(--th-page)] text-[var(--th-txt-1)] p-3 pt-[52px] sm:pt-6 sm:p-6 lg:p-8 pb-6">
-      <div className="max-w-[1920px] mx-auto space-y-5">
+    <div className="min-h-screen bg-[var(--th-page)] text-[var(--th-txt-1)] p-2 pt-[68px] sm:pt-6 sm:p-6 lg:p-8 pb-6">
+      <div className="max-w-[1920px] mx-auto space-y-3 sm:space-y-5">
           <Header
             toggleTheme={toggleTheme}
             isDark={isDark}
@@ -231,7 +231,7 @@ export default function App() {
           </div>
 
           {/* Metric Cards */}
-          <div id="overview" className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-5">
+          <div id="overview" className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-5">
             {/* Pedido em Atraso */}
             <MetricCard {...metrics[0]} loading={loading} />
             {/* Pedidos em Produção */}

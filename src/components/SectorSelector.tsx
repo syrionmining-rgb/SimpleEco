@@ -31,7 +31,7 @@ export default function SectorSelector({
   const options = [{ cod: allValue, nome: 'Todos' }, ...sectors]
 
   const triggerClass = [
-    'flex items-center justify-between gap-2 pl-4 pr-3 py-2.5 rounded-xl border text-sm font-semibold transition-all',
+    'flex items-center justify-between gap-2 pl-4 pr-3 py-2.5 rounded-md border text-sm font-semibold transition-all',
     'bg-[var(--th-card)] text-[var(--th-txt-1)]',
     open || isFiltered
       ? 'border-[var(--th-accent-border)] shadow-[0_0_0_3px_var(--th-accent-bg)]'
@@ -39,24 +39,24 @@ export default function SectorSelector({
   ].join(' ')
 
   return (
-    <div className="rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] px-4 sm:px-6 py-3 sm:py-4 sm:w-full">
+    <div className="rounded-md border border-[var(--th-border)] bg-[var(--th-card)] px-4 sm:px-6 py-3 sm:py-4 sm:w-full">
 
       {/* ── MOBILE ── */}
       <div className="flex sm:hidden items-center gap-3">
-        <div className="w-9 h-9 rounded-lg bg-[var(--th-subtle)] border border-[var(--th-border)] flex items-center justify-center shrink-0">
-          <Factory className="w-4 h-4 text-[var(--th-txt-4)]" />
+        <div className="w-8 h-8 rounded-md bg-[var(--th-subtle)] border border-[var(--th-border)] flex items-center justify-center shrink-0">
+          <Factory className="w-3.5 h-3.5 text-[var(--th-txt-4)]" />
         </div>
         <div className="shrink-0">
-          <p className="text-sm font-semibold text-[var(--th-txt-1)]">Área de Produção</p>
-          <p className="text-[11px] text-[var(--th-txt-4)] uppercase tracking-widest font-medium">Filtro de setor</p>
+          <p className="text-[13px] font-semibold text-[var(--th-txt-1)]">Área de Produção</p>
+          <p className="text-[10px] text-[var(--th-txt-4)] uppercase tracking-widest font-medium">Filtro de setor</p>
         </div>
         <div className="relative flex-1">
           <button type="button" onClick={() => setOpen(o => !o)} className={triggerClass + ' w-full'}>
-            <span>{selectedLabel}</span>
+            <span className="text-[13px]">{selectedLabel}</span>
             <ChevronDown className={`w-4 h-4 text-[var(--th-txt-4)] transition-transform shrink-0 ${open ? 'rotate-180' : ''}`} />
           </button>
           {open && (
-            <div className="absolute z-50 top-full mt-1 left-0 right-0 rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] shadow-lg overflow-hidden">
+            <div className="absolute z-50 top-full mt-1 left-0 right-0 rounded-md border border-[var(--th-border)] bg-[var(--th-card)] shadow-lg overflow-hidden">
               {options.map(s => (
                 <button
                   key={s.cod}
@@ -89,7 +89,7 @@ export default function SectorSelector({
             <ChevronDown className={`w-4 h-4 text-[var(--th-txt-4)] transition-transform shrink-0 ${open ? 'rotate-180' : ''}`} />
           </button>
           {open && (
-            <div className="absolute z-50 top-full mt-1 left-0 min-w-full rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] shadow-lg overflow-hidden">
+            <div className="absolute z-50 top-full mt-1 left-0 min-w-full rounded-md border border-[var(--th-border)] bg-[var(--th-card)] shadow-lg overflow-hidden">
               {options.map(s => (
                 <button
                   key={s.cod}

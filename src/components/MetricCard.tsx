@@ -27,35 +27,35 @@ export default function MetricCard({
   const valueClass = isAlert ? 'text-red-400' : 'text-black dark:text-white'
 
   return (
-    <div className="rounded-xl border border-[var(--th-border)] bg-[var(--th-card)]">
+    <div className="rounded-md border border-[var(--th-border)] bg-[var(--th-card)]">
 
       {/* ── MOBILE: linha horizontal (ícone | título | valor) ── */}
-      <div className="flex sm:hidden items-center gap-3 px-4 py-3">
+      <div className="flex sm:hidden items-center gap-3 px-3 py-2.5">
         {/* Ícone */}
-        <div className={`w-9 h-9 rounded-lg border flex items-center justify-center shrink-0 ${
+        <div className={`w-8 h-8 rounded-md border flex items-center justify-center shrink-0 ${
           isAlert
             ? 'bg-red-500/10 border-red-500/20'
             : 'bg-[var(--th-subtle)] border-[var(--th-border)]'
         }`}>
           {gradient
             ? numericValue >= 100
-              ? <TrendingUp className="w-4 h-4 text-[var(--th-txt-4)]" aria-hidden="true" />
-              : <TrendingDown className="w-4 h-4 text-[var(--th-txt-4)]" aria-hidden="true" />
-            : <Icon className={`w-4 h-4 ${isAlert ? 'text-red-400' : 'text-[var(--th-txt-4)]'}`} aria-hidden="true" />
+              ? <TrendingUp className="w-3.5 h-3.5 text-[var(--th-txt-4)]" aria-hidden="true" />
+              : <TrendingDown className="w-3.5 h-3.5 text-[var(--th-txt-4)]" aria-hidden="true" />
+            : <Icon className={`w-3.5 h-3.5 ${isAlert ? 'text-red-400' : 'text-[var(--th-txt-4)]'}`} aria-hidden="true" />
           }
         </div>
         {/* Título */}
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-[var(--th-txt-1)] truncate">{title}</p>
-          {subtitle && <p className="text-[11px] text-[var(--th-txt-4)] uppercase tracking-widest font-medium truncate">{subtitle}</p>}
+          <p className="text-[13px] font-semibold text-[var(--th-txt-1)] truncate">{title}</p>
+          {subtitle && <p className="text-[10px] text-[var(--th-txt-4)] uppercase tracking-widest font-medium truncate">{subtitle}</p>}
         </div>
         {/* Valor: número em cima, unidade embaixo — alinhados à direita */}
         <div className="flex flex-col items-end shrink-0">
           {loading
-            ? <div className="h-7 w-14 rounded-lg bg-[var(--th-subtle)] animate-pulse" />
-            : <span className={`text-2xl font-bold leading-none ${valueClass}`}>{value}</span>
+            ? <div className="h-6 w-12 rounded-md bg-[var(--th-subtle)] animate-pulse" />
+            : <span className={`text-xl font-bold leading-none ${valueClass}`}>{value}</span>
           }
-          {unit && !loading && <span className="text-xs text-[var(--th-txt-3)] mt-0.5">{unit}</span>}
+          {unit && !loading && <span className="text-[10px] text-[var(--th-txt-3)] mt-0.5">{unit}</span>}
         </div>
       </div>
 

@@ -12,43 +12,43 @@ export default function ProductionCard({ goal, produced }: ProductionCardProps) 
   const progressLabel = hasGoal ? `${pct.toFixed(1)}%` : 'N/D'
 
   return (
-    <div className="rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] h-full">
+    <div className="rounded-md border border-[var(--th-border)] bg-[var(--th-card)] h-full">
 
       {/* ── MOBILE: ícone | título+subtítulo | valor ── */}
-      <div className="flex sm:hidden flex-col px-4 py-3 gap-2">
+      <div className="flex sm:hidden flex-col px-3 py-2.5 gap-2">
         {/* Linha principal */}
         <div className="flex items-center gap-3">
           {/* Ícone */}
-          <div className="w-9 h-9 rounded-lg bg-[var(--th-subtle)] border border-[var(--th-border)] flex items-center justify-center shrink-0">
-            <Target className="w-4 h-4 text-[var(--th-txt-4)]" aria-hidden="true" />
+          <div className="w-8 h-8 rounded-md bg-[var(--th-subtle)] border border-[var(--th-border)] flex items-center justify-center shrink-0">
+            <Target className="w-3.5 h-3.5 text-[var(--th-txt-4)]" aria-hidden="true" />
           </div>
           {/* Título + subtítulo */}
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-[var(--th-txt-1)] truncate">Meta Diária</p>
-            <p className="text-[11px] text-[var(--th-txt-4)] uppercase tracking-widest font-medium truncate">Indicador de Produção</p>
+            <p className="text-[13px] font-semibold text-[var(--th-txt-1)] truncate">Meta Diária</p>
+            <p className="text-[10px] text-[var(--th-txt-4)] uppercase tracking-widest font-medium truncate">Indicador de Produção</p>
           </div>
           {/* Valor alinhado à direita */}
           <div className="flex items-baseline gap-0.5 shrink-0">
             {hasGoal ? (
               <>
-                <span className="text-sm font-bold leading-none text-[var(--th-txt-4)]">{produced}/</span>
-                <span className="text-sm font-bold leading-none bg-gradient-to-r from-accent to-[#D81B60] bg-clip-text text-transparent">{goalLabel}</span>
-                <span className="text-xs text-[var(--th-txt-4)]"> und.</span>
+                <span className="text-[13px] font-bold leading-none text-[var(--th-txt-4)]">{produced}/</span>
+                <span className="text-[13px] font-bold leading-none bg-gradient-to-r from-accent to-[#D81B60] bg-clip-text text-transparent">{goalLabel}</span>
+                <span className="text-[10px] text-[var(--th-txt-4)]"> und.</span>
               </>
             ) : (
-              <span className="text-sm font-bold leading-none text-[var(--th-txt-4)]">N/D</span>
+              <span className="text-[13px] font-bold leading-none text-[var(--th-txt-4)]">N/D</span>
             )}
           </div>
         </div>
         {/* Barra de progresso compacta */}
         <div className="flex items-center gap-2">
-          <div className="flex-1 h-2 rounded-full bg-[var(--th-subtle)] overflow-hidden">
+          <div className="flex-1 h-1.5 rounded-full bg-[var(--th-subtle)] overflow-hidden">
             <div
               className="h-full rounded-full bg-gradient-to-r from-accent to-[#D81B60] transition-all duration-500"
               style={{ width: `${pct}%` }}
             />
           </div>
-          <span className="text-xs font-semibold text-[var(--th-txt-2)] shrink-0">{progressLabel}</span>
+          <span className="text-[10px] font-semibold text-[var(--th-txt-2)] shrink-0">{progressLabel}</span>
         </div>
       </div>
 

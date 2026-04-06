@@ -264,6 +264,7 @@ export default function AdminPanel() {
   const [logsLastSync, setLogsLastSync] = useState<Date | null>(null)
   const [selectedLog, setSelectedLog] = useState<DeviceLogRow | null>(null)
   const [logsQuery, setLogsQuery] = useState('')
+  const [logsDeviceFilter, setLogsDeviceFilter] = useState<'todos' | 'desktop' | 'mobile'>('todos')
   const [showClearLogsConfirm, setShowClearLogsConfirm] = useState(false)
   const [clearLogsLoading, setClearLogsLoading] = useState(false)
 
@@ -286,6 +287,10 @@ export default function AdminPanel() {
       setClientesError(err instanceof Error ? err.message : 'Erro ao carregar clientes.')
     } finally { setClientesLoading(false) }
   }
+
+  useEffect(() => {
+    document.title = 'G.Form - Administrador'
+  }, [])
 
   useEffect(() => {
     if (selectedModule === 'clients' && clientesAll.length === 0) void fetchClientes()
@@ -1326,9 +1331,13 @@ export default function AdminPanel() {
       <div className="px-4 py-3">
         {/* Bar: logo + home + hamburger */}
         <div className="flex items-center justify-between">
-          <div className="flex items-baseline gap-1 text-lg font-bold leading-tight">
-            <span className="text-[var(--th-txt-1)] font-surgena leading-none">{COMPANY_NAME}</span>{' '}
-            <span className="bg-gradient-to-r from-[#FF8C00] to-[#D81B60] bg-clip-text text-transparent">Admin</span>
+          <div className="flex items-center gap-2 text-lg font-bold leading-tight">
+            <span className="text-[var(--th-txt-1)] font-surgena leading-none">{COMPANY_NAME}</span>
+            <span className="inline-flex rounded-[5px] bg-gradient-to-r from-[#FF8C00] to-[#D81B60] p-[1px] -translate-y-[2px]">
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded-[4px] text-[9px] font-medium uppercase tracking-widest bg-[var(--th-card)]">
+                <span className="bg-gradient-to-r from-[#FF8C00] to-[#D81B60] bg-clip-text text-transparent">Administrador</span>
+              </span>
+            </span>
           </div>
           <div className="flex items-center gap-1">
             <button onClick={() => navigate('/')} className="p-2 rounded-lg text-[var(--th-txt-3)] hover:text-[var(--th-txt-1)] hover:bg-[var(--th-hover)] transition-colors" aria-label="Produção">
@@ -1352,7 +1361,7 @@ export default function AdminPanel() {
                     {section.items.map(m => (
                       <button key={m.id} onClick={() => { setSelectedModule(m.id); setMobileMenuOpen(false) }}
                         className={`w-full text-left p-2 rounded-lg flex items-center gap-3 text-sm font-medium transition-colors ${
-                          selectedModule === m.id ? 'bg-[#FF8C00] text-white' : 'text-[var(--th-txt-3)] hover:text-[var(--th-txt-1)] hover:bg-[var(--th-hover)]'
+                          selectedModule === m.id ? 'text-white' : 'text-[var(--th-txt-3)]'
                         }`}>
                         <m.icon className="w-4 h-4 shrink-0" />
                         <span>{m.title}</span>
@@ -1365,6 +1374,10 @@ export default function AdminPanel() {
 
             {/* Info + actions */}
             <div className="border-t border-[var(--th-border)] pt-4 flex flex-col gap-1">
+              <button onClick={() => { navigate('/'); setMobileMenuOpen(false) }} className="p-2 rounded-lg flex items-center gap-3 text-[var(--th-txt-3)] hover:text-[var(--th-txt-1)] hover:bg-[var(--th-hover)] transition-colors">
+                <ArrowLeftRight className="w-4 h-4" />
+                <span className="text-sm">Produção</span>
+              </button>
               <button onClick={() => { toggleTheme(); setMobileMenuOpen(false) }} className="p-2 rounded-lg flex items-center gap-3 text-[var(--th-txt-3)] hover:text-[var(--th-txt-1)] hover:bg-[var(--th-hover)] transition-colors">
                 {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
                 <span className="text-sm">{isDark ? 'Tema claro' : 'Tema escuro'}</span>
@@ -1412,6 +1425,10 @@ export default function AdminPanel() {
 
         {/* Footer */}
         <div className="px-3 py-3 shrink-0 space-y-0.5 border-t border-[var(--th-border)]">
+          <button onClick={() => navigate('/')} className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium text-[var(--th-txt-4)] hover:bg-[rgba(255,255,255,0.05)] hover:text-[var(--th-txt-2)] transition-all">
+            <ArrowLeftRight strokeWidth={1.5} className="w-4 h-4 shrink-0" />
+            <span>Produção</span>
+          </button>
           <button onClick={toggleTheme} className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium text-[var(--th-txt-4)] hover:bg-[rgba(255,255,255,0.05)] hover:text-[var(--th-txt-2)] transition-all">
             {isDark ? <Sun strokeWidth={1.5} className="w-4 h-4 shrink-0" /> : <Moon strokeWidth={1.5} className="w-4 h-4 shrink-0" />}
             <span>{isDark ? 'Modo Claro' : 'Modo Escuro'}</span>
@@ -1579,29 +1596,29 @@ export default function AdminPanel() {
                           }
                         </div>
                         {/* Blocos de meta */}
-                        <div className="flex items-end gap-4 flex-wrap mb-2">
-                          <div className="flex flex-col">
+                        <div className="flex items-end gap-3 overflow-x-auto pb-1 mb-2">
+                          <div className="flex flex-col shrink-0">
                             <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Pedido</span>
                             <span className="text-sm font-mono font-bold text-[var(--th-txt-2)]">{pc}</span>
                           </div>
                           {asText(pNode.pedido.PREVISAO) && (
-                            <div className="flex flex-col">
+                            <div className="flex flex-col shrink-0">
                               <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Entrega</span>
                               <span className={`text-sm font-mono ${atrasado ? 'text-red-400' : 'text-[var(--th-txt-2)]'}`}>{fmtDate(pNode.pedido.PREVISAO)}</span>
                             </div>
                           )}
                           {asText(pNode.pedido.PEDCLIENTE) && (
-                            <div className="flex flex-col">
+                            <div className="flex flex-col shrink-0">
                               <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">O.C.</span>
                               <span className="text-sm font-mono text-[var(--th-txt-2)]">{asText(pNode.pedido.PEDCLIENTE)}</span>
                             </div>
                           )}
-                          <div className="flex flex-col">
+                          <div className="flex flex-col shrink-0">
                             <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Talões</span>
                             <span className="text-sm font-mono text-[var(--th-txt-2)]">{pNode.taloes.length}</span>
                           </div>
                           {saldo > 0 && (
-                            <div className="flex flex-col">
+                            <div className="flex flex-col shrink-0">
                               <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Saldo</span>
                               <span className="text-sm font-mono text-amber-400 font-semibold">{fmtNumber(saldo)}</span>
                             </div>
@@ -1800,9 +1817,9 @@ export default function AdminPanel() {
                 })
 
                 return (
-                  <div className="space-y-4">
-                    <button className="sm:hidden flex items-center gap-1 text-sm font-medium text-[var(--th-txt-3)] hover:text-[var(--th-txt-1)] transition-colors -ml-1 mb-1" onClick={() => setSelectedPedidoDetail(null)}>
-                      <ChevronLeft className="w-4 h-4" />Voltar
+                  <div className="space-y-6">
+                    <button className="sm:hidden sticky top-4 z-10 left-0 w-10 h-10 flex items-center justify-center rounded-full bg-[var(--th-card)]/60 backdrop-blur-xl border border-[var(--th-border)] text-[var(--th-txt-3)] hover:text-[var(--th-txt-1)] transition-colors" onClick={() => setSelectedPedidoDetail(null)} aria-label="Voltar">
+                      <ChevronLeft className="w-5 h-5" />
                     </button>
                     {/* ── Card unificado: pedido + fluxo + grade ── */}
                     <div className="rounded-2xl border border-[var(--th-border)] bg-[var(--th-card)] overflow-hidden">
@@ -1825,34 +1842,34 @@ export default function AdminPanel() {
                               }
                             </div>
                             {/* Nº Pedido + data */}
-                            <div className="flex items-center gap-4 mb-1.5 flex-wrap">
-                              <div className="flex flex-col">
+                            <div className="flex items-center gap-3 mb-1.5 overflow-x-auto pb-1">
+                              <div className="flex flex-col shrink-0">
                                 <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Pedido</span>
                                 <span className="text-sm font-mono font-bold text-[var(--th-txt-2)]">{pc}</span>
                               </div>
-                              <div className="flex flex-col">
+                              <div className="flex flex-col shrink-0">
                                 <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">{pNode.taloes.length === 1 ? 'Talão' : 'Talões'}</span>
                                 <span className="text-sm font-mono text-[var(--th-txt-2)]">{pNode.taloes.length}</span>
                               </div>
                               {asText(pNode.pedido.DIGITACAO) && (
-                                <div className="flex flex-col">
+                                <div className="flex flex-col shrink-0">
                                   <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Criado</span>
                                   <span className="text-sm font-mono text-[var(--th-txt-2)]">{fmtDate(pNode.pedido.DIGITACAO)}</span>
                                 </div>
                               )}
                               {asText(pNode.pedido.PREVISAO) && (
-                                <div className="flex flex-col">
+                                <div className="flex flex-col shrink-0">
                                   <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Entrega</span>
                                   <span className="text-sm font-mono text-[var(--th-txt-2)]">{fmtDate(pNode.pedido.PREVISAO)}</span>
                                 </div>
                               )}
                               {asText(pNode.pedido.PEDCLIENTE) && (
-                                <div className="flex flex-col">
+                                <div className="flex flex-col shrink-0">
                                   <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">O.C.</span>
                                   <span className="text-sm font-mono text-[var(--th-txt-2)]">{asText(pNode.pedido.PEDCLIENTE)}</span>
                                 </div>
                               )}
-                              <div className="flex flex-col">
+                              <div className="flex flex-col shrink-0">
                                 <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Cliente</span>
                                 <button
                                   type="button"
@@ -2458,15 +2475,16 @@ export default function AdminPanel() {
         {/* ── LOGS ── */}
         {selectedModule === 'logs' && (() => {
           const q = logsQuery.trim().toLowerCase()
-          const filteredLogs = q
-            ? logs.filter(l =>
-                (l.username ?? '').toLowerCase().includes(q) ||
-                (l.ip ?? '').toLowerCase().includes(q) ||
-                (l.os ?? '').toLowerCase().includes(q) ||
-                (l.browser ?? '').toLowerCase().includes(q) ||
-                (l.device_type ?? '').toLowerCase().includes(q)
-              )
-            : logs
+          const filteredLogs = logs
+            .filter(l => {
+              if (logsDeviceFilter !== 'todos' && l.device_type?.toLowerCase() !== logsDeviceFilter) return false
+              if (!q) return true
+              return (l.username ?? '').toLowerCase().includes(q) ||
+                     (l.ip ?? '').toLowerCase().includes(q) ||
+                     (l.os ?? '').toLowerCase().includes(q) ||
+                     (l.browser ?? '').toLowerCase().includes(q) ||
+                     (l.device_type ?? '').toLowerCase().includes(q)
+            })
           const uniqueUsers = new Set(logs.map(l => l.username).filter(Boolean)).size
           const lastAccess = logs[0]?.created_at
             ? new Date(logs[0].created_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
@@ -2503,6 +2521,25 @@ export default function AdminPanel() {
                       placeholder="Buscar usuário, IP, OS..."
                       className="w-full rounded-lg border border-[var(--th-border)] bg-[var(--th-page)] pl-8 pr-3 py-1.5 text-xs text-[var(--th-txt-2)] placeholder:text-[var(--th-txt-4)] focus:outline-none focus:ring-1 focus:ring-white/10"
                     />
+                  </div>
+                  <div className="flex gap-1 flex-wrap mt-2">
+                    {([
+                      { key: 'todos', label: 'Todos' },
+                      { key: 'desktop', label: 'Desktop' },
+                      { key: 'mobile', label: 'Mobile' },
+                    ] as const).map(({ key, label }) => {
+                      const active = logsDeviceFilter === key
+                      return (
+                        <button key={key} type="button" onClick={() => setLogsDeviceFilter(key)}
+                          className={`text-[11px] px-2.5 py-1 rounded-md font-medium transition-all ${
+                            active
+                              ? 'bg-[var(--th-card)] text-[var(--th-txt-1)]'
+                              : 'text-[var(--th-txt-4)] hover:text-[var(--th-txt-2)]'
+                          }`}>
+                          {label}
+                        </button>
+                      )
+                    })}
                   </div>
                 </div>
 

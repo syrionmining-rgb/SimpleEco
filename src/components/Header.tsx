@@ -38,6 +38,7 @@ interface HeaderProps {
 export default function Header({ toggleTheme, isDark }: HeaderProps) {
   const [now, setNow] = useState(new Date())
   const [menuOpen, setMenuOpen] = useState(false)
+  const [selectedNav, setSelectedNav] = useState('#overview')
   const { logout } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
@@ -51,6 +52,7 @@ export default function Header({ toggleTheme, isDark }: HeaderProps) {
   }
 
   function scrollTo(href: string) {
+    setSelectedNav(href)
     setMenuOpen(false)
     const el = document.querySelector(href)
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -61,6 +63,10 @@ export default function Header({ toggleTheme, isDark }: HeaderProps) {
     return () => clearInterval(id)
   }, [])
 
+  useEffect(() => {
+    document.title = isAdminPage ? 'G.Form - Administrador' : 'G.Form - Produção'
+  }, [isAdminPage])
+
   return (
     <>
       {/* ── MOBILE: fixed top header ── */}
@@ -70,7 +76,7 @@ export default function Header({ toggleTheme, isDark }: HeaderProps) {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-lg font-bold leading-tight">
               <span className="text-[var(--th-txt-1)] font-surgena leading-none">{COMPANY_NAME}</span>
-              <span className="inline-flex rounded-[5px] bg-gradient-to-r from-[#FF8C00] to-[#D81B60] p-[1px] translate-y-[1px]">
+              <span className="inline-flex rounded-[5px] bg-gradient-to-r from-[#FF8C00] to-[#D81B60] p-[1px] -translate-y-[2px]">
                 <span className="inline-flex items-center px-1.5 py-0.5 rounded-[4px] text-[9px] font-medium uppercase tracking-widest bg-[var(--th-card)]">
                   <span className="bg-gradient-to-r from-[#FF8C00] to-[#D81B60] bg-clip-text text-transparent">{currentPageText}</span>
                 </span>
@@ -105,7 +111,9 @@ export default function Header({ toggleTheme, isDark }: HeaderProps) {
                   <button
                     key={href}
                     onClick={() => scrollTo(href)}
-                    className="w-full text-left p-2 rounded-lg flex items-center gap-3 text-[var(--th-txt-3)] hover:text-[var(--th-txt-1)] hover:bg-[var(--th-hover)] transition-colors"
+                    className={`w-full text-left p-2 rounded-lg flex items-center gap-3 transition-colors ${
+                      selectedNav === href ? 'text-white' : 'text-[var(--th-txt-3)]'
+                    }`}
                   >
                     <Icon className="w-4 h-4" />
                     <span className="text-sm font-medium">{label}</span>
@@ -118,7 +126,7 @@ export default function Header({ toggleTheme, isDark }: HeaderProps) {
                 {/* Theme */}
                 <button
                   onClick={() => { toggleTheme(); setMenuOpen(false) }}
-                  className="p-2 rounded-lg flex items-center gap-3 text-[var(--th-txt-3)] hover:text-[var(--th-txt-1)] hover:bg-[var(--th-hover)] transition-colors"
+                  className="p-2 rounded-lg flex items-center gap-3 text-[var(--th-txt-3)] transition-colors"
                 >
                   {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
                   <span className="text-sm">{isDark ? 'Tema claro' : 'Tema escuro'}</span>
@@ -126,7 +134,7 @@ export default function Header({ toggleTheme, isDark }: HeaderProps) {
                 {/* Logout */}
                 <button
                   onClick={() => { void handleLogout(); setMenuOpen(false) }}
-                  className="p-2 rounded-lg flex items-center gap-3 text-[var(--th-txt-3)] hover:bg-[var(--th-hover)] transition-colors"
+                  className="p-2 rounded-lg flex items-center gap-3 text-[var(--th-txt-3)] transition-colors"
                 >
                   <LogOut className="w-4 h-4" />
                   <span className="text-sm">Sair</span>
@@ -144,8 +152,8 @@ export default function Header({ toggleTheme, isDark }: HeaderProps) {
           <div className="flex flex-col gap-1">
             <div className="flex items-end gap-2 font-bold">
               <span className="text-[var(--th-txt-1)] font-surgena leading-none" style={{ fontSize: '25px' }}>{COMPANY_NAME}</span>
-              <span className="inline-flex rounded-[5px] bg-gradient-to-r from-[#FF8C00] to-[#D81B60] p-[1px] mb-[5px]">
-                <span className="inline-flex items-center px-1.5 py-0.5 rounded-[4px] text-[9px] font-medium uppercase tracking-widest bg-[var(--th-card)]">
+              <span className="inline-flex rounded-[5px] bg-gradient-to-r from-[#FF8C00] to-[#D81B60] p-[1px] -translate-y-[2px]">
+                <span className="inline-flex items-center px-2 py-1 rounded-[4px] text-[10px] font-bold uppercase tracking-widest bg-[var(--th-card)]">
                   <span className="bg-gradient-to-r from-[#FF8C00] to-[#D81B60] bg-clip-text text-transparent">{currentPageText}</span>
                 </span>
               </span>
@@ -171,7 +179,7 @@ export default function Header({ toggleTheme, isDark }: HeaderProps) {
               <button
                 onClick={() => navigate('/admin')}
                 className="w-11 h-11 rounded-lg bg-[var(--th-card)] border border-[var(--th-border)] flex items-center justify-center transition-colors hover:bg-[var(--th-hover)]"
-                aria-label="Ir para Administrador"
+                aria-label="Ir para Produção"
               >
                 <ArrowLeftRight className="w-5 h-5 text-[var(--th-txt-4)]" />
               </button>

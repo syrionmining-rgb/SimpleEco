@@ -271,8 +271,8 @@ export default function LoginPage() {
             />
             <div className="relative z-10 login-title-anim flex flex-col items-center gap-2">
               <span className="text-5xl font-bold font-surgena leading-none text-[var(--th-txt-1)]">{COMPANY_NAME}</span>
-              <span className="inline-flex rounded-md bg-gradient-to-r from-[#FF8C00] to-[#D81B60] p-[1px]">
-                <span className="inline-flex items-center px-2 py-0.5 rounded-[5px] text-xs font-medium uppercase tracking-widest bg-[var(--th-page)]">
+              <span className="inline-flex rounded-[5px] bg-gradient-to-r from-[#FF8C00] to-[#D81B60] p-[1px] -translate-y-[2px]">
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded-[4px] text-[9px] font-medium uppercase tracking-widest bg-[var(--th-card)]">
                   <span className="bg-gradient-to-r from-[#FF8C00] to-[#D81B60] bg-clip-text text-transparent">Produção</span>
                 </span>
               </span>
@@ -310,8 +310,8 @@ export default function LoginPage() {
               {/* Brand heading — desktop only */}
               <div className="login-anim delay-50 hidden md:flex flex-col items-start gap-2 self-start">
                 <span className="text-4xl font-bold font-surgena leading-none text-[var(--th-txt-1)]">{COMPANY_NAME}</span>
-                <span className="inline-flex rounded-md bg-gradient-to-r from-[#FF8C00] to-[#D81B60] p-[1px] -translate-y-[2px]">
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-[5px] text-xs font-medium uppercase tracking-widest bg-[var(--th-page)]">
+                <span className="inline-flex rounded-[5px] bg-gradient-to-r from-[#FF8C00] to-[#D81B60] p-[1px] -translate-y-[2px]">
+                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-[4px] text-[9px] font-medium uppercase tracking-widest bg-[var(--th-card)]">
                     <span className="bg-gradient-to-r from-[#FF8C00] to-[#D81B60] bg-clip-text text-transparent">Produção</span>
                   </span>
                 </span>
