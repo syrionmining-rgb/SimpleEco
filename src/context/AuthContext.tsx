@@ -5,6 +5,8 @@ interface AuthContextType {
   isAuthenticated: boolean
   isLoadingAuth: boolean
   login: (user: string, pass: string, rememberMe: boolean) => Promise<boolean>
+  loginWithGoogle: () => Promise<void>
+  loginWithApple: () => Promise<void>
   logout: () => Promise<void>
 }
 
@@ -95,6 +97,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoadingAuth, setIsLoadingAuth] = useState(true)
 
   const validateStoredSession = useCallback(async () => {
+    // Verifica sessão OAuth (Google) primeiro
+    try {
+      const { data: { session: oauthSession } } = await supabase.auth.getSession()
+      if (oauthSession) {
+        localStorage.setItem(USER_STORAGE_KEY, oauthSession.user.email ?? oauthSession.user.id)
+        setIsAuthenticated(true)
+        setIsLoadingAuth(false)
+        return
+      }
+    } catch { /* continua para verificar token customizado */ }
+
     const token = getAuthToken()
     if (!token) {
       setIsAuthenticated(false)
@@ -126,6 +139,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     void validateStoredSession()
   }, [validateStoredSession])
+
+  // Detecta retorno do OAuth (Google redireciona de volta para o app)
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) {
+        localStorage.setItem(USER_STORAGE_KEY, session.user.email ?? session.user.id)
+        setIsAuthenticated(true)
+        setIsLoadingAuth(false)
+      }
+    })
+    return () => subscription.unsubscribe()
+  }, [])
 
   const login = useCallback(async (user: string, pass: string, rememberMe: boolean): Promise<boolean> => {
     try {
@@ -162,6 +187,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  const loginWithGoogle = useCallback(async () => {
+    await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.origin },
+    })
+  }, [])
+
+  const loginWithApple = useCallback(async () => {
+    await supabase.auth.signInWithOAuth({
+      provider: 'apple',
+      options: { redirectTo: window.location.origin },
+    })
+  }, [])
+
   async function logout() {
     const token = getAuthToken()
     if (token) {
@@ -171,13 +210,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // no-op: limpeza local ainda deve ocorrer
       }
     }
+    await supabase.auth.signOut()
     clearAuthToken()
     localStorage.removeItem(USER_STORAGE_KEY)
     setIsAuthenticated(false)
   }
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, isLoadingAuth, login, logout }}>
+    <AuthContext.Provider value={{ isAuthenticated, isLoadingAuth, login, loginWithGoogle, loginWithApple, logout }}>
       {children}
     </AuthContext.Provider>
   )

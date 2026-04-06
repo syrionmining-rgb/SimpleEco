@@ -80,8 +80,8 @@ export default function ScheduledOrdersTable({
             disabled={!onToggleTodayFilter}
             aria-label={onToggleTodayFilter ? 'Alternar filtro para produção de hoje' : undefined}
             className={`w-9 h-9 sm:w-12 sm:h-12 rounded-lg bg-[var(--th-subtle)] border flex items-center justify-center ${
-              onToggleTodayFilter ? 'cursor-pointer hover:border-[#FF8C00]/60 transition-colors' : ''
-            } ${onlyTodayFilterActive ? 'ring-2 ring-[#FF8C00]/60 border-[#FF8C00]/60' : 'border-[var(--th-border)]'}`}
+              onToggleTodayFilter ? 'cursor-pointer hover:border-[var(--th-accent-border)] transition-colors' : ''
+            } ${onlyTodayFilterActive ? 'ring-2 ring-[var(--th-accent-border)] border-[var(--th-accent-border)]' : 'border-[var(--th-border)]'}`}
           >
             <Package className="w-4 h-4 sm:w-6 sm:h-6 text-[var(--th-txt-4)]" aria-hidden="true" />
           </button>

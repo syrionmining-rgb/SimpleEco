@@ -7,7 +7,8 @@
       "Bash(npx supabase:*)",
       "Bash(find 'c:\\\\Users\\\\Arthu\\\\OneDrive\\\\Área de Trabalho\\\\SimpleEco\\\\Development\\\\node_modules\\\\@zxing\\\\browser' -name *.d.ts)",
       "Bash(python3 -c \"import dbfread; print\\(''dbfread available''\\)\")",
-      "Bash(python3 -m pip install dbfread -q)"
+      "Bash(python3 -m pip install dbfread -q)",
+      "Bash(npx kill-port:*)"
     ]
   }
 }

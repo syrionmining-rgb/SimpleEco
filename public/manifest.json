@@ -1,7 +1,7 @@
 {
-  "name": "Simple&Eco",
-  "short_name": "Simple&Eco",
-  "description": "Painel de Produção Simple&Eco",
+  "name": "G.Form",
+  "short_name": "G.Form",
+  "description": "Painel de Produção G.Form",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0e0e0e",

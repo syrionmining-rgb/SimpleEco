@@ -34,7 +34,7 @@ export default function SectorSelector({
     'flex items-center justify-between gap-2 pl-4 pr-3 py-2.5 rounded-xl border text-sm font-semibold transition-all',
     'bg-[var(--th-card)] text-[var(--th-txt-1)]',
     open || isFiltered
-      ? 'border-[#FF8C00]/60 shadow-[0_0_0_3px_rgba(255,140,0,0.12)]'
+      ? 'border-[var(--th-accent-border)] shadow-[0_0_0_3px_var(--th-accent-bg)]'
       : 'border-[var(--th-border)] hover:border-orange-500/30',
   ].join(' ')
 

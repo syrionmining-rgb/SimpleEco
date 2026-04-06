@@ -1,0 +1,23 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "React Dashboard (Vite Dev)",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 5173
+    },
+    {
+      "name": "React Dashboard (Vite Preview)",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "preview"],
+      "port": 4173
+    },
+    {
+      "name": "SE Link Desktop App",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["SE Link/link.py"],
+      "port": 0
+    }
+  ]
+}

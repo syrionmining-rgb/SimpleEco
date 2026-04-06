@@ -1,11 +1,41 @@
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/geist";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+@font-face {
+  font-family: 'Surgena';
+  src: url('/fonts/Surgena.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+.font-surgena {
+  font-family: 'Surgena', sans-serif;
+}
+
+@font-face {
+  font-family: 'Surgena';
+  src: url('/fonts/Surgena.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+.font-surgena {
+  font-family: 'Surgena', sans-serif;
+}
+
 :root {
+  /* ============================================================
+   * BG CONFIG — altere aqui para mudar o fundo no modo claro
+   * ============================================================ */
   --th-accent:      #FF8C00;
-  --th-page:        #f3f4f6;
-  --th-card:        #ffffff;
+  --th-page:        #f3f4f6;  /* <- COR DE FUNDO PRINCIPAL (light) */
+  --th-card:        #ffffff;  /* <- COR DOS CARDS (light) */
   --th-border:      #e5e7eb;
   --th-border-soft: #f3f4f6;
   --th-txt-1:       #111827;
@@ -19,24 +49,36 @@
   --th-fin-bg:      #111827;
   --th-fin-txt:     #ffffff;
   --th-fin-border:  #374151;
+  --th-accent:        #111827;
+  --th-accent-inv:    #ffffff;
+  --th-accent-bg:     rgba(0,0,0,0.06);
+  --th-accent-border: rgba(0,0,0,0.16);
 }
 
 html.dark {
-  --th-page:        #0e0e0e;
-  --th-card:        #111111;
-  --th-border:      rgba(255,255,255,0.10);
-  --th-border-soft: rgba(255,255,255,0.05);
+  /* ============================================================
+   * BG CONFIG — altere aqui para mudar o fundo no modo escuro
+   * ============================================================ */
+  --th-page:        #080808;  /* <- COR DE FUNDO PRINCIPAL (dark) */
+  --th-card:        #080808;  /* <- COR DOS CARDS (dark) */
+  --th-input:       #161616;
+  --th-border:      rgba(255,255,255,0.07);
+  --th-border-soft: rgba(255,255,255,0.04);
   --th-txt-1:       #ffffff;
   --th-txt-2:       #d4d4d8;
   --th-txt-3:       #a1a1aa;
   --th-txt-4:       #71717a;
-  --th-subtle:      rgba(255,255,255,0.05);
-  --th-hover:       rgba(255,255,255,0.05);
+  --th-subtle:      rgba(255,255,255,0.04);
+  --th-hover:       rgba(255,255,255,0.06);
   --th-goal:        rgba(255,255,255,0.10);
   --th-meta-dot:    rgba(255,255,255,0.20);
   --th-fin-bg:      #ffffff;
   --th-fin-txt:     #000000;
   --th-fin-border:  #ffffff;
+  --th-accent:        #ffffff;
+  --th-accent-inv:    #111111;
+  --th-accent-bg:     rgba(255,255,255,0.08);
+  --th-accent-border: rgba(255,255,255,0.20);
 }
 
 html, body {
@@ -64,21 +106,37 @@ html, body {
   animation: loginSlideRight .8s ease-out forwards;
 }
 
-.delay-100  { animation-delay: .1s; }.delay-200  { animation-delay: .2s; }
-.delay-300  { animation-delay: .3s; }
-.delay-400  { animation-delay: .4s; }
-.delay-500  { animation-delay: .5s; }
-.delay-600  { animation-delay: .6s; }
-.delay-700  { animation-delay: .7s; }
-.delay-1000 { animation-delay: 1s; }
-.delay-1200 { animation-delay: 1.2s; }
-.delay-1400 { animation-delay: 1.4s; }
+.delay-50   { animation-delay: 0s; }
+.delay-100  { animation-delay: 0s; }.delay-200  { animation-delay: 0s; }
+.delay-300  { animation-delay: 0s; }
+.delay-400  { animation-delay: 0s; }
+.delay-500  { animation-delay: 0s; }
+.delay-600  { animation-delay: 0s; }
+.delay-700  { animation-delay: 0s; }
+.delay-1000 { animation-delay: 0s; }
+.delay-1200 { animation-delay: 0s; }
+.delay-1400 { animation-delay: 0s; }
 
 @keyframes loginFadeIn {
   to { opacity: 1; filter: blur(0); transform: translateY(0); }
 }
 @keyframes loginSlideRight {
   to { opacity: 1; filter: blur(0); transform: translateX(0); }
+}
+@keyframes loginTitleIn {
+  from { opacity: 0; filter: blur(16px); transform: scale(0.82); }
+  to   { opacity: 1; filter: blur(0);    transform: scale(1); }
+}
+@keyframes loginFormReveal {
+  from { opacity: 0; filter: blur(8px); transform: translateY(80px); }
+  to   { opacity: 1; filter: blur(0);   transform: translateY(0); }
+}
+.login-title-anim {
+  opacity: 0;
+  animation: loginTitleIn 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.login-form-reveal {
+  animation: loginFormReveal 0.6s ease-out forwards;
 }
 @keyframes testimonialIn {
   to { opacity: 1; filter: blur(0); transform: translateY(0) scale(1); }
@@ -88,18 +146,25 @@ html, body {
 .login-checkbox {
   cursor: pointer;
   appearance: none;
-  border: 1px solid var(--th-border);
+  border: 1.5px solid var(--th-border);
   border-radius: 50%;
   width: 18px;
   height: 18px;
   position: relative;
-  background-color: var(--th-subtle);
-  transition: background-color .15s, border-color .15s;
+  background-color: var(--th-page);
+  transition: all .2s ease;
   flex-shrink: 0;
 }
+.login-checkbox:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--th-page), 0 0 0 4.5px rgba(255,140,0,0.6), 0 0 0 6px rgba(216,27,96,0.6);
+}
 .login-checkbox:checked {
-  background-color: #FF8C00;
-  border-color: #FF8C00;
+  background: #ffffff;
+  border-color: #ffffff;
+}
+.login-checkbox:checked:focus-visible {
+  box-shadow: 0 0 0 3px var(--th-page), 0 0 0 4.5px rgba(255,140,0,0.6), 0 0 0 6px rgba(216,27,96,0.6);
 }
 .login-checkbox:checked::after {
   content: '✓';
@@ -109,10 +174,113 @@ html, body {
   transform: translate(-50%, -50%);
   font-size: 11px;
   font-weight: 700;
-  color: white;
+  color: #000000;
+}
+
+/* Override browser autofill background */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px var(--th-page) inset !important;
+  -webkit-text-fill-color: var(--th-txt-1) !important;
+  caret-color: var(--th-txt-1);
+  transition: background-color 9999s ease-in-out 0s;
+}
+
+/* Override browser autofill background */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px var(--th-page) inset !important;
+  -webkit-text-fill-color: var(--th-txt-1) !important;
+  caret-color: var(--th-txt-1);
+  transition: background-color 9999s ease-in-out 0s;
 }
 
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: var(--th-border-soft); }
 ::-webkit-scrollbar-thumb { background: var(--th-txt-4); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--th-txt-3); }
+
+@layer base {
+  .theme {
+    --font-heading: var(--font-sans);
+    --font-sans: 'Geist Variable', sans-serif;
+  }
+  :root {
+    --background: oklch(1 0 0);
+    --foreground: oklch(0.145 0 0);
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.145 0 0);
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0.145 0 0);
+    --primary: oklch(0.205 0 0);
+    --primary-foreground: oklch(0.985 0 0);
+    --secondary: oklch(0.97 0 0);
+    --secondary-foreground: oklch(0.205 0 0);
+    --muted: oklch(0.97 0 0);
+    --muted-foreground: oklch(0.556 0 0);
+    --accent: oklch(0.97 0 0);
+    --accent-foreground: oklch(0.205 0 0);
+    --destructive: oklch(0.577 0.245 27.325);
+    --border: oklch(0.922 0 0);
+    --input: oklch(0.922 0 0);
+    --ring: oklch(0.708 0 0);
+    --chart-1: oklch(0.87 0 0);
+    --chart-2: oklch(0.556 0 0);
+    --chart-3: oklch(0.439 0 0);
+    --chart-4: oklch(0.371 0 0);
+    --chart-5: oklch(0.269 0 0);
+    --radius: 0.625rem;
+    --sidebar: oklch(0.985 0 0);
+    --sidebar-foreground: oklch(0.145 0 0);
+    --sidebar-primary: oklch(0.205 0 0);
+    --sidebar-primary-foreground: oklch(0.985 0 0);
+    --sidebar-accent: oklch(0.97 0 0);
+    --sidebar-accent-foreground: oklch(0.205 0 0);
+    --sidebar-border: oklch(0.922 0 0);
+    --sidebar-ring: oklch(0.708 0 0);
+  }
+  .dark {
+    --background: oklch(0.145 0 0);
+    --foreground: oklch(0.985 0 0);
+    --card: oklch(0.205 0 0);
+    --card-foreground: oklch(0.985 0 0);
+    --popover: oklch(0.205 0 0);
+    --popover-foreground: oklch(0.985 0 0);
+    --primary: oklch(0.922 0 0);
+    --primary-foreground: oklch(0.205 0 0);
+    --secondary: oklch(0.269 0 0);
+    --secondary-foreground: oklch(0.985 0 0);
+    --muted: oklch(0.269 0 0);
+    --muted-foreground: oklch(0.708 0 0);
+    --accent: oklch(0.269 0 0);
+    --accent-foreground: oklch(0.985 0 0);
+    --destructive: oklch(0.704 0.191 22.216);
+    --border: oklch(1 0 0 / 10%);
+    --input: oklch(1 0 0 / 15%);
+    --ring: oklch(0.556 0 0);
+    --chart-1: oklch(0.87 0 0);
+    --chart-2: oklch(0.556 0 0);
+    --chart-3: oklch(0.439 0 0);
+    --chart-4: oklch(0.371 0 0);
+    --chart-5: oklch(0.269 0 0);
+    --sidebar: oklch(0.205 0 0);
+    --sidebar-foreground: oklch(0.985 0 0);
+    --sidebar-primary: oklch(0.488 0.243 264.376);
+    --sidebar-primary-foreground: oklch(0.985 0 0);
+    --sidebar-accent: oklch(0.269 0 0);
+    --sidebar-accent-foreground: oklch(0.985 0 0);
+    --sidebar-border: oklch(1 0 0 / 10%);
+    --sidebar-ring: oklch(0.556 0 0);
+  }
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
+}

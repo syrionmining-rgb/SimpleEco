@@ -1,0 +1,33 @@
+========================================================
+  Simple&Eco Link — Aplicativo de Sincronizacao
+========================================================
+
+COMO USAR NO OUTRO PC
+---------------------
+1. Copie toda esta pasta "App\" para o PC de destino.
+
+2. Certifique-se de que o arquivo ".env" esta presente
+   (deve conter a chave do Supabase — ja incluido no build).
+
+3. Execute:  SimpleEcoLink.exe
+
+4. Clique em "Iniciar" e aponte para a pasta que contem
+   os arquivos DBF do sistema.
+
+REQUISITOS DO PC DE DESTINO
+----------------------------
+- Windows 10 ou superior (64-bit), ou Windows Server 2016/2019
+- Microsoft Edge WebView2 Runtime instalado
+   *** O instalador ja esta incluido nesta pasta: ***
+       MicrosoftEdgeWebview2Setup.exe
+   Execute-o ANTES de abrir o SimpleEcoLink.exe.
+   (Em Windows 10/11 normalmente ja esta instalado — pule esta etapa.)
+- Acesso a internet (para sincronizar com o Supabase)
+
+ARQUIVO .env
+------------
+O arquivo .env contem as credenciais do Supabase.
+Mantenha-o na mesma pasta que o SimpleEcoLink.exe.
+Nao compartilhe este arquivo com pessoas nao autorizadas.
+
+========================================================

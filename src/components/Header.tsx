@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
-import { Calendar, Clock, Sun, Moon, LogOut, Menu, X, LayoutDashboard, TriangleAlert, ClipboardList, BarChart2, Settings } from 'lucide-react'
+import { Calendar, Clock, Sun, Moon, LogOut, Menu, X, LayoutDashboard, TriangleAlert, ClipboardList, BarChart2, ArrowLeftRight } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useNavigate, useLocation } from 'react-router-dom'
+import { COMPANY_NAME } from '../lib/constants'
 
 function formatDate(date: Date): string {
   return date.toLocaleDateString('pt-BR', {
@@ -67,9 +68,13 @@ export default function Header({ toggleTheme, isDark }: HeaderProps) {
         <div className="px-4 py-3">
           {/* Bar: logo + admin + hamburger */}
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1 text-xl font-bold leading-tight">
-                <span className="text-[var(--th-txt-1)]">Simple&Eco</span>{' '}
-                <span className="bg-gradient-to-r from-[#FF8C00] to-[#D81B60] bg-clip-text text-transparent">{currentPageText}</span>
+            <div className="flex items-center gap-2 text-lg font-bold leading-tight">
+              <span className="text-[var(--th-txt-1)] font-surgena leading-none">{COMPANY_NAME}</span>
+              <span className="inline-flex rounded-md bg-gradient-to-r from-[#FF8C00] to-[#D81B60] p-[1px] translate-y-[1px]">
+                <span className="inline-flex items-center px-2 py-0.5 rounded-[5px] text-[10px] font-medium uppercase tracking-widest bg-[var(--th-card)]">
+                  <span className="bg-gradient-to-r from-[#FF8C00] to-[#D81B60] bg-clip-text text-transparent">{currentPageText}</span>
+                </span>
+              </span>
             </div>
             <div className="flex items-center gap-1">
               {!isAdminPage && (
@@ -78,7 +83,7 @@ export default function Header({ toggleTheme, isDark }: HeaderProps) {
                   className="p-2 rounded-lg text-[var(--th-txt-3)] hover:text-[var(--th-txt-1)] hover:bg-[var(--th-hover)] transition-colors"
                   aria-label="Administrador"
                 >
-                  <Settings className="w-5 h-5" />
+                  <ArrowLeftRight className="w-5 h-5" />
                 </button>
               )}
               <button
@@ -110,11 +115,6 @@ export default function Header({ toggleTheme, isDark }: HeaderProps) {
 
               {/* Info + actions */}
               <div className="border-t border-[var(--th-border)] pt-4 flex flex-col gap-1">
-                {/* Clock */}
-                <div className="p-2 flex items-center gap-3 text-[var(--th-txt-3)]">
-                  <Clock className="w-4 h-4 shrink-0" />
-                  <span className="text-sm font-semibold text-[var(--th-txt-1)] font-mono tracking-widest">{formatTime(now)}</span>
-                </div>
                 {/* Theme */}
                 <button
                   onClick={() => { toggleTheme(); setMenuOpen(false) }}
@@ -142,9 +142,13 @@ export default function Header({ toggleTheme, isDark }: HeaderProps) {
       <header className="hidden sm:block pb-5 sm:pb-6 border-b border-[var(--th-border)]">
         <div className="flex items-center justify-between gap-4">
           <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-1 text-2xl font-bold">
-                <span className="text-[var(--th-txt-1)]">Simple&Eco</span>{' '}
-                <span className="bg-gradient-to-r from-[#FF8C00] to-[#D81B60] bg-clip-text text-transparent">{currentPageText}</span>
+            <div className="flex items-end gap-2 font-bold">
+              <span className="text-[var(--th-txt-1)] font-surgena leading-none" style={{ fontSize: '25px' }}>{COMPANY_NAME}</span>
+              <span className="inline-flex rounded-md bg-gradient-to-r from-[#FF8C00] to-[#D81B60] p-[1px] mb-[3px]">
+                <span className="inline-flex items-center px-2 py-0.5 rounded-[5px] text-xs font-medium uppercase tracking-widest bg-[var(--th-card)]">
+                  <span className="bg-gradient-to-r from-[#FF8C00] to-[#D81B60] bg-clip-text text-transparent">{currentPageText}</span>
+                </span>
+              </span>
             </div>
             <p className="text-sm text-[var(--th-txt-3)] flex items-center gap-1.5">
               <Calendar className="w-4 h-4" aria-hidden="true" />
@@ -169,7 +173,7 @@ export default function Header({ toggleTheme, isDark }: HeaderProps) {
                 className="w-11 h-11 rounded-lg bg-[var(--th-card)] border border-[var(--th-border)] flex items-center justify-center transition-colors hover:bg-[var(--th-hover)]"
                 aria-label="Ir para Administrador"
               >
-                <Settings className="w-5 h-5 text-[var(--th-txt-4)]" />
+                <ArrowLeftRight className="w-5 h-5 text-[var(--th-txt-4)]" />
               </button>
               <button
                 onClick={() => { void handleLogout() }}

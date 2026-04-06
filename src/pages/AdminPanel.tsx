@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import {
-  Sun, Moon, LogOut, Settings, Users, Database, Package, Home, Box,
+  Sun, Moon, LogOut, Settings, Users, Database, Package, Home, Box, ArrowLeftRight,
   ScrollText, RefreshCw, Search, ChevronDown, ChevronUp, ChevronLeft,
   GitBranch, Plus, X, Check, Monitor, Smartphone, ScanLine, Trash2, Pencil, Menu, MapPin,
 } from 'lucide-react'
@@ -8,6 +8,7 @@ import type { LucideIcon } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { COMPANY_NAME } from '../lib/constants'
 
 const ADMIN_MODULE_STORAGE_KEY = 'se_admin_selected_module'
 const ADMIN_MODULE_IDS = ['dashboard', 'orders', 'sectors', 'products', 'clients', 'database', 'settings', 'logs'] as const
@@ -25,13 +26,13 @@ function SidebarItem({ title, icon: Icon, active, onClick }: SidebarItemProps) {
   return (
     <button
       onClick={onClick}
-      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-sm font-medium transition-all ${
+      className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left text-[13px] font-medium transition-all ${
         active
-          ? 'bg-[var(--th-accent)] text-white shadow-sm'
-          : 'text-[var(--th-txt-3)] hover:bg-[var(--th-hover)] hover:text-[var(--th-txt-1)]'
+          ? 'bg-[rgba(255,255,255,0.08)] text-white'
+          : 'text-[var(--th-txt-4)] hover:bg-[rgba(255,255,255,0.05)] hover:text-[var(--th-txt-2)]'
       }`}
     >
-      <Icon strokeWidth={1.5} className="w-4 h-4 shrink-0" />
+      <Icon strokeWidth={1.5} className={`w-4 h-4 shrink-0 ${active ? 'text-white' : 'text-[var(--th-txt-4)]'}`} />
       <span className="flex-1">{title}</span>
     </button>
   )
@@ -39,7 +40,7 @@ function SidebarItem({ title, icon: Icon, active, onClick }: SidebarItemProps) {
 
 function SidebarSection({ label }: { label: string }) {
   return (
-    <p className="px-3 pt-5 pb-1.5 text-[11px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">
+    <p className="px-3 pt-5 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--th-txt-4)]/60">
       {label}
     </p>
   )
@@ -145,6 +146,14 @@ interface PedidoFluxo {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function asText(value: unknown): string { return value === null || value === undefined ? '' : String(value) }
+function stripLeadingNum(s: string): string { return s.replace(/^[\d.]+\s*/, '').trim() }
+const BR_ESTADOS: Record<string, string> = {
+  AC:'Acre',AL:'Alagoas',AP:'Amapá',AM:'Amazonas',BA:'Bahia',CE:'Ceará',DF:'Distrito Federal',
+  ES:'Espírito Santo',GO:'Goiás',MA:'Maranhão',MT:'Mato Grosso',MS:'Mato Grosso do Sul',
+  MG:'Minas Gerais',PA:'Pará',PB:'Paraíba',PR:'Paraná',PE:'Pernambuco',PI:'Piauí',
+  RJ:'Rio de Janeiro',RN:'Rio Grande do Norte',RS:'Rio Grande do Sul',RO:'Rondônia',
+  RR:'Roraima',SC:'Santa Catarina',SP:'São Paulo',SE:'Sergipe',TO:'Tocantins'
+}
 function fmtDate(value: unknown): string {
   const raw = asText(value).trim(); if (!raw) return '—'
   const d = new Date(raw); return Number.isNaN(d.getTime()) ? raw : d.toLocaleDateString('pt-BR')
@@ -184,6 +193,15 @@ function parseNumeros(numeros: unknown, gradeSizes?: number[]): Array<{ slot: nu
   return result
 }
 
+function parseBrazilDate(s: string): Date | null {
+  if (!s) return null
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return new Date(s)
+  const m = s.match(/^(\d{2})\/(\d{2})\/(\d{4})/)
+  if (m) return new Date(`${m[3]}-${m[2]}-${m[1]}`)
+  if (/^\d{8}$/.test(s)) return new Date(`${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}`)
+  return null
+}
+
 // ── Main Component ────────────────────────────────────────────────────────────
 
 export default function AdminPanel() {
@@ -194,8 +212,14 @@ export default function AdminPanel() {
 
   // ── Orders state ─────────────────────────────────────────────────────────
   const [ordersSubTab, setOrdersSubTab] = useState<'pedidos' | 'remessas'>('pedidos')
-  const [ordersSubTabOpen, setOrdersSubTabOpen] = useState(false)
   const [totalOrders, setTotalOrders] = useState<number | null>(null)
+
+  // ── Dashboard stats ───────────────────────────────────────────────────────
+  const [dashStats, setDashStats] = useState<{ emProducao: number; semanal: number; mensal: number } | null>(null)
+  const [dashStatsLoading, setDashStatsLoading] = useState(false)
+  const [heartbeatBuckets, setHeartbeatBuckets] = useState<number[]>(() => new Array(24).fill(0))
+  const [heartbeatFetchedAt, setHeartbeatFetchedAt] = useState<Date | null>(null)
+
   const [orders, setOrders] = useState<PedidoRow[]>([])
   const [taloes, setTaloes] = useState<TalaoRow[]>([])
   const [talsetor, setTalsetor] = useState<TalsetorRow[]>([])
@@ -381,6 +405,47 @@ export default function AdminPanel() {
       setSeLinkLogs([])
     } catch { /* ignore */ }
     setSeLinkLogsClearing(false)
+  }
+
+  async function fetchDashboardStats() {
+    setDashStatsLoading(true)
+    try {
+      const now = new Date()
+      const dayAgo = new Date(now.getTime() - 24 * 3600 * 1000)
+      const weekAgoMs = now.getTime() - 7 * 24 * 3600 * 1000
+      const monthAgoMs = now.getTime() - 30 * 24 * 3600 * 1000
+      const [saldoRes, logsRes, pedRes] = await Promise.all([
+        supabase.from('pedidos').select('SALDO'),
+        supabase.from('se_link_logs').select('created_at').gte('created_at', dayAgo.toISOString()),
+        supabase.from('pedidos').select('DIGITACAO'),
+      ])
+      let emProducao = 0
+      const saldoRows = saldoRes.data as Array<{ SALDO: unknown }> | null
+      if (saldoRows) emProducao = saldoRows.filter(r => toNumber(r.SALDO) > 0).length
+      let semanal = 0, mensal = 0
+      const pedRows = pedRes.data as Array<{ DIGITACAO: unknown }> | null
+      if (pedRows) {
+        for (const row of pedRows) {
+          const d = parseBrazilDate(asText(row.DIGITACAO))
+          if (!d || isNaN(d.getTime())) continue
+          const t = d.getTime()
+          if (t >= weekAgoMs) semanal++
+          if (t >= monthAgoMs) mensal++
+        }
+      }
+      const buckets: number[] = new Array(24).fill(0)
+      const logRows = logsRes.data as Array<{ created_at: string }> | null
+      if (logRows) {
+        for (const entry of logRows) {
+          const hoursAgo = Math.floor((now.getTime() - new Date(entry.created_at).getTime()) / 3600000)
+          if (hoursAgo >= 0 && hoursAgo < 24) buckets[23 - hoursAgo]++
+        }
+      }
+      setDashStats({ emProducao, semanal, mensal })
+      setHeartbeatBuckets(buckets)
+      setHeartbeatFetchedAt(new Date())
+    } catch { /* ignore */ }
+    setDashStatsLoading(false)
   }
 
   async function fetchSyncConfig() {
@@ -672,6 +737,14 @@ export default function AdminPanel() {
     async function run() { const { count, error } = await supabase.from('pedidos').select('*', { count: 'exact', head: true }); if (!error) setTotalOrders(count ?? 0) }
     void run(); const id = setInterval(() => { void run() }, 60_000); return () => clearInterval(id)
   }, [])
+
+  useEffect(() => {
+    if (selectedModule !== 'dashboard') return
+    void fetchDashboardStats()
+    void fetchLastSync()
+    const id = setInterval(() => { void fetchDashboardStats(); void fetchLastSync() }, 60_000)
+    return () => clearInterval(id)
+  }, [selectedModule])
 
   useEffect(() => {
     if (selectedModule !== 'orders' && selectedModule !== 'clients') return
@@ -1238,67 +1311,77 @@ export default function AdminPanel() {
   return (
     <>
     {/* ── Mobile top navbar ── */}
-    <nav className="sm:hidden fixed top-0 left-0 right-0 z-50 bg-[var(--th-card)]/90 backdrop-blur-xl border-b border-[var(--th-border)]">
-      <div className="px-4 h-[54px] flex items-center justify-between">
-        <div className="flex items-center gap-1 text-lg font-bold leading-tight">
-          <span className="text-[var(--th-txt-1)]">Simple&amp;Eco</span>{' '}
-          <span className="bg-gradient-to-r from-[#FF8C00] to-[#D81B60] bg-clip-text text-transparent">Admin</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <button onClick={() => navigate('/')} className="p-2 rounded-lg text-[var(--th-txt-3)] hover:bg-[var(--th-hover)] transition-colors" aria-label="Produção">
-            <Home className="w-5 h-5" />
-          </button>
-          <button onClick={() => setMobileMenuOpen(o => !o)} className="p-2 text-[var(--th-txt-1)]" aria-label="Menu">
-            {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-          </button>
-        </div>
-      </div>
-      {mobileMenuOpen && (
-        <div className="border-t border-[var(--th-border)] px-4 pb-4 bg-[var(--th-card)] overflow-y-auto max-h-[calc(100vh-54px)]">
-          {sidebarSections.map(section => (
-            <div key={section.label}>
-              <p className="px-1 pt-4 pb-1 text-[11px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">{section.label}</p>
-              <div className="space-y-0.5">
-                {section.items.map(m => (
-                  <button key={m.id} onClick={() => { setSelectedModule(m.id); setMobileMenuOpen(false) }}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-sm font-medium transition-all ${
-                      selectedModule === m.id ? 'bg-[#FF8C00] text-white shadow-sm' : 'text-[var(--th-txt-3)] hover:bg-[var(--th-hover)] hover:text-[var(--th-txt-1)]'
-                    }`}>
-                    <m.icon strokeWidth={1.5} className="w-4 h-4 shrink-0" />
-                    <span>{m.title}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          ))}
-          <div className="border-t border-[var(--th-border)] pt-3 mt-4 space-y-0.5">
-            <button onClick={() => { toggleTheme(); setMobileMenuOpen(false) }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[var(--th-txt-3)] hover:bg-[var(--th-hover)] hover:text-[var(--th-txt-1)] transition-all">
-              {isDark ? <Sun strokeWidth={1.5} className="w-4 h-4 shrink-0" /> : <Moon strokeWidth={1.5} className="w-4 h-4 shrink-0" />}
-              <span>{isDark ? 'Modo Claro' : 'Modo Escuro'}</span>
+    <nav className="sm:hidden fixed top-0 left-0 right-0 z-50 bg-[var(--th-card)]/60 backdrop-blur-xl shadow-[0_1px_0_var(--th-border)]">
+      <div className="px-4 py-3">
+        {/* Bar: logo + home + hamburger */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-baseline gap-1 text-lg font-bold leading-tight">
+            <span className="text-[var(--th-txt-1)] font-surgena leading-none">{COMPANY_NAME}</span>{' '}
+            <span className="bg-gradient-to-r from-[#FF8C00] to-[#D81B60] bg-clip-text text-transparent">Admin</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <button onClick={() => navigate('/')} className="p-2 rounded-lg text-[var(--th-txt-3)] hover:text-[var(--th-txt-1)] hover:bg-[var(--th-hover)] transition-colors" aria-label="Produção">
+              <ArrowLeftRight className="w-5 h-5" />
             </button>
-            <button onClick={() => { void handleLogout(); setMobileMenuOpen(false) }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[var(--th-txt-3)] hover:bg-red-500/10 hover:text-red-400 transition-all">
-              <LogOut strokeWidth={1.5} className="w-4 h-4 shrink-0" />
-              <span>Sair</span>
+            <button onClick={() => setMobileMenuOpen(o => !o)} className="p-2 text-[var(--th-txt-1)]" aria-label="Menu">
+              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
           </div>
         </div>
-      )}
+
+        {/* Expanded menu */}
+        {mobileMenuOpen && (
+          <nav className="mt-4 pt-4 border-t border-[var(--th-border)] overflow-y-auto max-h-[calc(100svh-64px)]">
+            {/* Sections */}
+            <div className="flex flex-col gap-1 mb-4">
+              {sidebarSections.map(section => (
+                <div key={section.label}>
+                  <p className="px-2 pt-2 pb-1 text-[11px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">{section.label}</p>
+                  <div className="flex flex-col gap-0.5">
+                    {section.items.map(m => (
+                      <button key={m.id} onClick={() => { setSelectedModule(m.id); setMobileMenuOpen(false) }}
+                        className={`w-full text-left p-2 rounded-lg flex items-center gap-3 text-sm font-medium transition-colors ${
+                          selectedModule === m.id ? 'bg-[#FF8C00] text-white' : 'text-[var(--th-txt-3)] hover:text-[var(--th-txt-1)] hover:bg-[var(--th-hover)]'
+                        }`}>
+                        <m.icon className="w-4 h-4 shrink-0" />
+                        <span>{m.title}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Info + actions */}
+            <div className="border-t border-[var(--th-border)] pt-4 flex flex-col gap-1">
+              <button onClick={() => { toggleTheme(); setMobileMenuOpen(false) }} className="p-2 rounded-lg flex items-center gap-3 text-[var(--th-txt-3)] hover:text-[var(--th-txt-1)] hover:bg-[var(--th-hover)] transition-colors">
+                {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                <span className="text-sm">{isDark ? 'Tema claro' : 'Tema escuro'}</span>
+              </button>
+              <button onClick={() => { void handleLogout(); setMobileMenuOpen(false) }} className="p-2 rounded-lg flex items-center gap-3 text-[var(--th-txt-3)] hover:bg-[var(--th-hover)] transition-colors">
+                <LogOut className="w-4 h-4" />
+                <span className="text-sm">Sair</span>
+              </button>
+              <p className="px-2 pt-1 text-[11px] text-[var(--th-txt-4)] tracking-wide">Versão 2.0</p>
+            </div>
+          </nav>
+        )}
+      </div>
     </nav>
 
-    <div className="flex h-screen overflow-hidden bg-[var(--th-page)] text-[var(--th-txt-1)] pt-[54px] sm:pt-0">
+    <div className="flex h-screen overflow-hidden bg-[var(--th-page)] text-[var(--th-txt-2)] pt-[54px] sm:pt-0">
 
       {/* ── Sidebar ── */}
-      <aside className="hidden sm:flex w-[260px] shrink-0 flex-col bg-[var(--th-card)]">
+      <aside className="hidden sm:flex w-[260px] shrink-0 flex-col bg-[var(--th-page)] border-r border-[var(--th-border)]">
         {/* Logo */}
-        <div className="px-4 py-4 shrink-0">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-[var(--th-accent)] flex items-center justify-center shrink-0">
-              <Box strokeWidth={1.8} className="w-4 h-4 text-white" />
-            </div>
-            <div>
-              <p className="text-[13px] font-bold text-[var(--th-txt-1)] leading-none">Simple&amp;Eco</p>
-              <p className="text-[11px] text-[var(--th-txt-4)] leading-none mt-0.5">Painel Admin</p>
-            </div>
+        <div className="px-4 py-4 shrink-0 flex justify-center">
+          <div className="flex items-end gap-2">
+            <span className="text-[var(--th-txt-2)] font-surgena leading-none font-bold" style={{ fontSize: '25px' }}>{COMPANY_NAME}</span>
+            <span className="inline-flex rounded-[5px] bg-gradient-to-r from-[#FF8C00] to-[#D81B60] p-[1px] mb-[5px]">
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded-[4px] text-[9px] font-medium uppercase tracking-widest bg-[var(--th-card)]">
+                <span className="bg-gradient-to-r from-[#FF8C00] to-[#D81B60] bg-clip-text text-transparent">Administrador</span>
+              </span>
+            </span>
           </div>
         </div>
 
@@ -1317,12 +1400,12 @@ export default function AdminPanel() {
         </nav>
 
         {/* Footer */}
-        <div className="px-3 py-3 shrink-0 space-y-0.5">
-          <button onClick={toggleTheme} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[var(--th-txt-3)] hover:bg-[var(--th-hover)] hover:text-[var(--th-txt-1)] transition-all">
+        <div className="px-3 py-3 shrink-0 space-y-0.5 border-t border-[var(--th-border)]">
+          <button onClick={toggleTheme} className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium text-[var(--th-txt-4)] hover:bg-[rgba(255,255,255,0.05)] hover:text-[var(--th-txt-2)] transition-all">
             {isDark ? <Sun strokeWidth={1.5} className="w-4 h-4 shrink-0" /> : <Moon strokeWidth={1.5} className="w-4 h-4 shrink-0" />}
             <span>{isDark ? 'Modo Claro' : 'Modo Escuro'}</span>
           </button>
-          <button onClick={() => { void handleLogout() }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[var(--th-txt-3)] hover:bg-red-500/10 hover:text-red-400 transition-all">
+          <button onClick={() => { void handleLogout() }} className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium text-[var(--th-txt-4)] hover:bg-red-500/10 hover:text-red-400 transition-all">
             <LogOut strokeWidth={1.5} className="w-4 h-4 shrink-0" />
             <span>Sair</span>
           </button>
@@ -1330,9 +1413,8 @@ export default function AdminPanel() {
 
         {/* Version badge */}
         <div className="px-3 pb-4 shrink-0 flex justify-center">
-          <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#2a2a2a] text-[#888] text-[11px] leading-none">
-            <span>version.</span>
-            <span className="font-mono">{__COMMIT__}</span>
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md border border-[var(--th-border)] text-[var(--th-txt-4)] text-[10px] leading-none font-mono">
+            v{__COMMIT__}
           </div>
         </div>
       </aside>
@@ -1344,41 +1426,27 @@ export default function AdminPanel() {
         {selectedModule === 'orders' && (
           <>
             {/* List panel */}
-            <div className={`shrink-0 border-r border-[var(--th-border)] flex-col bg-[var(--th-card)] w-full sm:w-[380px] ${(selectedPedidoDetail || selectedRemessaDetail) ? 'hidden sm:flex' : 'flex'}`}>
+            <div className={`shrink-0 border-r border-[var(--th-border)] flex-col bg-[var(--th-page)] w-full sm:w-[380px] ${(selectedPedidoDetail || selectedRemessaDetail) ? 'hidden sm:flex' : 'flex'}`}>
               <div className="px-4 py-4 border-b border-[var(--th-border)] shrink-0">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
-                    <div className="relative">
-                      <button
-                        type="button"
-                        onClick={() => setOrdersSubTabOpen(o => !o)}
-                        className={`flex items-center gap-1.5 pl-2.5 pr-2 py-1 rounded-lg border text-sm font-semibold transition-colors ${
-                          ordersSubTabOpen
-                            ? 'border-orange-500/50 bg-[var(--th-card)] ring-2 ring-orange-500/20 text-[var(--th-txt-1)]'
-                            : 'border-[var(--th-border)] bg-[var(--th-card)] text-[var(--th-txt-1)] hover:border-orange-500/30'
-                        }`}
-                      >
-                        {ordersSubTab === 'pedidos' ? 'Pedidos' : 'Remessas'}
-                        <ChevronDown strokeWidth={2} className={`w-3 h-3 text-[var(--th-txt-4)] transition-transform ${ordersSubTabOpen ? 'rotate-180' : ''}`} />
-                      </button>
-                      {ordersSubTabOpen && (
-                        <div className="absolute z-50 top-full mt-1 left-0 min-w-[120px] rounded-lg border border-[var(--th-border)] bg-[var(--th-card)] shadow-lg overflow-hidden">
-                          {(['pedidos', 'remessas'] as const).map(tab => (
-                            <button
-                              key={tab}
-                              type="button"
-                              onClick={() => { setOrdersSubTab(tab); setOrdersSubTabOpen(false) }}
-                              className={`w-full text-left px-3 py-2 text-sm transition-colors hover:bg-[var(--th-hover)] ${
-                                ordersSubTab === tab ? 'text-orange-400 bg-orange-500/8 font-semibold' : 'text-[var(--th-txt-1)]'
-                              }`}
-                            >
-                              {tab === 'pedidos' ? 'Pedidos' : 'Remessas'}
-                            </button>
-                          ))}
-                        </div>
-                      )}
+                    <div className="flex items-center rounded-lg border border-[var(--th-border)] overflow-hidden">
+                      {(['pedidos', 'remessas'] as const).map(tab => (
+                        <button
+                          key={tab}
+                          type="button"
+                          onClick={() => setOrdersSubTab(tab)}
+                          className={`px-3 py-1 text-[13px] font-medium transition-colors ${
+                            ordersSubTab === tab
+                              ? 'bg-[rgba(255,255,255,0.08)] text-[var(--th-txt-1)]'
+                              : 'text-[var(--th-txt-4)] hover:text-[var(--th-txt-2)]'
+                          }`}
+                        >
+                          {tab === 'pedidos' ? 'Pedidos' : 'Remessas'}
+                        </button>
+                      ))}
                     </div>
-                    <span className="text-xs bg-[var(--th-subtle)] px-2 py-0.5 rounded-full text-[var(--th-txt-4)]">
+                    <span className="text-[11px] font-medium bg-[var(--th-card)] w-6 h-6 flex items-center justify-center rounded-full text-white shrink-0">
                       {ordersSubTab === 'pedidos' ? filteredOrders.length : remessaTree.length}
                     </span>
                   </div>
@@ -1393,20 +1461,21 @@ export default function AdminPanel() {
                     </button>
                   </div>
                 </div>
+                <div className="flex flex-col w-fit gap-0">
                 <div className="relative">
                   <Search strokeWidth={1.5} className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--th-txt-4)]" />
                   <input
                     value={ordersSubTab === 'pedidos' ? ordersQuery : remessasQuery}
                     onChange={e => ordersSubTab === 'pedidos' ? setOrdersQuery(e.target.value) : setRemessasQuery(e.target.value)}
                     placeholder={ordersSubTab === 'pedidos' ? 'Buscar pedido...' : 'Buscar remessa...'}
-                    className="w-full rounded-lg border border-[var(--th-border)] bg-transparent pl-8 pr-3 py-1.5 text-xs text-[var(--th-txt-1)] placeholder:text-[var(--th-txt-4)] focus:outline-none focus:ring-2 focus:ring-orange-500/40"
+                    className="w-full rounded-lg border border-[var(--th-border)] bg-[var(--th-page)] pl-8 pr-3 py-1.5 text-xs text-[var(--th-txt-2)] placeholder:text-[var(--th-txt-4)] focus:outline-none focus:ring-1 focus:ring-white/10"
                   />
                 </div>
                 {ordersSubTab === 'pedidos' && (
                   <div className="flex gap-1 flex-wrap mt-2">
                     {([
                       { key: 'todos',      label: 'Todos' },
-                      { key: 'em_producao',label: 'Em produção' },
+                      { key: 'em_producao',label: 'Produção' },
                       { key: 'atrasado',   label: 'Atrasado' },
                       { key: 'finalizado', label: 'Finalizado' },
                       { key: 'cancelado',  label: 'Cancelado' },
@@ -1414,14 +1483,10 @@ export default function AdminPanel() {
                       const active = pedidoStatusFilter === key
                       return (
                         <button key={key} type="button" onClick={() => setPedidoStatusFilter(key)}
-                          className={`text-[11px] px-2.5 py-1 rounded-full border font-medium transition-all ${
+                          className={`text-[11px] px-2.5 py-1 rounded-md font-medium transition-all ${
                             active
-                              ? key === 'atrasado'
-                                ? 'bg-red-500/15 text-red-400 border-red-500/30'
-                                : key === 'finalizado'
-                                  ? 'bg-green-500/15 text-green-400 border-green-500/30'
-                                  : 'bg-orange-500/15 text-orange-400 border-orange-500/30'
-                              : 'bg-[var(--th-subtle)] text-[var(--th-txt-4)] border-[var(--th-border)] hover:text-[var(--th-txt-1)]'
+                              ? 'bg-[var(--th-card)] text-[var(--th-txt-1)]'
+                              : 'text-[var(--th-txt-4)] hover:text-[var(--th-txt-2)]'
                           }`}>
                           {label}
                         </button>
@@ -1429,6 +1494,7 @@ export default function AdminPanel() {
                     })}
                   </div>
                 )}
+                </div>
               </div>
 
               <div className="flex-1 overflow-y-auto p-2 space-y-1">
@@ -1486,18 +1552,18 @@ export default function AdminPanel() {
                         type="button"
                         onClick={() => { setSelectedPedidoDetail(pNode); setTalaoSearch(''); setTalaoStatusFilter('todos') }}
                         className={isSelected
-                          ? `w-full text-left rounded-xl border px-4 py-3 transition-all ${cancelado ? 'border-[var(--th-border)] bg-[var(--th-subtle)]' : atrasado ? 'border-red-500/40 bg-red-500/8' : 'border-orange-500/40 bg-orange-500/8'}`
-                          : `w-full text-left rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] px-4 py-3 transition-all ${cancelado ? 'opacity-60 hover:opacity-80' : atrasado ? 'hover:border-red-500/30 hover:bg-red-500/5' : 'hover:border-orange-500/30 hover:bg-orange-500/5'}`}
+                          ? `w-full text-left rounded-2xl border px-4 py-3 transition-all border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.05)]`
+                          : `w-full text-left rounded-2xl border border-[var(--th-border)] bg-[var(--th-card)] px-4 py-3 transition-all hover:border-[rgba(255,255,255,0.08)] hover:bg-[rgba(255,255,255,0.03)] ${cancelado ? 'opacity-60 hover:opacity-80' : ''}`}
                       >
                         {/* Status badge no topo */}
                         <div className="flex items-center gap-1.5 mb-2">
                           {cancelado
-                            ? <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border bg-[var(--th-subtle)] text-[var(--th-txt-4)] border-[var(--th-border)]">Cancelado</span>
+                            ? <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-[11px] font-medium border bg-[var(--th-subtle)] text-[var(--th-txt-4)] border-[var(--th-border)]">Cancelado</span>
                             : pedidoFinalizado
-                              ? <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border bg-green-500/15 text-green-400 border-green-500/20">Finalizado</span>
+                              ? <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-[11px] font-medium border bg-green-500/15 text-green-400 border-green-500/20">Finalizado</span>
                               : <>
-                                  {atrasado && <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border bg-red-500/15 text-red-400 border-red-500/20">Atrasado</span>}
-                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border bg-orange-500/15 text-orange-400 border-orange-500/20">Em produção</span>
+                                  {atrasado && <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-[11px] font-medium border bg-red-500/15 text-red-400 border-red-500/20">Atrasado</span>}
+                                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-[11px] font-medium border bg-orange-500/15 text-orange-400 border-orange-500/20">Produção</span>
                                 </>
                           }
                         </div>
@@ -1505,7 +1571,7 @@ export default function AdminPanel() {
                         <div className="flex items-end gap-4 flex-wrap mb-2">
                           <div className="flex flex-col">
                             <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Pedido</span>
-                            <span className="text-sm font-mono font-bold text-[var(--th-txt-1)]">{pc}</span>
+                            <span className="text-sm font-mono font-bold text-[var(--th-txt-2)]">{pc}</span>
                           </div>
                           {asText(pNode.pedido.PREVISAO) && (
                             <div className="flex flex-col">
@@ -1526,12 +1592,12 @@ export default function AdminPanel() {
                           {saldo > 0 && (
                             <div className="flex flex-col">
                               <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Saldo</span>
-                              <span className="text-sm font-mono text-[var(--th-txt-2)]">{fmtNumber(saldo)}</span>
+                              <span className="text-sm font-mono text-amber-400 font-semibold">{fmtNumber(saldo)}</span>
                             </div>
                           )}
                         </div>
                         {/* Nome do cliente */}
-                        <p className="text-[13px] font-medium text-[var(--th-txt-1)] truncate">{cliNome}</p>
+                        <p className="text-[13px] font-semibold text-[var(--th-txt-2)] truncate">{cliNome}</p>
                       </button>
                     )
                   }
@@ -1584,7 +1650,7 @@ export default function AdminPanel() {
                       key={rNode.remessa}
                       type="button"
                       onClick={() => setSelectedRemessaDetail(rNode)}
-                      className={isSelected ? 'w-full text-left rounded-xl border border-orange-500/40 bg-orange-500/8 px-4 py-3 transition-all' : 'w-full text-left rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] px-4 py-3 transition-all hover:border-orange-500/30 hover:bg-orange-500/5'}
+                      className={isSelected ? 'w-full text-left rounded-2xl border border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.05)] px-4 py-3 transition-all' : 'w-full text-left rounded-2xl border border-[var(--th-border)] bg-[var(--th-card)] px-4 py-3 transition-all hover:border-[rgba(255,255,255,0.08)] hover:bg-[rgba(255,255,255,0.03)]'}
                     >
                       <div className="flex items-start gap-2.5">
                         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center shrink-0 mt-0.5">
@@ -1592,7 +1658,7 @@ export default function AdminPanel() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between gap-2 mb-0.5">
-                            <span className="text-[13px] font-mono font-medium text-[var(--th-txt-1)] truncate">{rNode.remessa}</span>
+                            <span className="text-[13px] font-mono font-medium text-[var(--th-txt-2)] truncate">{rNode.remessa}</span>
                             <span className="text-[11px] text-[var(--th-txt-4)] shrink-0">{fmtNumber(rNode.totalQtde)} un</span>
                           </div>
                           <div className="flex items-center gap-1.5 mb-0.5">
@@ -1655,22 +1721,34 @@ export default function AdminPanel() {
                   return [...agg.entries()].map(([slot, qty]) => ({ slot, qty })).sort((a, b) => a.slot - b.slot)
                 })()
 
-                // Fluxo de produção vinculado a este pedido
-                const fluxoVinculado = pedidoFluxoMap.get(pc)
-                const fluxoEtapas = fluxoVinculado
-                  ? prodItems.length > 0
-                    ? (() => {
-                        // Busca etapas do item em memória (já carregadas se o módulo sectors foi visitado)
-                        // senão fica vazio até o usuário visitar sectors
-                        return prodEtapas.filter(e => e.item_id === fluxoVinculado.item_id).sort((a, b) => a.ordem - b.ordem)
-                      })()
-                    : []
-                  : []
-
                 // Todos os movimentos de talsetor deste pedido
                 const allMovs = pNode.taloes.flatMap(tNode =>
                   talsetorByTalao.get(asText(tNode.talao.CODIGO).trim()) ?? []
                 )
+
+                // Fluxo de produção vinculado a este pedido (ou auto-detectado)
+                const fluxoVinculado = pedidoFluxoMap.get(pc)
+                const fluxoEtapas = (() => {
+                  if (fluxoVinculado) {
+                    return prodEtapas.filter(e => e.item_id === fluxoVinculado.item_id).sort((a, b) => a.ordem - b.ordem)
+                  }
+                  // Auto-detecção: prodItem cujas etapas mais batem com os setores visitados
+                  if (prodItems.length === 0 || allMovs.length === 0) return []
+                  let bestItemId = -1
+                  let bestScore = 0
+                  for (const item of prodItems) {
+                    const etapas = prodEtapas.filter(e => e.item_id === item.id)
+                    const score = etapas.filter(e => {
+                      const n = e.nome.toLowerCase()
+                      return allMovs.some(mv =>
+                        asText(mv.NOMESET).toLowerCase().includes(n) || asText(mv.SETOR).toLowerCase().includes(n)
+                      )
+                    }).length
+                    if (score > bestScore) { bestScore = score; bestItemId = item.id }
+                  }
+                  if (bestScore === 0) return []
+                  return prodEtapas.filter(e => e.item_id === bestItemId).sort((a, b) => a.ordem - b.ordem)
+                })()
                 const passouExpedicaoPedido = allMovs.some(mv =>
                   /expedi/i.test(asText(mv.NOMESET) + asText(mv.SETOR))
                 )
@@ -1716,29 +1794,45 @@ export default function AdminPanel() {
                       <ChevronLeft className="w-4 h-4" />Voltar
                     </button>
                     {/* ── Card unificado: pedido + fluxo + grade ── */}
-                    <div className="rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] overflow-hidden">
+                    <div className="rounded-2xl border border-[var(--th-border)] bg-[var(--th-card)] overflow-hidden">
 
                       {/* Cabeçalho do pedido */}
                       <div className="px-4 pt-4 pb-3">
                         {/* Linha topo: info + X (desktop) */}
                         <div className="flex items-start gap-3">
                           <div className="min-w-0 flex-1">
+                            {/* Status badges */}
+                            <div className="flex items-center gap-1.5 flex-wrap mb-2">
+                              {todosCancelados
+                                ? <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-[11px] font-medium border bg-[var(--th-subtle)] text-[var(--th-txt-4)] border-[var(--th-border)]">Cancelado</span>
+                                : saldo === 0
+                                  ? <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-[11px] font-medium border bg-green-500/15 text-green-400 border-green-500/20">Finalizado</span>
+                                  : <>
+                                      {pedidoAtrasado && <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-[11px] font-medium border bg-red-500/15 text-red-400 border-red-500/20">Atrasado</span>}
+                                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-[11px] font-medium border bg-orange-500/15 text-orange-400 border-orange-500/20">Produção</span>
+                                    </>
+                              }
+                            </div>
                             {/* Nº Pedido + data */}
-                            <div className="flex items-center gap-4 mb-1 flex-wrap">
+                            <div className="flex items-center gap-4 mb-1.5 flex-wrap">
                               <div className="flex flex-col">
                                 <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Pedido</span>
-                                <span className="text-sm font-mono font-bold text-[var(--th-txt-1)]">{pc}</span>
+                                <span className="text-sm font-mono font-bold text-[var(--th-txt-2)]">{pc}</span>
                               </div>
-                              {asText(pNode.pedido.PREVISAO) && (
-                                <div className="flex flex-col">
-                                  <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Entrega</span>
-                                  <span className="text-sm font-mono text-[var(--th-txt-2)]">{fmtDate(pNode.pedido.PREVISAO)}</span>
-                                </div>
-                              )}
+                              <div className="flex flex-col">
+                                <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">{pNode.taloes.length === 1 ? 'Talão' : 'Talões'}</span>
+                                <span className="text-sm font-mono text-[var(--th-txt-2)]">{pNode.taloes.length}</span>
+                              </div>
                               {asText(pNode.pedido.DIGITACAO) && (
                                 <div className="flex flex-col">
                                   <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Criado</span>
                                   <span className="text-sm font-mono text-[var(--th-txt-2)]">{fmtDate(pNode.pedido.DIGITACAO)}</span>
+                                </div>
+                              )}
+                              {asText(pNode.pedido.PREVISAO) && (
+                                <div className="flex flex-col">
+                                  <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Entrega</span>
+                                  <span className="text-sm font-mono text-[var(--th-txt-2)]">{fmtDate(pNode.pedido.PREVISAO)}</span>
                                 </div>
                               )}
                               {asText(pNode.pedido.PEDCLIENTE) && (
@@ -1755,24 +1849,9 @@ export default function AdminPanel() {
                                     const cliRow = cliMap.get(asText(pNode.pedido.CLIENTE).trim())
                                     if (cliRow) { setSelectedCliente(cliRow); setSelectedModule('clients') }
                                   }}
-                                  className="text-sm font-bold text-[var(--th-txt-1)] hover:text-orange-400 hover:underline transition-colors text-left leading-snug"
+                                  className="text-sm font-bold text-[var(--th-txt-2)] hover:text-[var(--th-txt-1)] hover:underline transition-colors text-left leading-snug"
                                 >{cliNome}</button>
                               </div>
-                            </div>
-                            {/* Talões + Status badges */}
-                            <div className="flex items-center gap-1.5 flex-wrap mb-1.5">
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[var(--th-subtle)] border border-[var(--th-border)] text-[11px] font-medium text-[var(--th-txt-4)]">
-                                {pNode.taloes.length} Talões
-                              </span>
-                              {todosCancelados
-                                ? <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border bg-[var(--th-subtle)] text-[var(--th-txt-4)] border-[var(--th-border)]">Cancelado</span>
-                                : saldo === 0
-                                  ? <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border bg-green-500/15 text-green-400 border-green-500/30">Finalizado</span>
-                                  : <>
-                                      {pedidoAtrasado && <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border bg-red-500/15 text-red-400 border-red-500/20">Atrasado</span>}
-                                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border bg-orange-500/15 text-orange-400 border-orange-500/30">Em produção</span>
-                                    </>
-                              }
                             </div>
                             {/* Produtos */}
                             {produtosDistintos.length > 0 && (
@@ -1794,6 +1873,32 @@ export default function AdminPanel() {
 
                       </div>
 
+                      {/* Grade do Pedido */}
+                      {gradeAgregada.length > 0 && (
+                        <div className="border-t border-[var(--th-border)]">
+                          <div className="px-4 py-2 flex items-center justify-between">
+                            <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Grade do Pedido</p>
+                            <p className="text-[11px] text-[var(--th-txt-4)]">
+                              Total: <span className="font-mono font-bold text-[var(--th-txt-2)]">{gradeAgregada.reduce((s, x) => s + x.qty, 0).toLocaleString('pt-BR')}</span> pares
+                            </p>
+                          </div>
+                          <div className="px-4 py-3 flex flex-wrap gap-1.5">
+                            {gradeAgregada.map(({ slot, qty }) => (
+                              <div key={slot} className="flex flex-col items-center rounded-lg border border-[var(--th-border)] bg-[var(--th-subtle)] overflow-hidden" style={{ minWidth: 38 }}>
+                                <span className="px-1.5 py-1 text-[12px] font-medium text-[var(--th-txt-2)] text-center w-full leading-none">{slot}</span>
+                                <div className="w-full border-t border-[var(--th-border)]" />
+                                <span className="px-1.5 py-1 text-[12px] font-medium text-[var(--th-txt-2)] text-center w-full leading-none">{qty}</span>
+                              </div>
+                            ))}
+                            <div className="flex flex-col items-center rounded-lg border border-[rgba(255,255,255,0.15)] bg-[rgba(255,255,255,0.06)] overflow-hidden" style={{ minWidth: 48 }}>
+                              <span className="px-1.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-[var(--th-txt-4)] text-center w-full leading-none">Total</span>
+                              <div className="w-full border-t border-[rgba(255,255,255,0.10)]" />
+                              <span className="px-1.5 py-1 text-[11px] font-bold font-mono text-amber-400 text-center w-full leading-none">{gradeAgregada.reduce((s, x) => s + x.qty, 0)}</span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
                       {/* Fluxo de Produção */}
                       <div className="border-t border-[var(--th-border)]">
                         {(() => {
@@ -1809,7 +1914,7 @@ export default function AdminPanel() {
                             return ''
                           })()
                           return (
-                            <div className="px-4 py-2 bg-[var(--th-subtle)] flex items-center justify-between gap-4 flex-wrap">
+                            <div className="px-4 py-2 flex items-center justify-between gap-4 flex-wrap">
                               <div className="flex items-center gap-2 flex-wrap">
                                 <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)] shrink-0">Fluxo de Produção</p>
                                 {!passouExpedicaoPedido && (
@@ -1818,10 +1923,10 @@ export default function AdminPanel() {
                                       <button
                                         type="button"
                                         onClick={() => setFluxoDropdownOpen(o => !o)}
-                                        className={`flex items-center justify-between gap-2 pl-3 pr-2 py-1 rounded-lg border text-xs transition-colors w-36 ${
+                                        className={`flex items-center justify-between gap-2 pl-3 pr-2 h-8 rounded-lg border text-xs transition-colors w-44 ${
                                           fluxoDropdownOpen
-                                            ? 'border-orange-500/50 bg-[var(--th-card)] ring-2 ring-orange-500/20 text-[var(--th-txt-1)]'
-                                            : 'border-[var(--th-border)] bg-[var(--th-card)] text-[var(--th-txt-4)] hover:border-orange-500/30 hover:text-[var(--th-txt-1)]'
+                                            ? 'border-[rgba(255,255,255,0.15)] bg-[rgba(255,255,255,0.06)] ring-1 ring-white/10 text-[var(--th-txt-1)]'
+                                            : 'border-[var(--th-border)] bg-[var(--th-card)] text-[var(--th-txt-4)] hover:border-[rgba(255,255,255,0.10)] hover:text-[var(--th-txt-1)]'
                                         }`}
                                       >
                                         <span className="truncate">{displayNome ?? 'Selecionar…'}</span>
@@ -1835,7 +1940,7 @@ export default function AdminPanel() {
                                               type="button"
                                               onClick={() => { setPedidoFluxoSelect(item.id); setFluxoDropdownOpen(false) }}
                                               className={`w-full text-left px-3 py-2 text-xs transition-colors hover:bg-[var(--th-hover)] ${
-                                                effectiveId === item.id ? 'text-orange-400 bg-orange-500/8 font-semibold' : 'text-[var(--th-txt-1)]'
+                                                effectiveId === item.id ? 'text-[var(--th-txt-1)] bg-[rgba(255,255,255,0.08)] font-semibold' : 'text-[var(--th-txt-2)]'
                                               }`}
                                             >
                                               {item.nome}
@@ -1844,11 +1949,21 @@ export default function AdminPanel() {
                                         </div>
                                       )}
                                     </div>
+                                    {fluxoVinculado && !passouExpedicaoPedido && (
+                                      <button
+                                        type="button"
+                                        onClick={() => void removePedidoFluxo(pc)}
+                                        className="w-7 h-7 rounded-lg bg-[var(--th-card)] text-[var(--th-txt-4)] hover:bg-red-500/15 hover:text-red-400 transition-colors shrink-0 inline-flex items-center justify-center"
+                                        title="Remover fluxo"
+                                      >
+                                        <X strokeWidth={2} className="w-3.5 h-3.5" />
+                                      </button>
+                                    )}
                                     <button
                                       type="button"
                                       disabled={effectiveId === '' || pedidoFluxoSaving}
                                       onClick={() => { if (effectiveId !== '') void savePedidoFluxo(pc, effectiveId as number) }}
-                                      className="px-3 py-1 rounded-lg bg-orange-500 text-white text-xs font-medium disabled:opacity-40 hover:bg-orange-600 transition-colors shrink-0"
+                                      className="px-3 py-0 h-7 rounded-lg bg-[var(--th-card)] text-[var(--th-txt-1)] text-xs font-medium disabled:opacity-40 hover:bg-[var(--th-hover)] transition-colors shrink-0 inline-flex items-center justify-center"
                                     >
                                       {pedidoFluxoSaving ? '…' : fluxoVinculado ? 'Alterar' : 'Atribuir'}
                                     </button>
@@ -1863,10 +1978,10 @@ export default function AdminPanel() {
                                   <div className="flex items-center gap-1.5">
                                     <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Palmilha</span>
                                     <span className="text-[11px] font-mono text-[var(--th-txt-2)]">{palmilha}</span>
-                                    <button type="button" className="text-[11px] text-[var(--th-txt-4)] hover:text-orange-400 transition-colors">Alterar</button>
+                                    <button type="button" className="text-[11px] text-[var(--th-txt-4)] hover:text-[var(--th-txt-2)] transition-colors">Alterar</button>
                                   </div>
                                 )}
-                                {fluxoVinculado && !passouExpedicaoPedido && (
+                                {false && fluxoVinculado && !passouExpedicaoPedido && (
                                   <button type="button" onClick={() => void removePedidoFluxo(pc)}
                                     className="text-[11px] text-[var(--th-txt-4)] hover:text-red-400 transition-colors">
                                     Remover
@@ -1877,55 +1992,68 @@ export default function AdminPanel() {
                           )
                         })()}
 
-                        {fluxoVinculado && fluxoEtapas.length > 0 && (
-                          <div className="px-4 py-3 flex flex-wrap gap-1.5 items-center">
-                            {fluxoEtapas.map((etapa, idx) => {
-                              const pedidoFinalizado2 = saldo === 0 && toNumber(pNode.pedido.TOTAL) > 0
-                              const done = pedidoFinalizado2 || passouExpedicaoPedido || etapaConcluida(etapa.nome)
-                              const isLast = idx === fluxoEtapas.length - 1
-                              return (
-                                <React.Fragment key={etapa.id}>
-                                  <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium border transition-all ${
-                                    done
-                                      ? 'bg-green-500/10 border-green-500/25 text-green-400'
-                                      : 'bg-[var(--th-subtle)] border-[var(--th-border)] text-[var(--th-txt-4)]'
-                                  }`}>
-                                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${done ? 'bg-green-400' : 'bg-[var(--th-border)]'}`} />
-                                    {etapa.nome}
-                                  </span>
-                                  {!isLast && <span className="text-[var(--th-txt-4)] text-[11px]">›</span>}
-                                </React.Fragment>
-                              )
-                            })}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Grade do Pedido */}
-                      {gradeAgregada.length > 0 && (
-                        <div className="border-t border-[var(--th-border)]">
-                          <div className="px-4 py-2 bg-[var(--th-subtle)] flex items-center justify-between">
-                            <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Grade do Pedido</p>
-                            <p className="text-[11px] text-[var(--th-txt-4)]">
-                              Total: <span className="font-mono font-bold text-orange-400">{gradeAgregada.reduce((s, x) => s + x.qty, 0).toLocaleString('pt-BR')}</span> pares
-                            </p>
-                          </div>
-                          <div className="px-4 py-3 flex flex-wrap gap-1.5">
-                            {gradeAgregada.map(({ slot, qty }) => (
-                              <div key={slot} className="flex flex-col items-center rounded-lg border border-[var(--th-border)] bg-[var(--th-subtle)] overflow-hidden" style={{ minWidth: 44 }}>
-                                <span className="px-2 py-1.5 text-[11px] font-bold font-mono text-[var(--th-txt-2)] text-center w-full leading-none">{slot}</span>
-                                <div className="w-full border-t border-[var(--th-border)]" />
-                                <span className="px-2 py-1.5 text-sm font-bold font-mono text-orange-400 text-center w-full leading-none">{qty}</span>
+                        {(() => {
+                          // Setores visitados: únicos, ordenados pela primeira ocorrência no talsetor
+                          const visitedSectors = (() => {
+                            const seen = new Map<string, string>() // SETOR -> NOMESET
+                            for (const tNode of pNode.taloes) {
+                              const tc = asText(tNode.talao.CODIGO).trim()
+                              for (const mv of (talsetorByTalao.get(tc) ?? [])) {
+                                const setor = asText(mv.SETOR).trim()
+                                const nome = asText(mv.NOMESET).trim() || setor
+                                if (setor && !seen.has(setor)) seen.set(setor, nome)
+                              }
+                            }
+                            return [...seen.entries()].map(([setor, nome]) => ({ setor, nome }))
+                          })()
+                          if (fluxoEtapas.length === 0 && visitedSectors.length === 0) return null
+                          const total = fluxoEtapas.length > 0 ? fluxoEtapas.length : visitedSectors.length
+                          const done = visitedSectors.length
+                          const pct = total > 0 ? Math.min(100, Math.round((done / total) * 100)) : 0
+                          return (
+                            <div className="px-4 pt-2 pb-3 flex flex-col gap-2">
+                              <div className="flex items-center justify-between">
+                                <span className="text-[11px] font-medium uppercase tracking-widest text-[var(--th-txt-4)]">Progresso</span>
+                                <span className="text-[10px] font-semibold text-[var(--th-txt-4)]">{done}/{total} setores</span>
                               </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
+                              <div className="h-1 w-full rounded-full bg-[var(--th-border)] overflow-hidden">
+                                <div className="h-full rounded-full bg-green-400 transition-all duration-500" style={{width: `${pct}%`}} />
+                              </div>
+                              <div className="flex flex-wrap gap-1.5">
+                                {fluxoEtapas.length > 0
+                                  ? (() => {
+                                      const lastDone = fluxoEtapas.reduce((acc, etapa, idx) => etapaConcluida(etapa.nome) ? idx : acc, -1)
+                                      return fluxoEtapas.map((etapa, idx) => {
+                                        const concluida = idx <= lastDone
+                                        return (
+                                          <span key={etapa.id} className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-medium border transition-colors ${
+                                            concluida
+                                              ? 'bg-green-500/15 text-green-400 border-green-500/20'
+                                              : 'bg-[var(--th-subtle)] text-[var(--th-txt-4)] border-[var(--th-border)]'
+                                          }`}>
+                                            {concluida && <span className="text-[10px] font-bold">✓</span>}
+                                            {etapa.nome}
+                                          </span>
+                                        )
+                                      })
+                                    })()
+                                  : visitedSectors.map(({ setor, nome }) => (
+                                      <span key={setor} className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-medium border bg-green-500/15 text-green-400 border-green-500/20">
+                                        <span className="text-[10px] font-bold">✓</span>
+                                        {nome}
+                                      </span>
+                                    ))
+                                }
+                              </div>
+                            </div>
+                          )
+                        })()}
+                      </div>
                     </div>
 
                     {/* Talões — search + filter */}
                     {pNode.taloes.length > 0 && (
-                      <div className="flex flex-col gap-2 mt-8 sm:mt-20">
+                      <div className="grid gap-2 mt-8 sm:mt-20" style={{gridTemplateColumns: 'max-content'}}>
                         <div className="relative">
                           <Search strokeWidth={1.5} className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--th-txt-4)] pointer-events-none" />
                           <input
@@ -1933,7 +2061,7 @@ export default function AdminPanel() {
                             placeholder="Buscar talão, referência ou produto…"
                             value={talaoSearch}
                             onChange={e => setTalaoSearch(e.target.value)}
-                            className="w-full rounded-lg border border-[var(--th-border)] bg-transparent pl-8 pr-3 py-1.5 text-xs text-[var(--th-txt-1)] placeholder:text-[var(--th-txt-4)] focus:outline-none focus:ring-2 focus:ring-orange-500/40"
+                            className="w-full rounded-lg border border-[var(--th-border)] bg-[var(--th-page)] pl-8 pr-3 py-1.5 text-xs text-[var(--th-txt-2)] placeholder:text-[var(--th-txt-4)] focus:outline-none focus:ring-1 focus:ring-white/10"
                           />
                           {talaoSearch && (
                             <button type="button" onClick={() => setTalaoSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--th-txt-4)] hover:text-[var(--th-txt-1)]">
@@ -1943,11 +2071,11 @@ export default function AdminPanel() {
                         </div>
                         <div className="flex gap-1.5 flex-wrap">
                           {(['todos', 'em_producao', 'finalizado', 'cancelado'] as const).map(f => {
-                            const labels = { todos: 'Todos', em_producao: 'Em produção', finalizado: 'Finalizado', cancelado: 'Cancelado' }
+                            const labels = { todos: 'Todos', em_producao: 'Produção', finalizado: 'Finalizado', cancelado: 'Cancelado' }
                             const active = talaoStatusFilter === f
                             return (
                               <button key={f} type="button" onClick={() => setTalaoStatusFilter(f)}
-                                className={`text-[11px] px-2.5 py-1 rounded-full border font-medium transition-all ${active ? 'bg-orange-500/15 text-orange-400 border-orange-500/30' : 'bg-[var(--th-subtle)] text-[var(--th-txt-4)] border-[var(--th-border)] hover:text-[var(--th-txt-1)]'}`}>
+                                className={`text-[11px] px-2.5 py-1 rounded-md font-medium transition-all ${active ? 'bg-[var(--th-card)] text-[var(--th-txt-1)]' : 'text-[var(--th-txt-4)] hover:text-[var(--th-txt-2)]'}`}>
                                 {labels[f]}
                               </button>
                             )
@@ -2000,7 +2128,7 @@ export default function AdminPanel() {
                         const statusBorder = canc ? 'border-red-500/25' : finalizado ? 'border-green-500/25' : 'border-[var(--th-border)]'
                         const statusBar = canc ? 'bg-red-500' : finalizado ? 'bg-green-500' : 'bg-[var(--th-accent)]'
                         return (
-                          <div key={tc} className={`rounded-xl border ${statusBorder} bg-[var(--th-card)] overflow-hidden`}>
+                          <div key={tc} className={`rounded-2xl border ${statusBorder} bg-[var(--th-card)] overflow-hidden`}>
                             {/* Header */}
                             <div className="flex items-stretch">
                               <div className={`w-1 shrink-0 ${statusBar} opacity-60`} />
@@ -2008,17 +2136,17 @@ export default function AdminPanel() {
                                 {/* Status no topo */}
                                 <div className="mb-2">
                                   {canc
-                                    ? <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border bg-red-500/15 text-red-400 border-red-500/30">Cancelado</span>
+                                    ? <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-[11px] font-medium border bg-[var(--th-subtle)] text-[var(--th-txt-4)] border-[var(--th-border)]">Cancelado</span>
                                     : finalizado
-                                      ? <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border bg-green-500/15 text-green-400 border-green-500/30">{fat ? 'Faturado' : 'Finalizado'}</span>
-                                      : <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border bg-orange-500/15 text-orange-400 border-orange-500/30">Em produção</span>
+                                      ? <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-[11px] font-medium border bg-green-500/15 text-green-400 border-green-500/20">{fat ? 'Faturado' : 'Finalizado'}</span>
+                                      : <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-[11px] font-medium border bg-orange-500/15 text-orange-400 border-orange-500/20">Produção</span>
                                   }
                                 </div>
                                 {/* Blocos de meta */}
                                 <div className="flex items-end gap-5 flex-wrap mb-2">
                                   <div className="flex flex-col">
                                     <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Talão</span>
-                                    <span className="text-sm font-mono font-bold text-[var(--th-txt-1)]">{tc}</span>
+                                    <span className="text-sm font-mono font-bold text-[var(--th-txt-2)]">{tc}</span>
                                   </div>
                                   <div className="flex flex-col">
                                     <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Item</span>
@@ -2046,11 +2174,11 @@ export default function AdminPanel() {
                                   )}
                                   <div className="flex flex-col ml-auto">
                                     <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Total</span>
-                                    <span className="text-lg font-bold font-mono text-orange-400 leading-none">{fmtNumber(tNode.talao.TOTAL)}</span>
+                                    <span className="text-lg font-bold font-mono text-[var(--th-txt-2)] leading-none">{fmtNumber(tNode.talao.TOTAL)}</span>
                                   </div>
                                 </div>
                                 {/* Nome do produto */}
-                                {fn && <p className="text-sm font-semibold text-[var(--th-txt-1)] mb-0">{fn}</p>}
+                                {fn && <p className="text-sm font-semibold text-[var(--th-txt-2)] mb-0">{fn}</p>}
                               </div>
                             </div>
                             {/* Fluxo de Produção — baseado em sequeset (rota por ficha) + talsetor/moviprod (scans) */}
@@ -2090,7 +2218,7 @@ export default function AdminPanel() {
                                           className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium border ${
                                             !needsScan ? 'opacity-40 bg-[var(--th-subtle)] border-[var(--th-border)] text-[var(--th-txt-4)]'
                                             : passed ? 'bg-green-500/10 border-green-500/25 text-green-400'
-                                            : isCurrent ? 'bg-orange-500/15 border-orange-500/30 text-orange-400 ring-1 ring-orange-500/20'
+                                            : isCurrent ? 'bg-[rgba(255,255,255,0.08)] border-[rgba(255,255,255,0.15)] text-[var(--th-txt-1)] ring-1 ring-white/10'
                                             : 'bg-[var(--th-subtle)] border-[var(--th-border)] text-[var(--th-txt-4)]'
                                           }`}>
                                           <span className="shrink-0 leading-none">{passed ? '✓' : isCurrent ? '●' : '○'}</span>
@@ -2128,11 +2256,16 @@ export default function AdminPanel() {
                                 <div className="flex flex-wrap gap-1.5">
                                   {grade.map(({ slot, qty }) => (
                                     <div key={slot} className="flex flex-col items-center rounded-lg border border-[var(--th-border)] bg-[var(--th-subtle)] overflow-hidden" style={{ minWidth: 38 }}>
-                                      <span className="px-1.5 py-1 text-[11px] font-bold font-mono text-[var(--th-txt-2)] text-center w-full leading-none">{slot}</span>
+                                      <span className="px-1.5 py-1 text-[12px] font-medium text-[var(--th-txt-2)] text-center w-full leading-none">{slot}</span>
                                       <div className="w-full border-t border-[var(--th-border)]" />
-                                      <span className="px-1.5 py-1 text-[11px] font-bold font-mono text-orange-400 text-center w-full leading-none">{qty}</span>
+                                      <span className="px-1.5 py-1 text-[12px] font-medium text-[var(--th-txt-2)] text-center w-full leading-none">{qty}</span>
                                     </div>
                                   ))}
+                                  <div className="flex flex-col items-center rounded-lg border border-[rgba(255,255,255,0.15)] bg-[rgba(255,255,255,0.06)] overflow-hidden" style={{ minWidth: 48 }}>
+                                    <span className="px-1.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-[var(--th-txt-4)] text-center w-full leading-none">Total</span>
+                                    <div className="w-full border-t border-[rgba(255,255,255,0.10)]" />
+                                    <span className="px-1.5 py-1 text-[11px] font-bold font-mono text-amber-400 text-center w-full leading-none">{grade.reduce((s, x) => s + x.qty, 0)}</span>
+                                  </div>
                                 </div>
                               </div>
                             )}
@@ -2160,7 +2293,7 @@ export default function AdminPanel() {
                                           <p className="text-[10px] text-[var(--th-txt-4)]">{asText(bom.NOMESET) || asText(bom.TIPO) || ''}</p>
                                         </div>
                                         {(bom.CONSUMO != null && bom.CONSUMO !== '') && (
-                                          <span className="text-[11px] font-mono text-orange-400 shrink-0">{fmtNumber(bom.CONSUMO)} <span className="text-[var(--th-txt-4)]">{asText(bom.UNI)}</span></span>
+                                          <span className="text-[11px] font-mono text-[var(--th-txt-3)] shrink-0">{fmtNumber(bom.CONSUMO)} <span className="text-[var(--th-txt-4)]">{asText(bom.UNI)}</span></span>
                                         )}
                                       </div>
                                     ))}
@@ -2181,10 +2314,10 @@ export default function AdminPanel() {
                                   <div className="divide-y divide-[var(--th-border)]">
                                     {movs.map((mv, i) => (
                                       <div key={i} className="flex items-center gap-3 px-4 py-2 hover:bg-[var(--th-hover)] transition-colors">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-orange-500/50 shrink-0" />
+                                        <div className="w-1.5 h-1.5 rounded-full bg-[rgba(255,255,255,0.2)] shrink-0" />
                                         <span className="text-[11px] font-mono text-[var(--th-txt-4)] shrink-0 w-[72px]">{fmtDate(mv.DATA)}</span>
                                         <span className="text-[11px] font-medium text-[var(--th-txt-2)] flex-1 truncate">{asText(mv.NOMESET) || asText(mv.SETOR) || '—'}</span>
-                                        <span className="text-[11px] font-mono text-orange-400 shrink-0">{fmtNumber(mv.QTDE)}</span>
+                                        <span className="text-[11px] font-mono text-[var(--th-txt-3)] shrink-0">{fmtNumber(mv.QTDE)}</span>
                                         {asText(mv.REMESSA) && (
                                           <span className="text-[11px] px-1.5 py-0.5 rounded bg-[var(--th-subtle)] text-[var(--th-txt-4)] border border-[var(--th-border)] shrink-0 font-mono">{asText(mv.REMESSA)}</span>
                                         )}
@@ -2225,7 +2358,7 @@ export default function AdminPanel() {
                         <Box strokeWidth={1.5} className="w-5 h-5 text-blue-400" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h2 className="text-lg font-bold font-mono text-[var(--th-txt-1)] mb-1">{rNode.remessa}</h2>
+                        <h2 className="text-lg font-bold font-mono text-[var(--th-txt-2)] mb-1">{rNode.remessa}</h2>
                         <div className="flex items-center gap-4 text-xs text-[var(--th-txt-4)] flex-wrap">
                           <span>{rNode.taloes.length} talões</span>
                           <span>Qtd total: {fmtNumber(rNode.totalQtde)}</span>
@@ -2239,7 +2372,7 @@ export default function AdminPanel() {
                     </div>
 
                     <div className="space-y-4">
-                      <div className="overflow-auto rounded-xl border border-[var(--th-border)]">
+                      <div className="overflow-auto rounded-2xl border border-[var(--th-border)]">
                         <table className="w-full text-xs min-w-[640px]">
                           <thead><tr className="border-b border-[var(--th-border)] bg-[var(--th-subtle)]">
                             <th className="px-3 py-2 text-left text-[11px] font-medium text-[var(--th-txt-4)] uppercase tracking-widest">Talão</th>
@@ -2264,9 +2397,9 @@ export default function AdminPanel() {
                                   <td className="px-3 py-2 text-[var(--th-txt-2)]">{fmtNumber(t.talao.TOTAL)}</td>
                                   <td className="px-3 py-2 text-[var(--th-txt-3)]">{t.latestSetor}</td>
                                   <td className="px-3 py-2">
-                                    {canc ? <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium border bg-red-500/15 text-red-400 border-red-500/30">Cancelado</span>
-                                      : fat ? <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium border bg-green-500/15 text-green-400 border-green-500/30">Faturado</span>
-                                        : <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium border bg-orange-500/15 text-orange-400 border-orange-500/30">Em produção</span>}
+                                    {canc ? <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-[11px] font-medium border bg-[var(--th-subtle)] text-[var(--th-txt-4)] border-[var(--th-border)]">Cancelado</span>
+                                      : fat ? <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-[11px] font-medium border bg-green-500/15 text-green-400 border-green-500/20">Faturado</span>
+                                        : <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-[11px] font-medium border bg-orange-500/15 text-orange-400 border-orange-500/20">Produção</span>}
                                   </td>
                                 </tr>
                               )
@@ -2276,7 +2409,7 @@ export default function AdminPanel() {
                       </div>
 
                       {rNode.taloes.some(t => t.movimentos.length > 0) && (
-                        <div className="rounded-xl border border-[var(--th-border)] overflow-hidden">
+                        <div className="rounded-2xl border border-[var(--th-border)] overflow-hidden">
                           <div className="px-3 py-2 bg-[var(--th-subtle)] border-b border-[var(--th-border)] text-[11px] font-medium text-[var(--th-txt-4)] uppercase tracking-widest">Histórico de Setores</div>
                           <div className="overflow-auto">
                             <table className="w-full text-xs min-w-[480px]">
@@ -2334,7 +2467,7 @@ export default function AdminPanel() {
                 <div className="px-4 py-4 border-b border-[var(--th-border)] shrink-0">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold text-[var(--th-txt-1)]">Logs</span>
+                      <span className="text-sm font-semibold text-[var(--th-txt-2)]">Logs</span>
                       <span className="text-xs bg-[var(--th-subtle)] px-2 py-0.5 rounded-full text-[var(--th-txt-4)]">{filteredLogs.length}</span>
                     </div>
                     <div className="flex items-center gap-1">
@@ -2357,7 +2490,7 @@ export default function AdminPanel() {
                       value={logsQuery}
                       onChange={e => setLogsQuery(e.target.value)}
                       placeholder="Buscar usuário, IP, OS..."
-                      className="w-full rounded-lg border border-[var(--th-border)] bg-transparent pl-8 pr-3 py-1.5 text-xs text-[var(--th-txt-1)] placeholder:text-[var(--th-txt-4)] focus:outline-none focus:ring-2 focus:ring-orange-500/40"
+                      className="w-full rounded-lg border border-[var(--th-border)] bg-[var(--th-page)] pl-8 pr-3 py-1.5 text-xs text-[var(--th-txt-2)] placeholder:text-[var(--th-txt-4)] focus:outline-none focus:ring-1 focus:ring-white/10"
                     />
                   </div>
                 </div>
@@ -2384,7 +2517,7 @@ export default function AdminPanel() {
                         key={log.id}
                         type="button"
                         onClick={() => setSelectedLog(log)}
-                        className={isSelected ? 'w-full text-left rounded-xl border border-orange-500/40 bg-orange-500/8 px-4 py-3 transition-all' : 'w-full text-left rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] px-4 py-3 transition-all hover:border-orange-500/30 hover:bg-orange-500/5'}
+                        className={isSelected ? 'w-full text-left rounded-2xl border border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.05)] px-4 py-3 transition-all' : 'w-full text-left rounded-2xl border border-[var(--th-border)] bg-[var(--th-card)] px-4 py-3 transition-all hover:border-[rgba(255,255,255,0.08)] hover:bg-[rgba(255,255,255,0.03)]'}
                       >
                         <div className="flex items-start gap-2.5">
                           <div className="w-7 h-7 rounded-lg bg-[var(--th-subtle)] border border-[var(--th-border)] flex items-center justify-center shrink-0 mt-0.5">
@@ -2394,7 +2527,7 @@ export default function AdminPanel() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between gap-2 mb-0.5">
-                              <span className="text-[13px] font-medium text-[var(--th-txt-1)] truncate">{log.username || '—'}</span>
+                              <span className="text-[13px] font-medium text-[var(--th-txt-2)] truncate">{log.username || '—'}</span>
                               <span className="text-[11px] text-[var(--th-txt-4)] shrink-0">{ts}</span>
                             </div>
                             <p className="text-[11px] font-mono text-[var(--th-txt-3)] truncate mb-0.5">{log.ip || '—'}</p>
@@ -2416,16 +2549,16 @@ export default function AdminPanel() {
                   <div className="flex flex-col h-full">
                     {/* Stats */}
                     <div className="pb-4 border-b border-[var(--th-border)]">
-                      <h2 className="text-base font-semibold text-[var(--th-txt-1)] mb-4">Resumo de Acessos</h2>
+                      <h2 className="text-base font-semibold text-[var(--th-txt-2)] mb-4">Resumo de Acessos</h2>
                       <div className="grid grid-cols-3 gap-3">
                         {[
                           { label: 'Total de Acessos', value: logs.length.toString() },
                           { label: 'Usuários Únicos', value: uniqueUsers.toString() },
                           { label: 'Último Acesso', value: lastAccess ?? '—' },
                         ].map(stat => (
-                          <div key={stat.label} className="rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] px-4 py-3">
+                          <div key={stat.label} className="rounded-2xl border border-[var(--th-border)] bg-[var(--th-card)] px-4 py-3">
                             <p className="text-[11px] font-medium text-[var(--th-txt-4)] uppercase tracking-widest mb-1">{stat.label}</p>
-                            <p className="text-lg font-bold text-[var(--th-txt-1)]">{stat.value}</p>
+                            <p className="text-lg font-bold text-[var(--th-txt-2)]">{stat.value}</p>
                           </div>
                         ))}
                       </div>
@@ -2434,7 +2567,7 @@ export default function AdminPanel() {
                     {/* Full table */}
                     <div className="flex-1 overflow-auto pt-4">
                       <p className="text-xs font-semibold uppercase tracking-widest text-[var(--th-txt-4)] mb-3">Todos os registros</p>
-                      <div className="rounded-xl border border-[var(--th-border)] overflow-hidden">
+                      <div className="rounded-2xl border border-[var(--th-border)] overflow-hidden">
                         <table className="w-full text-xs">
                           <thead>
                             <tr className="border-b border-[var(--th-border)] bg-[var(--th-subtle)]">
@@ -2458,7 +2591,7 @@ export default function AdminPanel() {
                               return (
                                 <tr key={log.id} onClick={() => setSelectedLog(log)} className="hover:bg-[var(--th-hover)] cursor-pointer">
                                   <td className="px-3 py-2.5 text-[var(--th-txt-3)] whitespace-nowrap">{ts}</td>
-                                  <td className="px-3 py-2.5 font-medium text-[var(--th-txt-1)]">{log.username || '—'}</td>
+                                  <td className="px-3 py-2.5 font-medium text-[var(--th-txt-2)]">{log.username || '—'}</td>
                                   <td className="px-3 py-2.5 font-mono text-[var(--th-txt-3)]">{log.ip || '—'}</td>
                                   <td className="px-3 py-2.5">
                                     <span className="inline-flex items-center gap-1 text-[var(--th-txt-3)]">
@@ -2494,7 +2627,7 @@ export default function AdminPanel() {
                       <div className="flex items-start justify-between gap-4 pb-4 border-b border-[var(--th-border)]">
                         <div className="min-w-0">
                           <div className="flex items-center gap-3 flex-wrap mb-1">
-                            <span className="inline-flex items-center gap-2 text-lg font-bold text-[var(--th-txt-1)]">
+                            <span className="inline-flex items-center gap-2 text-lg font-bold text-[var(--th-txt-2)]">
                               {isMobile
                                 ? <Smartphone strokeWidth={1.5} className="w-5 h-5 text-[var(--th-txt-3)]" />
                                 : <Monitor strokeWidth={1.5} className="w-5 h-5 text-[var(--th-txt-3)]" />}
@@ -2520,13 +2653,13 @@ export default function AdminPanel() {
                         ].map(({ label, value, mono }) => (
                           <div key={label} className="rounded-lg border border-[var(--th-border)] bg-[var(--th-card)] px-3 py-2.5">
                             <p className="text-[11px] font-medium text-[var(--th-txt-4)] uppercase tracking-widest mb-1">{label}</p>
-                            <p className={`text-sm text-[var(--th-txt-1)] ${mono ? 'font-mono' : ''}`}>{value}</p>
+                            <p className={`text-sm text-[var(--th-txt-2)] ${mono ? 'font-mono' : ''}`}>{value}</p>
                           </div>
                         ))}
                       </div>
 
                       {log.user_agent && (
-                        <div className="rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] p-4">
+                        <div className="rounded-2xl border border-[var(--th-border)] bg-[var(--th-card)] p-4">
                           <p className="text-xs font-semibold uppercase tracking-widest text-[var(--th-txt-4)] mb-3">User Agent</p>
                           <p className="text-xs font-mono text-[var(--th-txt-3)] break-all leading-relaxed">{log.user_agent}</p>
                         </div>
@@ -2549,7 +2682,7 @@ export default function AdminPanel() {
                   <Trash2 strokeWidth={1.5} className="w-5 h-5 text-red-400" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-[var(--th-txt-1)]">Limpar histórico</p>
+                  <p className="text-sm font-semibold text-[var(--th-txt-2)]">Limpar histórico</p>
                   <p className="text-xs text-[var(--th-txt-4)] mt-0.5">Esta ação não pode ser desfeita</p>
                 </div>
               </div>
@@ -2588,7 +2721,7 @@ export default function AdminPanel() {
                 <div className="px-4 py-4 border-b border-[var(--th-border)] shrink-0">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold text-[var(--th-txt-1)]">Itens</span>
+                      <span className="text-sm font-semibold text-[var(--th-txt-2)]">Itens</span>
                       <span className="text-xs bg-[var(--th-subtle)] px-2 py-0.5 rounded-full text-[var(--th-txt-4)]">{filtered.length}</span>
                     </div>
                     <div className="flex items-center gap-0.5">
@@ -2597,7 +2730,7 @@ export default function AdminPanel() {
                         <RefreshCw strokeWidth={1.5} className={`w-3.5 h-3.5 ${prodItemsLoading ? 'animate-spin' : ''}`} />
                       </button>
                       <button type="button" onClick={() => { setShowNewItemForm(v => !v); setNewItemName(''); setNewItemError(null) }}
-                        className={`p-1.5 rounded transition-colors ${showNewItemForm ? 'bg-orange-500/15 text-orange-400' : 'text-[var(--th-txt-4)] hover:bg-[var(--th-hover)]'}`}>
+                        className={`p-1.5 rounded transition-colors ${showNewItemForm ? 'bg-[rgba(255,255,255,0.08)] text-[var(--th-txt-1)]' : 'text-[var(--th-txt-4)] hover:bg-[var(--th-hover)]'}`}>
                         <Plus strokeWidth={1.5} className="w-3.5 h-3.5" />
                       </button>
                     </div>
@@ -2610,13 +2743,13 @@ export default function AdminPanel() {
                         onKeyDown={e => { if (e.key === 'Enter') void createProdItem() }}
                         placeholder="Nome do item *"
                         autoFocus
-                        className="w-full rounded-lg border border-[var(--th-border)] bg-transparent px-3 py-1.5 text-xs text-[var(--th-txt-1)] placeholder:text-[var(--th-txt-4)] focus:outline-none focus:ring-2 focus:ring-orange-500/40"
+                        className="w-full rounded-lg border border-[var(--th-border)] bg-[var(--th-page)] px-3 py-1.5 text-xs text-[var(--th-txt-2)] placeholder:text-[var(--th-txt-4)] focus:outline-none focus:ring-1 focus:ring-white/10"
                       />
                       {newItemError && <p className="text-[11px] text-red-400">{newItemError}</p>}
                       <div className="flex gap-2">
                         <button type="button" onClick={() => void createProdItem()}
                           disabled={newItemSaving || !newItemName.trim()}
-                          className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg bg-orange-500 text-white text-xs font-medium hover:bg-orange-600 disabled:opacity-40 transition-colors">
+                          className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg bg-white text-black text-xs font-medium hover:bg-white/90 disabled:opacity-40 transition-colors">
                           {newItemSaving ? <RefreshCw strokeWidth={2} className="w-3 h-3 animate-spin" /> : <Check strokeWidth={2} className="w-3 h-3" />}
                           Criar
                         </button>
@@ -2631,7 +2764,7 @@ export default function AdminPanel() {
                     <Search strokeWidth={1.5} className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--th-txt-4)]" />
                     <input value={prodItemsQuery} onChange={e => setProdItemsQuery(e.target.value)}
                       placeholder="Buscar item..."
-                      className="w-full rounded-lg border border-[var(--th-border)] bg-transparent pl-8 pr-3 py-1.5 text-xs text-[var(--th-txt-1)] placeholder:text-[var(--th-txt-4)] focus:outline-none focus:ring-2 focus:ring-orange-500/40" />
+                      className="w-full rounded-lg border border-[var(--th-border)] bg-[var(--th-page)] pl-8 pr-3 py-1.5 text-xs text-[var(--th-txt-2)] placeholder:text-[var(--th-txt-4)] focus:outline-none focus:ring-1 focus:ring-white/10" />
                   </div>
                 </div>
 
@@ -2656,12 +2789,12 @@ export default function AdminPanel() {
                           if (selectedProdItem?.id !== item.id) void fetchProdEtapas(item.id)
                         }}
                         className={isSelected
-                          ? 'w-full text-left rounded-xl border border-orange-500/40 bg-orange-500/8 px-4 py-3 transition-all'
-                          : 'w-full text-left rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] px-4 py-3 transition-all hover:border-orange-500/30 hover:bg-orange-500/5'}>
+                          ? 'w-full text-left rounded-2xl border border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.05)] px-4 py-3 transition-all'
+                          : 'w-full text-left rounded-2xl border border-[var(--th-border)] bg-[var(--th-card)] px-4 py-3 transition-all hover:border-[rgba(255,255,255,0.08)] hover:bg-[rgba(255,255,255,0.03)]'}>
                         <div className="flex items-center justify-between gap-2">
-                          <span className="text-[13px] font-medium text-[var(--th-txt-1)] truncate">{item.nome}</span>
+                          <span className="text-[13px] font-medium text-[var(--th-txt-2)] truncate">{item.nome}</span>
                           {etapaCount !== null && etapaCount > 0 && (
-                            <span className="text-[11px] text-orange-400 bg-orange-500/10 px-1.5 py-0.5 rounded-full shrink-0">{etapaCount} etapas</span>
+                            <span className="text-[11px] text-[var(--th-txt-4)] bg-[rgba(255,255,255,0.05)] px-1.5 py-0.5 rounded-full shrink-0">{etapaCount} etapas</span>
                           )}
                         </div>
                       </button>
@@ -2694,10 +2827,10 @@ export default function AdminPanel() {
                               onChange={e => setEditItemName(e.target.value)}
                               onKeyDown={e => { if (e.key === 'Enter') void saveItemName(); if (e.key === 'Escape') setEditItemMode(false) }}
                               autoFocus
-                              className="flex-1 rounded-lg border border-orange-500/40 bg-transparent px-3 py-1.5 text-lg font-bold text-[var(--th-txt-1)] focus:outline-none focus:ring-2 focus:ring-orange-500/40"
+                              className="flex-1 rounded-lg border border-[var(--th-border)] bg-[var(--th-page)] px-3 py-1.5 text-lg font-bold text-[var(--th-txt-2)] focus:outline-none focus:ring-1 focus:ring-white/10"
                             />
                             <button type="button" onClick={() => void saveItemName()}
-                              className="p-1.5 rounded-lg bg-orange-500 text-white hover:bg-orange-600 transition-colors">
+                              className="p-1.5 rounded-lg bg-white text-black hover:bg-white/90 transition-colors">
                               <Check strokeWidth={2} className="w-4 h-4" />
                             </button>
                             <button type="button" onClick={() => setEditItemMode(false)}
@@ -2707,7 +2840,7 @@ export default function AdminPanel() {
                           </div>
                         ) : (
                           <div className="flex items-center gap-2.5">
-                            <h2 className="text-xl font-bold text-[var(--th-txt-1)] leading-snug">{selectedProdItem.nome}</h2>
+                            <h2 className="text-xl font-bold text-[var(--th-txt-2)] leading-snug">{selectedProdItem.nome}</h2>
                             <button type="button"
                               onClick={() => { setEditItemMode(true); setEditItemName(selectedProdItem.nome) }}
                               className="p-1 rounded hover:bg-[var(--th-hover)] text-[var(--th-txt-4)] transition-colors">
@@ -2726,7 +2859,7 @@ export default function AdminPanel() {
                     </div>
 
                     {/* Etapas section */}
-                    <div className="rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] overflow-hidden">
+                    <div className="rounded-2xl border border-[var(--th-border)] bg-[var(--th-card)] overflow-hidden">
                       <div className="px-4 py-3 border-b border-[var(--th-border)] bg-[var(--th-subtle)] flex items-center justify-between">
                         <p className="text-xs font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Fluxo de Produção</p>
                         <span className="text-[11px] text-[var(--th-txt-4)]">{prodEtapas.length} etapas</span>
@@ -2746,8 +2879,8 @@ export default function AdminPanel() {
                         <div key={etapa.id}>
                           <div className="flex items-center gap-3 px-4 py-3 group hover:bg-[var(--th-hover)] transition-colors">
                             {/* Step number */}
-                            <div className="w-7 h-7 rounded-full border border-orange-500/30 bg-orange-500/10 flex items-center justify-center shrink-0">
-                              <span className="text-[11px] font-bold text-orange-400">{String(idx + 1).padStart(2, '0')}</span>
+                            <div className="w-7 h-7 rounded-full border border-[var(--th-border)] bg-[rgba(255,255,255,0.05)] flex items-center justify-center shrink-0">
+                              <span className="text-[11px] font-bold text-[var(--th-txt-2)]">{String(idx + 1).padStart(2, '0')}</span>
                             </div>
                             {/* Name / edit */}
                             <div className="flex-1 min-w-0">
@@ -2758,10 +2891,10 @@ export default function AdminPanel() {
                                     onChange={e => setEtapaEditName(e.target.value)}
                                     onKeyDown={e => { if (e.key === 'Enter') void saveEtapaName(etapa.id); if (e.key === 'Escape') setEtapaEditId(null) }}
                                     autoFocus
-                                    className="flex-1 rounded-lg border border-orange-500/40 bg-transparent px-3 py-1.5 text-xs text-[var(--th-txt-1)] focus:outline-none focus:ring-2 focus:ring-orange-500/40"
+                                    className="flex-1 rounded-lg border border-[var(--th-border)] bg-[var(--th-page)] px-3 py-1.5 text-xs text-[var(--th-txt-2)] focus:outline-none focus:ring-1 focus:ring-white/10"
                                   />
                                   <button type="button" onClick={() => void saveEtapaName(etapa.id)}
-                                    className="p-1 rounded bg-orange-500 text-white hover:bg-orange-600">
+                                    className="p-1 rounded bg-white text-black hover:bg-white/90">
                                     <Check strokeWidth={2} className="w-3 h-3" />
                                   </button>
                                   <button type="button" onClick={() => setEtapaEditId(null)}
@@ -2770,7 +2903,7 @@ export default function AdminPanel() {
                                   </button>
                                 </div>
                               ) : (
-                                <span className="text-sm font-medium text-[var(--th-txt-1)]">{etapa.nome}</span>
+                                <span className="text-sm font-medium text-[var(--th-txt-2)]">{etapa.nome}</span>
                               )}
                             </div>
                             {/* Actions */}
@@ -2799,7 +2932,7 @@ export default function AdminPanel() {
                           </div>
                           {idx < prodEtapas.length - 1 && (
                             <div className="flex items-center pl-8 py-0">
-                              <div className="w-px h-4 bg-orange-500/20 ml-3" />
+                              <div className="w-px h-4 bg-[var(--th-border)] ml-3" />
                             </div>
                           )}
                         </div>
@@ -2813,11 +2946,11 @@ export default function AdminPanel() {
                             onChange={e => setNewEtapaName(e.target.value)}
                             onKeyDown={e => { if (e.key === 'Enter') void createProdEtapa() }}
                             placeholder="Nome da nova etapa..."
-                            className="flex-1 rounded-lg border border-[var(--th-border)] bg-transparent px-3 py-1.5 text-xs text-[var(--th-txt-1)] placeholder:text-[var(--th-txt-4)] focus:outline-none focus:ring-2 focus:ring-orange-500/40"
+                            className="flex-1 rounded-lg border border-[var(--th-border)] bg-[var(--th-page)] px-3 py-1.5 text-xs text-[var(--th-txt-2)] placeholder:text-[var(--th-txt-4)] focus:outline-none focus:ring-1 focus:ring-white/10"
                           />
                           <button type="button" onClick={() => void createProdEtapa()}
                             disabled={newEtapaSaving || !newEtapaName.trim()}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-orange-500 hover:bg-orange-600 disabled:opacity-40 text-white text-xs font-medium transition-colors">
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white hover:bg-white/90 disabled:opacity-40 text-black text-xs font-medium transition-colors">
                             {newEtapaSaving ? <RefreshCw strokeWidth={2} className="w-3 h-3 animate-spin" /> : <Plus strokeWidth={2} className="w-3 h-3" />}
                             Adicionar
                           </button>
@@ -2834,20 +2967,20 @@ export default function AdminPanel() {
                   <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowDeleteItemConfirm(false)} />
                   <div className="relative bg-[var(--th-card)] border border-[var(--th-border)] rounded-2xl shadow-2xl p-6 w-[340px] flex flex-col gap-4">
                     <div>
-                      <h3 className="text-base font-semibold text-[var(--th-txt-1)] mb-1">Excluir item</h3>
+                      <h3 className="text-base font-semibold text-[var(--th-txt-2)] mb-1">Excluir item</h3>
                       <p className="text-sm text-[var(--th-txt-3)]">
-                        Tem certeza que deseja excluir <span className="font-semibold text-[var(--th-txt-1)]">"{selectedProdItem?.nome}"</span> e todas as suas etapas? Esta ação não pode ser desfeita.
+                        Tem certeza que deseja excluir <span className="font-semibold text-[var(--th-txt-2)]">"{selectedProdItem?.nome}"</span> e todas as suas etapas? Esta ação não pode ser desfeita.
                       </p>
                     </div>
                     <div className="flex gap-2">
                       <button type="button" onClick={() => void deleteProdItem()}
                         disabled={deleteItemLoading}
-                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 disabled:opacity-50 text-white text-sm font-medium transition-colors">
+                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-red-500 hover:bg-red-600 disabled:opacity-50 text-white text-sm font-medium transition-colors">
                         {deleteItemLoading ? <RefreshCw strokeWidth={2} className="w-4 h-4 animate-spin" /> : <Trash2 strokeWidth={1.5} className="w-4 h-4" />}
                         Excluir permanentemente
                       </button>
                       <button type="button" onClick={() => setShowDeleteItemConfirm(false)}
-                        className="px-4 py-2.5 rounded-xl border border-[var(--th-border)] text-sm text-[var(--th-txt-2)] hover:bg-[var(--th-hover)] transition-colors">
+                        className="px-4 py-2.5 rounded-2xl border border-[var(--th-border)] text-sm text-[var(--th-txt-2)] hover:bg-[var(--th-hover)] transition-colors">
                         Cancelar
                       </button>
                     </div>
@@ -2864,43 +2997,151 @@ export default function AdminPanel() {
 
             {/* DASHBOARD */}
             {selectedModule === 'dashboard' && (
-              <div>
-                <div className="mb-6">
-                  <h1 className="text-xl font-bold text-[var(--th-txt-1)] mb-1">Dashboard Administrativo</h1>
-                  <p className="text-sm text-[var(--th-txt-3)] mb-6">Visão geral do sistema Simple&amp;Eco</p>
+              <div className="space-y-6">
+                <div>
+                  <h1 className="text-xl font-bold text-[var(--th-txt-2)] mb-1">Dashboard Administrativo</h1>
+                  <p className="text-sm text-[var(--th-txt-3)]">Visão geral do sistema <span className="font-surgena">{COMPANY_NAME}</span></p>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-                  <div className="rounded-xl border border-[var(--th-border)] bg-[var(--th-card)]">
-                    <div className="p-5 flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-lg bg-[var(--th-subtle)] border border-[var(--th-border)] flex items-center justify-center shrink-0">
-                        <Box strokeWidth={1.5} className="w-5 h-5 text-[var(--th-txt-4)]" />
-                      </div>
-                      <div>
-                        <p className="text-[11px] text-[var(--th-txt-4)] uppercase tracking-widest font-medium mb-0.5">Pedidos Totais</p>
-                        <p className="text-xl font-bold text-orange-400">{totalOrders !== null ? totalOrders.toLocaleString('pt-BR') : '—'}</p>
-                      </div>
+
+                {/* Metric cards */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  {/* Em Produção */}
+                  <div className="rounded-2xl border border-[var(--th-border)] bg-[var(--th-card)] p-5 flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
+                      <Box strokeWidth={1.5} className="w-5 h-5 text-emerald-400" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[11px] text-[var(--th-txt-4)] uppercase tracking-widest font-medium mb-0.5">Em Produção</p>
+                      {dashStatsLoading && !dashStats
+                        ? <div className="h-7 w-14 rounded-md bg-[var(--th-subtle)] animate-pulse" />
+                        : <p className="text-xl font-bold text-emerald-400">{dashStats != null ? dashStats.emProducao.toLocaleString('pt-BR') : '—'}</p>
+                      }
+                      <p className="text-[10px] text-[var(--th-txt-4)] mt-0.5">pedidos com saldo</p>
+                    </div>
+                  </div>
+
+                  {/* Esta Semana */}
+                  <div className="rounded-2xl border border-[var(--th-border)] bg-[var(--th-card)] p-5 flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0">
+                      <Box strokeWidth={1.5} className="w-5 h-5 text-blue-400" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[11px] text-[var(--th-txt-4)] uppercase tracking-widest font-medium mb-0.5">Esta Semana</p>
+                      {dashStatsLoading && !dashStats
+                        ? <div className="h-7 w-14 rounded-md bg-[var(--th-subtle)] animate-pulse" />
+                        : <p className="text-xl font-bold text-blue-400">{dashStats != null ? dashStats.semanal.toLocaleString('pt-BR') : '—'}</p>
+                      }
+                      <p className="text-[10px] text-[var(--th-txt-4)] mt-0.5">novos pedidos</p>
+                    </div>
+                  </div>
+
+                  {/* Este Mês */}
+                  <div className="rounded-2xl border border-[var(--th-border)] bg-[var(--th-card)] p-5 flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center shrink-0">
+                      <Box strokeWidth={1.5} className="w-5 h-5 text-purple-400" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[11px] text-[var(--th-txt-4)] uppercase tracking-widest font-medium mb-0.5">Este Mês</p>
+                      {dashStatsLoading && !dashStats
+                        ? <div className="h-7 w-14 rounded-md bg-[var(--th-subtle)] animate-pulse" />
+                        : <p className="text-xl font-bold text-purple-400">{dashStats != null ? dashStats.mensal.toLocaleString('pt-BR') : '—'}</p>
+                      }
+                      <p className="text-[10px] text-[var(--th-txt-4)] mt-0.5">novos pedidos</p>
+                    </div>
+                  </div>
+
+                  {/* Pedidos Totais */}
+                  <div className="rounded-2xl border border-[var(--th-border)] bg-[var(--th-card)] p-5 flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-lg bg-[var(--th-subtle)] border border-[var(--th-border)] flex items-center justify-center shrink-0">
+                      <Box strokeWidth={1.5} className="w-5 h-5 text-[var(--th-txt-4)]" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[11px] text-[var(--th-txt-4)] uppercase tracking-widest font-medium mb-0.5">Total</p>
+                      <p className="text-xl font-bold text-[var(--th-txt-1)]">{totalOrders !== null ? totalOrders.toLocaleString('pt-BR') : '—'}</p>
+                      <p className="text-[10px] text-[var(--th-txt-4)] mt-0.5">no banco de dados</p>
                     </div>
                   </div>
                 </div>
-                <div className="rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] p-5 overflow-hidden">
-                  <div className="pb-3 mb-3 border-b border-[var(--th-border)]">
-                    <h3 className="text-xs font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Atividades Recentes</h3>
+
+                {/* SE Link Heartbeat */}
+                <div className="rounded-2xl border border-[var(--th-border)] bg-[var(--th-card)] overflow-hidden">
+                  <div className="px-5 py-4 border-b border-[var(--th-border)] flex items-center justify-between gap-3 flex-wrap">
+                    <div className="flex items-center gap-3">
+                      <h3 className="text-xs font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">SE Link — Heartbeat</h3>
+                      {seLinkOnline === true && (
+                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                          Online
+                        </span>
+                      )}
+                      {seLinkOnline === false && (
+                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium bg-red-500/15 text-red-400 border border-red-500/30">
+                          <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
+                          Offline
+                        </span>
+                      )}
+                      {seLinkOnline === null && (
+                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium bg-[var(--th-subtle)] text-[var(--th-txt-4)] border border-[var(--th-border)]">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[var(--th-txt-4)]" />
+                          Verificando
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-4">
+                      {lastSyncTime && <span className="text-[11px] text-[var(--th-txt-4)]">Última sync: {lastSyncTime}</span>}
+                      {heartbeatFetchedAt && <span className="text-[10px] text-[var(--th-txt-4)]/60">atualizado {heartbeatFetchedAt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>}
+                    </div>
                   </div>
-                  <div className="space-y-1">
-                    {recentActivities.map((a, i) => (
-                      <div key={i} className="rounded-xl border border-[var(--th-border)] bg-[var(--th-subtle)] px-4 py-3 hover:border-orange-500/30 hover:bg-orange-500/5 transition-all">
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="min-w-0">
-                            <p className="text-sm font-medium text-[var(--th-txt-1)] mb-0.5">{a.title}</p>
-                            <p className="text-xs text-[var(--th-txt-3)] line-clamp-1">{a.description}</p>
-                          </div>
-                          <div className="flex items-center gap-2 shrink-0">
-                            <span className="text-[11px] px-1.5 py-0.5 rounded bg-[var(--th-card)] text-[var(--th-txt-4)] border border-[var(--th-border)]">{a.tag}</span>
-                            <span className="text-[11px] text-[var(--th-txt-4)]">{a.timestamp}</span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+                  <div className="px-5 pt-4 pb-5">
+                    <div className="mb-2 flex items-center justify-between">
+                      <span className="text-[10px] text-[var(--th-txt-4)]/60 uppercase tracking-widest">Atividade por hora (últimas 24h)</span>
+                      <span className="text-[10px] text-[var(--th-txt-4)]/60">← 24h atrás &nbsp;&nbsp; agora →</span>
+                    </div>
+                    {(() => {
+                      const BAR_W = 14
+                      const GAP = 4
+                      const SLOT = BAR_W + GAP
+                      const CHART_H = 52
+                      const LABEL_H = 14
+                      const SVG_H = CHART_H + LABEL_H
+                      const SVG_W = 24 * SLOT - GAP
+                      const now = new Date()
+                      const currentHour = now.getHours()
+                      const maxVal = Math.max(...heartbeatBuckets, 1)
+                      return (
+                        <svg
+                          viewBox={`0 0 ${SVG_W} ${SVG_H}`}
+                          className="w-full"
+                          style={{ height: SVG_H, display: 'block' }}
+                          aria-label="Heartbeat das últimas 24 horas"
+                        >
+                          {heartbeatBuckets.map((count, i) => {
+                            const x = i * SLOT
+                            const barH = count > 0 ? Math.max(5, Math.round((count / maxVal) * CHART_H)) : 0
+                            const y = CHART_H - barH
+                            const hour = (currentHour - (23 - i) + 48) % 24
+                            const showLabel = i === 0 || i === 6 || i === 12 || i === 18 || i === 23
+                            const opacity = count > 0 ? (0.35 + (count / maxVal) * 0.65) : 1
+                            return (
+                              <g key={i}>
+                                <rect x={x} y={0} width={BAR_W} height={CHART_H} rx={3} fill="rgba(255,255,255,0.035)" />
+                                {count > 0 && (
+                                  <rect x={x} y={y} width={BAR_W} height={barH} rx={3} fill={`rgba(52,211,153,${opacity})`} />
+                                )}
+                                {showLabel && (
+                                  <text x={x + BAR_W / 2} y={SVG_H - 1} textAnchor="middle" fontSize={8} fill="rgba(255,255,255,0.3)">
+                                    {String(hour).padStart(2, '0')}h
+                                  </text>
+                                )}
+                              </g>
+                            )
+                          })}
+                        </svg>
+                      )
+                    })()}
+                    {heartbeatBuckets.every(v => v === 0) && (
+                      <p className="text-center text-[11px] text-[var(--th-txt-4)] mt-3">Nenhuma atividade registrada nas últimas 24 horas</p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -2924,15 +3165,15 @@ export default function AdminPanel() {
               return (
                 <div className="flex h-full gap-0 -m-6">
                   {/* List panel */}
-                  <div className={`shrink-0 flex-col border-r border-[var(--th-border)] bg-[var(--th-card)] w-full sm:w-[340px] ${selectedCliente ? 'hidden sm:flex' : 'flex'}`}>
+                  <div className={`shrink-0 flex-col border-r border-[var(--th-border)] bg-[var(--th-page)] w-full sm:w-[340px] ${selectedCliente ? 'hidden sm:flex' : 'flex'}`}>
                     {/* Header */}
                     <div className="px-4 py-4 border-b border-[var(--th-border)]">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
-                          <h1 className="text-sm font-semibold text-[var(--th-txt-1)]">Clientes</h1>
+                          <h1 className="text-sm font-semibold text-[var(--th-txt-2)]">Clientes</h1>
                           <span className="text-xs bg-[var(--th-subtle)] px-2 py-0.5 rounded-full text-[var(--th-txt-4)]">{filtered.length}</span>
                           {clientesEstado && (
-                            <span className="text-xs bg-orange-500/15 text-orange-400 border border-orange-500/30 px-2 py-0.5 rounded-full">{clientesEstado}</span>
+                            <span className="text-xs bg-[rgba(255,255,255,0.06)] text-[var(--th-txt-2)] border border-[var(--th-border)] px-2 py-0.5 rounded-full">{clientesEstado}</span>
                           )}
                         </div>
                         <button type="button" onClick={() => void fetchClientes()} className="p-1.5 rounded hover:bg-[var(--th-hover)] text-[var(--th-txt-4)]" title="Atualizar">
@@ -2944,7 +3185,7 @@ export default function AdminPanel() {
                         <Search strokeWidth={1.5} className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--th-txt-4)]" />
                         <input value={clientesQuery} onChange={e => setClientesQuery(e.target.value)}
                           placeholder="Nome, fantasia, CNPJ, cidade..."
-                          className="w-full rounded-lg border border-[var(--th-border)] bg-transparent pl-8 pr-8 py-1.5 text-xs text-[var(--th-txt-1)] placeholder:text-[var(--th-txt-4)] focus:outline-none focus:ring-2 focus:ring-orange-500/40" />
+                          className="w-full rounded-lg border border-[var(--th-border)] bg-transparent pl-8 pr-8 py-1.5 text-xs text-[var(--th-txt-2)] placeholder:text-[var(--th-txt-4)] focus:outline-none focus:ring-1 focus:ring-white/10" />
                         {clientesQuery && (
                           <button type="button" onClick={() => setClientesQuery('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--th-txt-4)] hover:text-[var(--th-txt-1)]">
                             <X strokeWidth={2} className="w-3 h-3" />
@@ -2958,24 +3199,24 @@ export default function AdminPanel() {
                           onClick={() => setClientesEstadoOpen(o => !o)}
                           className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg border text-xs transition-colors ${
                             clientesEstadoOpen
-                              ? 'border-orange-500/50 bg-[var(--th-card)] ring-2 ring-orange-500/20'
+                              ? 'border-[rgba(255,255,255,0.15)] bg-[rgba(255,255,255,0.05)] ring-1 ring-white/10'
                               : clientesEstado
-                                ? 'border-orange-500/40 bg-orange-500/5'
-                                : 'border-[var(--th-border)] bg-[var(--th-card)] hover:border-orange-500/30'
+                                ? 'border-[rgba(255,255,255,0.10)] bg-[rgba(255,255,255,0.04)]'
+                                : 'border-[var(--th-border)] bg-[var(--th-card)] hover:border-[rgba(255,255,255,0.10)]'
                           }`}
                         >
-                          <span className={clientesEstado ? 'text-orange-400 font-medium' : 'text-[var(--th-txt-4)]'}>
-                            {clientesEstado ? `Estado: ${clientesEstado}` : 'Todos os estados'}
+                          <span className={clientesEstado ? 'text-[var(--th-txt-1)] font-medium' : 'text-[var(--th-txt-4)]'}>
+                            {clientesEstado ? (BR_ESTADOS[clientesEstado] ?? clientesEstado) : 'Todos os estados'}
                           </span>
                           <ChevronDown strokeWidth={2} className={`w-3 h-3 text-[var(--th-txt-4)] transition-transform shrink-0 ml-1 ${clientesEstadoOpen ? 'rotate-180' : ''}`} />
                         </button>
                         {clientesEstadoOpen && (
-                          <div className="absolute z-50 top-full mt-1 left-0 right-0 max-h-48 overflow-y-auto rounded-lg border border-[var(--th-border)] bg-[var(--th-card)] shadow-lg">
+                          <div className="absolute z-50 top-full mt-1 left-0 right-0 max-h-48 overflow-y-auto rounded-lg border border-[var(--th-border)] bg-[var(--th-page)] shadow-lg">
                             <button
                               type="button"
                               onClick={() => { setClientesEstado(''); setClientesEstadoOpen(false) }}
                               className={`w-full text-left px-3 py-2 text-xs transition-colors hover:bg-[var(--th-hover)] ${
-                                clientesEstado === '' ? 'text-orange-400 font-semibold' : 'text-[var(--th-txt-3)]'
+                                clientesEstado === '' ? 'text-[var(--th-txt-1)] font-semibold' : 'text-[var(--th-txt-3)]'
                               }`}
                             >Todos os estados</button>
                             {estados.map(uf => (
@@ -2984,10 +3225,10 @@ export default function AdminPanel() {
                                 type="button"
                                 onClick={() => { setClientesEstado(uf); setClientesEstadoOpen(false) }}
                                 className={`w-full text-left px-3 py-2 text-xs transition-colors hover:bg-[var(--th-hover)] flex items-center justify-between ${
-                                  clientesEstado === uf ? 'text-orange-400 font-semibold' : 'text-[var(--th-txt-1)]'
+                                  clientesEstado === uf ? 'text-[var(--th-txt-1)] font-semibold' : 'text-[var(--th-txt-2)]'
                                 }`}
                               >
-                                <span>{uf}</span>
+                                <span>{BR_ESTADOS[uf] ?? uf}</span>
                                 <span className="text-[var(--th-txt-4)] font-normal">{clientesAll.filter(c => asText(c.ESTADO).trim() === uf).length}</span>
                               </button>
                             ))}
@@ -3001,8 +3242,8 @@ export default function AdminPanel() {
                       {clientesError && <div className="px-3 py-2 text-xs text-red-400 bg-red-500/10 rounded-lg border border-red-500/20">{clientesError}</div>}
                       {!clientesLoading && filtered.length === 0 && <div className="px-4 py-16 text-center text-sm text-[var(--th-txt-3)]">Nenhum cliente encontrado.</div>}
                       {filtered.map(c => {
-                        const fantasia = asText(c.FANTASIA).trim()
-                        const nomeRaw = asText(c.NOME).trim()
+                        const fantasia = stripLeadingNum(asText(c.FANTASIA).trim())
+                        const nomeRaw = stripLeadingNum(asText(c.NOME).trim())
                         const displayName = fantasia || nomeRaw || '—'
                         const subName = fantasia && nomeRaw && fantasia !== nomeRaw ? nomeRaw : ''
                         const cod = asText(c.CODIGO).trim()
@@ -3014,19 +3255,14 @@ export default function AdminPanel() {
                         const isSelected = selectedCliente?.CODIGO === c.CODIGO
                         return (
                           <button key={cod} type="button" onClick={() => setSelectedCliente(c)}
-                            className={`w-full text-left rounded-xl border px-3 py-2.5 transition-all flex items-center gap-3 ${isSelected ? 'border-orange-500/40 bg-orange-500/8' : 'border-[var(--th-border)] bg-[var(--th-card)] hover:border-orange-500/30 hover:bg-orange-500/5'}`}>
+                            className={`w-full text-left rounded-2xl border px-3 py-2.5 transition-all flex items-center gap-3 ${isSelected ? 'border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.05)]' : 'border-[var(--th-border)] bg-[var(--th-card)] hover:border-[rgba(255,255,255,0.08)] hover:bg-[rgba(255,255,255,0.03)]'}`}>
                             {/* Avatar */}
-                            <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 text-xs font-bold ${isSelected ? 'bg-orange-500/20 text-orange-400' : 'bg-[var(--th-subtle)] text-[var(--th-txt-3)]'}`}>
+                            <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 text-xs font-bold ${isSelected ? 'bg-[rgba(255,255,255,0.10)] text-[var(--th-txt-1)]' : 'bg-[var(--th-subtle)] text-[var(--th-txt-3)]'}`}>
                               {initials || '?'}
                             </div>
                             {/* Info */}
                             <div className="flex-1 min-w-0">
-                              <div className="flex items-center justify-between gap-1.5 mb-0.5">
-                                <p className="text-xs font-semibold text-[var(--th-txt-1)] truncate leading-snug">{displayName}</p>
-                                {nPedidos > 0 && (
-                                  <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded shrink-0 ${isSelected ? 'bg-orange-500/20 text-orange-400' : 'bg-[var(--th-subtle)] text-[var(--th-txt-4)]'}`}>{nPedidos}p</span>
-                                )}
-                              </div>
+                              <p className="text-xs font-semibold text-[var(--th-txt-2)] truncate leading-snug mb-0.5">{displayName}</p>
                               {subName && <p className="text-[10px] text-[var(--th-txt-4)] truncate leading-none mb-0.5">{subName}</p>}
                               <div className="flex items-center gap-2">
                                 {cnpj && <span className="text-[10px] font-mono text-[var(--th-txt-4)] truncate">{cnpj}</span>}
@@ -3034,6 +3270,10 @@ export default function AdminPanel() {
                                 {(cidade || uf) && cnpj && <span className="text-[10px] text-[var(--th-txt-4)] shrink-0">{uf}</span>}
                               </div>
                             </div>
+                            {/* Pedidos count */}
+                            {nPedidos > 0 && (
+                              <span className={`text-[10px] font-mono w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${isSelected ? 'bg-[rgba(255,255,255,0.10)] text-[var(--th-txt-1)]' : 'bg-[var(--th-subtle)] text-[var(--th-txt-4)]'}`}>{nPedidos}</span>
+                            )}
                           </button>
                         )
                       })}
@@ -3042,7 +3282,7 @@ export default function AdminPanel() {
                     <div className="px-4 py-2 border-t border-[var(--th-border)] text-[11px] text-[var(--th-txt-4)] flex justify-between">
                       <span>{filtered.length} de {clientesAll.length} clientes</span>
                       {(clientesQuery || clientesEstado) && (
-                        <button type="button" onClick={() => { setClientesQuery(''); setClientesEstado('') }} className="text-orange-400 hover:underline">Limpar filtros</button>
+                        <button type="button" onClick={() => { setClientesQuery(''); setClientesEstado('') }} className="text-[var(--th-txt-4)] hover:text-[var(--th-txt-1)] hover:underline transition-colors">Limpar filtros</button>
                       )}
                     </div>
                   </div>
@@ -3057,8 +3297,8 @@ export default function AdminPanel() {
                     )}
                     {selectedCliente && (() => {
                       const c = selectedCliente
-                      const fantasia = asText(c.FANTASIA).trim()
-                      const nomeRaw = asText(c.NOME).trim()
+                      const fantasia = stripLeadingNum(asText(c.FANTASIA).trim())
+                      const nomeRaw = stripLeadingNum(asText(c.NOME).trim())
                       const displayName = fantasia || nomeRaw || '—'
                       const subName = fantasia && nomeRaw && fantasia !== nomeRaw ? nomeRaw : ''
                       const cnpj = asText(c.CNPJ || c.CHAVE).trim()
@@ -3081,14 +3321,14 @@ export default function AdminPanel() {
                           </button>
 
                           {/* Header card */}
-                          <div className="rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] p-5">
+                          <div className="rounded-2xl border border-[var(--th-border)] bg-[var(--th-card)] p-5">
                             <div className="flex items-start gap-4">
                               {/* Avatar */}
-                              <div className="w-14 h-14 rounded-xl bg-orange-500/15 text-orange-400 flex items-center justify-center text-xl font-bold shrink-0 border border-orange-500/20">
+                              <div className="w-14 h-14 rounded-2xl bg-[rgba(255,255,255,0.06)] text-[var(--th-txt-2)] flex items-center justify-center text-xl font-bold shrink-0 border border-[var(--th-border)]">
                                 {initials || '?'}
                               </div>
                               <div className="flex-1 min-w-0">
-                                <h2 className="text-base font-bold text-[var(--th-txt-1)] leading-snug mb-0.5">{displayName}</h2>
+                                <h2 className="text-base font-bold text-[var(--th-txt-2)] leading-snug mb-0.5">{displayName}</h2>
                                 {subName && <p className="text-xs text-[var(--th-txt-4)] mb-1.5 truncate">{subName}</p>}
                                 <div className="flex items-center gap-2 flex-wrap">
                                   <span className="inline-flex items-center gap-1 bg-[var(--th-subtle)] border border-[var(--th-border)] px-2 py-0.5 rounded text-[11px] font-mono text-[var(--th-txt-3)]">#{asText(c.CODIGO)}</span>
@@ -3110,7 +3350,7 @@ export default function AdminPanel() {
                                 { label: 'Faturados', value: fmtNumber(totalFaturados) },
                               ].map(stat => (
                                 <div key={stat.label} className="text-center">
-                                  <p className={`text-sm font-bold font-mono ${stat.highlight ? 'text-orange-400' : 'text-[var(--th-txt-1)]'}`}>{stat.value}</p>
+                                  <p className={`text-sm font-bold font-mono ${stat.highlight ? 'text-[var(--th-txt-1)]' : 'text-[var(--th-txt-2)]'}`}>{stat.value}</p>
                                   <p className="text-[10px] text-[var(--th-txt-4)] mt-0.5">{stat.label}</p>
                                 </div>
                               ))}
@@ -3127,34 +3367,47 @@ export default function AdminPanel() {
 
                           {/* Endereço */}
                           {(endereco || cidade || bairro || cep) && (
-                            <div className="rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] p-4">
-                              <div className="flex items-center justify-between mb-3">
-                                <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Endereço</p>
+                            <div className="rounded-2xl border border-[var(--th-border)] bg-[var(--th-card)] overflow-hidden">
+                              <div className="flex">
+                                {/* Info de endereço */}
+                                <div className="flex-1 p-4">
+                                  <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)] mb-3">Endereço</p>
+                                  <div className="space-y-1 text-sm">
+                                    {endereco && <p className="text-[var(--th-txt-2)]">{endereco}</p>}
+                                    {(bairro || cidade || uf) && (
+                                      <p className="text-[var(--th-txt-3)] text-xs">{[bairro, cidade, uf].filter(Boolean).join(' · ')}</p>
+                                    )}
+                                    {cep && <p className="text-[var(--th-txt-4)] font-mono text-[11px]">CEP {cep}</p>}
+                                  </div>
+                                </div>
+                                {/* Mapa borrado */}
                                 {mapsQuery && (
-                                  <a
-                                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapsQuery)}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-[11px] text-[var(--th-txt-4)] hover:text-orange-400 transition-colors flex items-center gap-1"
-                                    onClick={e => e.stopPropagation()}
-                                  >
-                                    <MapPin strokeWidth={1.5} className="w-3 h-3" />
-                                    Ver no Maps
-                                  </a>
+                                  <div className="relative flex items-center justify-center shrink-0 overflow-hidden" style={{minWidth: 180}}>
+                                    <img
+                                      src="/map-bg.png"
+                                      alt=""
+                                      className="absolute inset-0 w-full h-full object-cover"
+                                      style={{filter: 'blur(1.5px)', transform: 'scale(1.15)'}}
+                                    />
+                                    <div className="absolute inset-0 bg-black/55" />
+                                    <a
+                                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapsQuery)}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      onClick={e => e.stopPropagation()}
+                                      className="relative z-10 flex items-center justify-center gap-1.5 px-5 py-2 rounded-lg bg-white text-black text-[11px] font-semibold hover:bg-white/90 transition-colors"
+                                    >
+                                      <MapPin strokeWidth={1.5} className="w-3.5 h-3.5" />
+                                      Ver no Maps
+                                    </a>
+                                  </div>
                                 )}
-                              </div>
-                              <div className="space-y-1 text-sm">
-                                {endereco && <p className="text-[var(--th-txt-2)]">{endereco}</p>}
-                                {(bairro || cidade || uf) && (
-                                  <p className="text-[var(--th-txt-3)] text-xs">{[bairro, cidade, uf].filter(Boolean).join(' · ')}</p>
-                                )}
-                                {cep && <p className="text-[var(--th-txt-4)] font-mono text-[11px]">CEP {cep}</p>}
                               </div>
                             </div>
                           )}
 
                           {/* Histórico de pedidos */}
-                          <div className="rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] overflow-hidden">
+                          <div className="rounded-2xl border border-[var(--th-border)] bg-[var(--th-card)] overflow-hidden">
                             <div className="px-4 py-2.5 bg-[var(--th-subtle)] border-b border-[var(--th-border)] flex items-center justify-between">
                               <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Pedidos</p>
                               <span className="text-[11px] text-[var(--th-txt-4)]">{pedidosDoCliente.length}</span>
@@ -3179,14 +3432,14 @@ export default function AdminPanel() {
                                                 const pNode = pedidoTree.find(n => asText(n.pedido.CODIGO).trim() === asText(p.CODIGO).trim())
                                                 if (pNode) { setSelectedPedidoDetail(pNode); setSelectedModule('orders') }
                                               }}
-                                              className="font-mono font-bold text-sm text-[var(--th-txt-1)] hover:text-orange-400 transition-colors shrink-0"
+                                              className="font-mono font-bold text-sm text-[var(--th-txt-2)] hover:text-[var(--th-txt-1)] transition-colors shrink-0"
                                             >{asText(p.CODIGO)}</button>
                                             {asText(p.NOME) && <span className="text-xs text-[var(--th-txt-4)] truncate">{asText(p.NOME)}</span>}
                                           </div>
                                           <div className="flex items-center gap-1.5 shrink-0">
                                             {isFinalizado
                                               ? <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-500/15 text-green-400 border border-green-500/20">Finalizado</span>
-                                              : <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-orange-500/15 text-orange-400 border border-orange-500/20">Em aberto</span>
+                                              : <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[rgba(255,255,255,0.06)] text-[var(--th-txt-3)] border border-[var(--th-border)]">Em aberto</span>
                                             }
                                           </div>
                                         </div>
@@ -3195,12 +3448,12 @@ export default function AdminPanel() {
                                           {asText(p.PREVISAO) && <span>Prev. <span className="font-mono text-[var(--th-txt-2)]">{fmtDate(asText(p.PREVISAO))}</span></span>}
                                           <span className="font-mono text-[var(--th-txt-2)]">{fmtNumber(total)} pares</span>
                                           {faturados > 0 && <span>Fat. <span className="font-mono text-[var(--th-txt-2)]">{fmtNumber(faturados)}</span></span>}
-                                          {saldo > 0 && <span>Saldo <span className="font-mono text-orange-400">{fmtNumber(saldo)}</span></span>}
+                                          {saldo > 0 && <span>Saldo <span className="font-mono text-[var(--th-txt-2)]">{fmtNumber(saldo)}</span></span>}
                                           {nTaloes > 0 && <span>{nTaloes} talão{nTaloes !== 1 ? 'ões' : ''}</span>}
                                         </div>
                                         {total > 0 && (
                                           <div className="h-1 rounded-full bg-[var(--th-border)] overflow-hidden">
-                                            <div className={`h-full rounded-full transition-all ${isFinalizado ? 'bg-green-500' : 'bg-orange-500'}`} style={{ width: `${pct}%` }} />
+                                            <div className={`h-full rounded-full transition-all ${isFinalizado ? 'bg-green-500' : 'bg-white/40'}`} style={{ width: `${pct}%` }} />
                                           </div>
                                         )}
                                       </div>
@@ -3219,18 +3472,19 @@ export default function AdminPanel() {
 
             {/* DATABASE MODULE */}
             {selectedModule === 'database' && (
-              <div className="max-w-xl space-y-5">
+              <div className="flex gap-5 h-full">
+              <div className="flex-1 min-w-0 max-w-xl flex flex-col gap-5">
                 <div>
-                  <h1 className="text-xl font-bold text-[var(--th-txt-1)] mb-1">Banco de Dados</h1>
+                  <h1 className="text-xl font-bold text-[var(--th-txt-2)] mb-1">Banco de Dados</h1>
                   <p className="text-sm text-[var(--th-txt-3)] mb-6">Ômega ERP → SE Link → Supabase</p>
                 </div>
 
                 {/* Sync card (status + force) */}
-                <div className="rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] overflow-hidden">
+                <div className="rounded-2xl border border-[var(--th-border)] bg-[var(--th-card)] overflow-hidden">
                   {/* Header: SE Link + badge + refresh */}
                   <div className="px-5 py-3 flex items-center justify-between gap-4 border-b border-[var(--th-border)]">
                     <div className="flex items-center gap-2.5">
-                      <p className="text-xs font-semibold uppercase tracking-widest text-[var(--th-txt-1)]">SE Link</p>
+                      <p className="text-xs font-semibold uppercase tracking-widest text-[var(--th-txt-2)]">SE Link</p>
                       <span className={`text-[11px] px-2 py-0.5 rounded-full border font-medium ${
                         seLinkOnline === true  ? 'bg-green-500/10 text-green-400 border-green-500/20' :
                         seLinkOnline === false ? 'bg-red-500/10 text-red-400 border-red-500/20' :
@@ -3253,7 +3507,7 @@ export default function AdminPanel() {
                     {/* Última sync */}
                     <div>
                       <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--th-txt-4)] mb-1">Última Sincronização</p>
-                      <p className="text-sm font-mono text-[var(--th-txt-1)]">{lastSyncTime ?? '—'}</p>
+                      <p className="text-sm font-mono text-[var(--th-txt-2)]">{lastSyncTime ?? '—'}</p>
                     </div>
                     {/* Force sync */}
                     <div className="space-y-3">
@@ -3263,7 +3517,7 @@ export default function AdminPanel() {
                       <div className="flex items-center gap-3">
                         <button type="button" onClick={() => void requestForceSync()}
                           disabled={forceSyncLoading || forceSyncStatus === 'waiting'}
-                          className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white text-xs font-semibold transition-colors">
+                          className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-white hover:bg-white/90 disabled:opacity-50 text-black text-xs font-semibold transition-colors">
                           <RefreshCw strokeWidth={2} className={`w-3.5 h-3.5 ${forceSyncLoading || forceSyncStatus === 'waiting' ? 'animate-spin' : ''}`} />
                           {forceSyncLoading ? 'Solicitando...' : forceSyncStatus === 'waiting' ? 'Aguardando SE Link...' : 'Forçar Sincronização'}
                         </button>
@@ -3281,22 +3535,22 @@ export default function AdminPanel() {
                 </div>
 
                 {/* Sync config */}
-                <div className="rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] overflow-hidden">
+                <div className="rounded-2xl border border-[var(--th-border)] bg-[var(--th-card)] overflow-hidden flex flex-col flex-1 min-h-0">
                   <div className="px-5 py-3 flex items-center justify-between gap-4 border-b border-[var(--th-border)]">
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-widest text-[var(--th-txt-1)]">Tabelas Sincronizadas</p>
+                      <p className="text-xs font-semibold uppercase tracking-widest text-[var(--th-txt-2)]">Tabelas Sincronizadas</p>
                       <p className="text-[11px] text-[var(--th-txt-4)] mt-0.5">Ative ou desative quais DBFs o SE Link deve sincronizar</p>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       {syncConfigSavedToggles && (
                         <button type="button" onClick={() => void restoreSyncSelection()}
-                          className="px-2.5 py-1 rounded text-[11px] font-medium border border-orange-500/30 bg-orange-500/10 text-orange-400 hover:bg-orange-500/20 transition-colors">
+                          className="px-2.5 py-1 rounded text-[11px] font-medium border border-[var(--th-border)] bg-[rgba(255,255,255,0.05)] text-[var(--th-txt-3)] hover:bg-[rgba(255,255,255,0.08)] transition-colors">
                           Restaurar
                         </button>
                       )}
                       <button type="button" onClick={() => void clearSyncSelection()}
                         disabled={Object.values(syncConfigToggles).every(v => !v)}
-                        className="px-2.5 py-1 rounded text-[11px] font-medium border border-[var(--th-border)] text-[var(--th-txt-4)] hover:text-red-400 hover:border-red-500/30 disabled:opacity-30 transition-colors">
+                        className="px-3 py-0 h-7 rounded-lg bg-white text-black text-xs font-medium disabled:opacity-30 hover:bg-white/90 transition-colors inline-flex items-center justify-center">
                         Limpar seleção
                       </button>
                       <button type="button" onClick={() => void fetchSyncConfig()}
@@ -3314,7 +3568,7 @@ export default function AdminPanel() {
                         value={syncConfigSearch}
                         onChange={e => setSyncConfigSearch(e.target.value)}
                         placeholder="Buscar tabela..."
-                        className="w-full rounded-lg border border-[var(--th-border)] bg-transparent pl-8 pr-7 py-1.5 text-xs text-[var(--th-txt-1)] placeholder:text-[var(--th-txt-4)] focus:outline-none focus:ring-2 focus:ring-orange-500/40"
+                        className="w-full rounded-lg border border-[var(--th-border)] bg-transparent pl-8 pr-7 py-1.5 text-xs text-[var(--th-txt-2)] placeholder:text-[var(--th-txt-4)] focus:outline-none focus:ring-1 focus:ring-white/10"
                       />
                       {syncConfigSearch && (
                         <button type="button" onClick={() => setSyncConfigSearch('')}
@@ -3326,17 +3580,17 @@ export default function AdminPanel() {
                     <div className="flex gap-1 mt-2">
                       {([{ key: 'all', label: 'Todos' }, { key: 'active', label: 'Ativos' }] as const).map(({ key, label }) => (
                         <button key={key} type="button" onClick={() => setSyncConfigFilter(key)}
-                          className={`text-[11px] px-2.5 py-1 rounded-full border font-medium transition-all ${
+                          className={`text-[11px] px-2.5 py-1 rounded-md font-medium transition-all ${
                             syncConfigFilter === key
-                              ? 'bg-orange-500/15 text-orange-400 border-orange-500/30'
-                              : 'bg-[var(--th-subtle)] text-[var(--th-txt-4)] border-[var(--th-border)] hover:text-[var(--th-txt-1)]'
+                              ? 'bg-[var(--th-card)] text-[var(--th-txt-1)]'
+                              : 'text-[var(--th-txt-4)] hover:text-[var(--th-txt-2)]'
                           }`}>
                           {label}
                         </button>
                       ))}
                     </div>
                   </div>
-                  <div className="divide-y divide-[var(--th-border)] max-h-64 overflow-y-auto">
+                  <div className="divide-y divide-[var(--th-border)] overflow-y-auto flex-1 min-h-0">
                     {syncConfig.length === 0 && !syncConfigLoading && (
                       <p className="px-5 py-4 text-sm text-[var(--th-txt-4)]">Inicie o SE Link para descobrir os DBFs disponíveis.</p>
                     )}
@@ -3355,12 +3609,12 @@ export default function AdminPanel() {
                           <button
                             type="button"
                             onClick={() => void toggleSyncConfig(row.dbf_name, !on)}
-                            className={`relative shrink-0 w-9 h-5 rounded-full transition-colors ${on ? 'bg-orange-500' : 'bg-[var(--th-border)]'}`}
+                            className={`relative shrink-0 w-9 h-5 rounded-full transition-colors ${on ? 'bg-[var(--th-accent)]' : 'bg-[rgba(255,255,255,0.12)]'}`}
                           >
                             <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${on ? 'translate-x-4' : 'translate-x-0'}`} />
                           </button>
                           {/* DBF name */}
-                          <span className="font-mono text-sm text-[var(--th-txt-1)] w-28 shrink-0">{row.dbf_name}.dbf</span>
+                          <span className="font-mono text-sm text-[var(--th-txt-2)] w-28 shrink-0">{row.dbf_name}.dbf</span>
                           {/* Arrow */}
                           <span className="text-[var(--th-txt-4)] text-xs shrink-0">→</span>
                           {/* Table name */}
@@ -3391,70 +3645,68 @@ export default function AdminPanel() {
                   </div>
                 </div>
 
-                {/* SE Link logs */}
-                <div className="rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] overflow-hidden">
-                  <div className="px-5 py-3 flex items-center justify-between gap-4 border-b border-[var(--th-border)]">
-                    <p className="text-xs font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Console do SE Link</p>
-                    <div className="flex items-center gap-2">
-                      <button type="button" onClick={() => void fetchSeLinkLogs()}
-                        className="p-1.5 rounded hover:bg-[var(--th-hover)] text-[var(--th-txt-4)]">
-                        <RefreshCw strokeWidth={1.5} className="w-3.5 h-3.5" />
-                      </button>
-                      <button type="button" onClick={() => void clearSeLinkLogs()} disabled={seLinkLogsClearing || seLinkLogs.length === 0}
-                        className="px-2.5 py-1 rounded text-[11px] font-medium border border-[var(--th-border)] text-[var(--th-txt-4)] hover:text-red-400 hover:border-red-500/30 disabled:opacity-40 transition-colors">
-                        {seLinkLogsClearing ? 'Limpando...' : 'Limpar'}
-                      </button>
-                    </div>
-                  </div>
-                  {/* Level filter */}
-                  <div className="px-4 py-2 border-b border-[var(--th-border)] flex gap-1">
-                    {([
-                      { key: 'ALL',     label: 'Todos' },
-                      { key: 'INFO',    label: 'Info' },
-                      { key: 'WARNING', label: 'Warning' },
-                      { key: 'ERROR',   label: 'Error' },
-                    ] as const).map(({ key, label }) => (
-                      <button key={key} type="button" onClick={() => setSeLinkLogsFilter(key)}
-                        className={`text-[11px] px-2.5 py-1 rounded-full border font-medium transition-all ${
-                          seLinkLogsFilter === key
-                            ? key === 'ERROR'   ? 'bg-red-500/15 text-red-400 border-red-500/30'
-                            : key === 'WARNING' ? 'bg-amber-500/15 text-amber-400 border-amber-500/30'
-                            : key === 'INFO'    ? 'bg-green-500/15 text-green-400 border-green-500/30'
-                            :                    'bg-orange-500/15 text-orange-400 border-orange-500/30'
-                            : 'bg-[var(--th-subtle)] text-[var(--th-txt-4)] border-[var(--th-border)] hover:text-[var(--th-txt-1)]'
-                        }`}>
-                        {label}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="h-64 overflow-y-auto font-mono text-[11px] leading-relaxed">
-                    {seLinkLogs.length === 0 ? (
-                      <div className="flex items-center justify-center h-full text-[var(--th-txt-4)]">
-                        Nenhum log. Inicie o SE Link para ver o console aqui.
-                      </div>
-                    ) : (
-                      <div className="p-3 space-y-0.5">
-                        {seLinkLogs
-                          .filter(log => seLinkLogsFilter === 'ALL' || log.level === seLinkLogsFilter)
-                          .map(log => {
-                            const t = new Date(log.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-                            const levelColor =
-                              log.level === 'ERROR'   ? 'text-red-400' :
-                              log.level === 'WARNING' ? 'text-amber-400' :
-                              'text-green-400'
-                            return (
-                              <div key={log.id} className="flex gap-2 py-0.5">
-                                <span className="shrink-0 text-[var(--th-txt-4)] opacity-60">{t}</span>
-                                <span className={`shrink-0 w-14 ${levelColor}`}>{log.level}</span>
-                                <span className="text-[var(--th-txt-2)] break-all">{log.message}</span>
-                              </div>
-                            )
-                          })}
-                        <div ref={logsEndRef} />
-                      </div>
-                    )}
+              </div>
+
+              {/* Right col: Console do SE Link */}
+              <div className="w-96 shrink-0 flex flex-col rounded-2xl border border-[var(--th-border)] bg-[var(--th-card)] overflow-hidden min-h-0">
+                <div className="px-5 py-3 flex items-center justify-between gap-4 border-b border-[var(--th-border)] shrink-0">
+                  <p className="text-xs font-semibold uppercase tracking-widest text-[var(--th-txt-4)]">Console do SE Link</p>
+                  <div className="flex items-center gap-2">
+                    <button type="button" onClick={() => void fetchSeLinkLogs()}
+                      className="p-1.5 rounded hover:bg-[var(--th-hover)] text-[var(--th-txt-4)]">
+                      <RefreshCw strokeWidth={1.5} className="w-3.5 h-3.5" />
+                    </button>
+                    <button type="button" onClick={() => void clearSeLinkLogs()} disabled={seLinkLogsClearing || seLinkLogs.length === 0}
+                      className="px-3 py-0 h-7 rounded-lg bg-[var(--th-card)] text-[var(--th-txt-1)] text-xs font-medium disabled:opacity-40 hover:bg-[var(--th-hover)] transition-colors inline-flex items-center justify-center">
+                      {seLinkLogsClearing ? 'Limpando...' : 'Limpar'}
+                    </button>
                   </div>
                 </div>
+                <div className="px-4 py-2 border-b border-[var(--th-border)] flex gap-1 shrink-0">
+                  {([
+                    { key: 'ALL',     label: 'Todos' },
+                    { key: 'INFO',    label: 'Info' },
+                    { key: 'WARNING', label: 'Warning' },
+                    { key: 'ERROR',   label: 'Error' },
+                  ] as const).map(({ key, label }) => (
+                    <button key={key} type="button" onClick={() => setSeLinkLogsFilter(key)}
+                      className={`text-[11px] px-2.5 py-1 rounded-md font-medium transition-all ${
+                        seLinkLogsFilter === key
+                          ? 'bg-[var(--th-card)] text-[var(--th-txt-1)]'
+                          : 'text-[var(--th-txt-4)] hover:text-[var(--th-txt-2)]'
+                      }`}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex-1 overflow-y-auto font-mono text-[11px] leading-relaxed">
+                  {seLinkLogs.length === 0 ? (
+                    <div className="flex items-center justify-center h-full text-[var(--th-txt-4)] text-center px-4">
+                      Nenhum log. Inicie o SE Link para ver o console aqui.
+                    </div>
+                  ) : (
+                    <div className="p-3 space-y-0.5">
+                      {seLinkLogs
+                        .filter(log => seLinkLogsFilter === 'ALL' || log.level === seLinkLogsFilter)
+                        .map(log => {
+                          const t = new Date(log.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+                          const levelColor =
+                            log.level === 'ERROR'   ? 'text-red-400' :
+                            log.level === 'WARNING' ? 'text-amber-400' :
+                            'text-green-400'
+                          return (
+                            <div key={log.id} className="flex gap-2 py-0.5">
+                              <span className="shrink-0 text-[var(--th-txt-4)] opacity-60">{t}</span>
+                              <span className={`shrink-0 w-14 ${levelColor}`}>{log.level}</span>
+                              <span className="text-[var(--th-txt-2)] break-all">{log.message}</span>
+                            </div>
+                          )
+                        })}
+                      <div ref={logsEndRef} />
+                    </div>
+                  )}
+                </div>
+              </div>
 
               </div>
             )}
@@ -3474,17 +3726,17 @@ export default function AdminPanel() {
                 <div className="max-w-xl space-y-6">
                   {/* Header */}
                   <div>
-                    <h1 className="text-lg font-bold text-[var(--th-txt-1)]">Configurações</h1>
+                    <h1 className="text-lg font-bold text-[var(--th-txt-2)]">Configurações</h1>
                     <p className="text-xs text-[var(--th-txt-4)] mt-0.5">Personalize a aparência do painel</p>
                   </div>
 
                   {/* Tab bar */}
-                  <div className="flex gap-1 p-1 rounded-xl bg-[var(--th-subtle)] w-fit">
+                  <div className="flex gap-1 p-1 rounded-2xl bg-[var(--th-subtle)] w-fit">
                     <button
                       onClick={() => setSettingsTab('appearance')}
                       className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                         settingsTab === 'appearance'
-                          ? 'bg-[var(--th-card)] text-[var(--th-txt-1)] shadow-sm'
+                          ? 'bg-[var(--th-card)] text-[var(--th-txt-2)] shadow-sm'
                           : 'text-[var(--th-txt-4)] hover:text-[var(--th-txt-1)]'
                       }`}
                     >
@@ -3501,27 +3753,27 @@ export default function AdminPanel() {
                         <div className="grid grid-cols-2 gap-3">
                           {/* Dark */}
                           <button onClick={() => { if (!isDark) toggleTheme() }}
-                            className={`rounded-xl p-4 border-2 transition-all text-left ${isDark ? 'border-[var(--th-accent)]' : 'border-[var(--th-border)] hover:border-[var(--th-accent)]/40'}`}>
-                            <div className="w-full h-16 rounded-lg bg-[#111] mb-3 overflow-hidden flex flex-col gap-1 p-2">
-                              <div className="h-2 w-3/4 rounded bg-[#2a2a2a]" />
-                              <div className="h-2 w-1/2 rounded bg-[#2a2a2a]" />
+                            className={`rounded-2xl p-4 border-2 transition-all text-left ${isDark ? 'border-[var(--th-accent)]' : 'border-[var(--th-border)] hover:border-[var(--th-accent)]/40'}`}>
+                            <div className="w-full h-16 rounded-lg bg-[var(--th-card)] mb-3 overflow-hidden flex flex-col gap-1 p-2">
+                              <div className="h-2 w-3/4 rounded bg-[var(--th-border)]" />
+                              <div className="h-2 w-1/2 rounded bg-[var(--th-border)]" />
                               <div className="mt-auto h-2 w-2/3 rounded" style={{ backgroundColor: accentColor }} />
                             </div>
                             <div className="flex items-center justify-between">
-                              <span className="text-xs font-semibold text-[var(--th-txt-1)]">Escuro</span>
+                              <span className="text-xs font-semibold text-[var(--th-txt-2)]">Escuro</span>
                               {isDark && <div className="w-4 h-4 rounded-full flex items-center justify-center" style={{ backgroundColor: accentColor }}><Check strokeWidth={3} className="w-2.5 h-2.5 text-white" /></div>}
                             </div>
                           </button>
                           {/* Light */}
                           <button onClick={() => { if (isDark) toggleTheme() }}
-                            className={`rounded-xl p-4 border-2 transition-all text-left ${!isDark ? 'border-[var(--th-accent)]' : 'border-[var(--th-border)] hover:border-[var(--th-accent)]/40'}`}>
+                            className={`rounded-2xl p-4 border-2 transition-all text-left ${!isDark ? 'border-[var(--th-accent)]' : 'border-[var(--th-border)] hover:border-[var(--th-accent)]/40'}`}>
                             <div className="w-full h-16 rounded-lg bg-white mb-3 overflow-hidden flex flex-col gap-1 p-2 border border-gray-100">
                               <div className="h-2 w-3/4 rounded bg-gray-200" />
                               <div className="h-2 w-1/2 rounded bg-gray-200" />
                               <div className="mt-auto h-2 w-2/3 rounded" style={{ backgroundColor: accentColor }} />
                             </div>
                             <div className="flex items-center justify-between">
-                              <span className="text-xs font-semibold text-[var(--th-txt-1)]">Claro</span>
+                              <span className="text-xs font-semibold text-[var(--th-txt-2)]">Claro</span>
                               {!isDark && <div className="w-4 h-4 rounded-full flex items-center justify-center" style={{ backgroundColor: accentColor }}><Check strokeWidth={3} className="w-2.5 h-2.5 text-white" /></div>}
                             </div>
                           </button>
@@ -3535,7 +3787,7 @@ export default function AdminPanel() {
                           {accentPresets.map(p => (
                             <button key={p.color} onClick={() => applyAccent(p.color)}
                               title={p.label}
-                              className={`w-9 h-9 rounded-xl transition-all ${accentColor === p.color ? 'ring-2 ring-offset-2 ring-offset-[var(--th-card)] scale-110' : 'hover:scale-105'}`}
+                              className={`w-9 h-9 rounded-2xl transition-all ${accentColor === p.color ? 'ring-2 ring-offset-2 ring-offset-[var(--th-card)] scale-110' : 'hover:scale-105'}`}
                               style={{ backgroundColor: p.color, '--tw-ring-color': p.color } as React.CSSProperties}
                             />
                           ))}
@@ -3546,12 +3798,12 @@ export default function AdminPanel() {
                       {/* Preview */}
                       <div>
                         <p className="text-xs font-semibold uppercase tracking-wider text-[var(--th-txt-4)] mb-3">Preview</p>
-                        <div className="rounded-xl border border-[var(--th-border)] bg-[var(--th-card)] p-4 flex items-center gap-3">
+                        <div className="rounded-2xl border border-[var(--th-border)] bg-[var(--th-card)] p-4 flex items-center gap-3">
                           <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: accentColor }}>
                             <Box strokeWidth={1.8} className="w-4 h-4 text-white" />
                           </div>
                           <div>
-                            <p className="text-[13px] font-bold text-[var(--th-txt-1)] leading-none">Simple&amp;Eco</p>
+                            <p className="text-[13px] font-bold text-[var(--th-txt-2)] leading-none font-surgena">{COMPANY_NAME}</p>
                             <p className="text-[11px] leading-none mt-0.5 font-semibold" style={{ color: accentColor }}>Administrador</p>
                           </div>
                         </div>
@@ -3644,7 +3896,7 @@ export default function AdminPanel() {
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
             <div className="relative" style={{ width: '70%', height: '30%' }}>
               {/* Rounded border */}
-              <div className="absolute inset-0 rounded-xl border-2 border-[#FF8C00]/60" />
+              <div className="absolute inset-0 rounded-2xl border-2 border-[#FF8C00]/60" />
               {/* Corner accents */}
               <span className="absolute -top-px -left-px w-8 h-8 border-t-[3px] border-l-[3px] border-[#FF8C00] rounded-tl-xl" />
               <span className="absolute -top-px -right-px w-8 h-8 border-t-[3px] border-r-[3px] border-[#FF8C00] rounded-tr-xl" />

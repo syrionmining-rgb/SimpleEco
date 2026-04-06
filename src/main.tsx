@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import './index.css'
 import App from './App.tsx'
 import LoginPage from './pages/LoginPage.tsx'
+import CreateAccountPage from './pages/CreateAccountPage.tsx'
 import AdminPanel from './pages/AdminPanel.tsx'
 import ProtectedRoute from './components/ProtectedRoute.tsx'
 import { AuthProvider } from './context/AuthContext.tsx'
@@ -14,6 +15,7 @@ createRoot(document.getElementById('root')!).render(
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/criar-conta" element={<CreateAccountPage />} />
           <Route
             path="/"
             element={
