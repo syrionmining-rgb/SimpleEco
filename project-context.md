@@ -1,8 +1,8 @@
-# SimpleEco — Project Context
+# G.Form — Project Context
 
 ## Visão Geral
 
-**SimpleEco Production Dashboard** é uma SPA (Single Page Application) React para gestão de produção e pedidos de uma empresa industrial. Exibe métricas de produção em tempo real, pedidos atrasados, produção do dia e metas semanais/mensais, com filtragem por setor. Possui painel administrativo completo para gestão de pedidos, talões, clientes, fluxo de produção e sincronização DBF.
+**G.Form Production Dashboard** é uma SPA (Single Page Application) React para gestão de produção e pedidos de uma empresa industrial. Exibe métricas de produção em tempo real, pedidos atrasados, produção do dia e metas semanais/mensais, com filtragem por setor. Possui painel administrativo completo para gestão de pedidos, talões, clientes, fluxo de produção e sincronização DBF.
 
 **Versão atual: 2.0**
 

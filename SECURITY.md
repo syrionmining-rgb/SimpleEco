@@ -1,4 +1,4 @@
-# Security Checklist — SimpleEco Production Dashboard
+# Security Checklist — G.Form Production Dashboard
 
 Stack: React 18 + TypeScript · Supabase (PostgreSQL) · Vite · Vercel
 

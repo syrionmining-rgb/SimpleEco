@@ -1,7 +1,7 @@
 -- ============================================================
--- SIMPLE&ECO — SCHEMA COMPLETO DO SUPABASE
+-- G.FORM — SCHEMA COMPLETO DO SUPABASE
 -- ============================================================
--- Projeto : Simple&Eco
+-- Projeto : G.Form
 -- URL     : https://whwwcgyqpaspzymhdwox.supabase.co
 -- DB Host : db.whwwcgyqpaspzymhdwox.supabase.co
 -- DB Port : 5432

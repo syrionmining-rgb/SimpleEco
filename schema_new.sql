@@ -1,5 +1,5 @@
 -- ══════════════════════════════════════════════════════
--- SimpleEco — Schema completo para novo projeto Supabase
+-- G.Form — Schema completo para novo projeto Supabase
 -- ══════════════════════════════════════════════════════
 
 -- Extensions

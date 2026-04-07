@@ -1,4 +1,4 @@
-# Simple&Eco — Estrutura do Banco de Dados (DBF)
+# G.Form — Estrutura do Banco de Dados (DBF)
 
 > Todos os dados ficam na pasta `DBF/` como arquivos `.dbf` (formato dBASE/FoxPro).  
 > Este documento foca na tela **2.6.1 · Movimentação de Talões nos SETORES de Produção** (print enviado pelo usuário), explicando de quais tabelas cada coluna é lida.
