@@ -273,6 +273,19 @@ export default function LoginPage() {
           {/* ── Formulário — centrado no espaço restante (mobile) ── */}
           <div className={`flex-1 md:flex-none flex flex-col justify-center items-center w-full pb-12 md:pb-0 ${formReady ? 'login-form-reveal' : 'opacity-0'}`}>
           <div className="relative w-full max-w-md md:max-w-[420px] px-8 md:px-0">
+            {/* Overlay fade — mobile, atrás do formulário */}
+            <div
+              className="md:hidden pointer-events-none"
+              style={{
+                position: 'fixed',
+                left: '-10%', right: '-10%',
+                top: '20%', bottom: '-10%',
+                background: 'var(--th-page)',
+                WebkitMask: 'radial-gradient(ellipse 70% 75% at 50% 50%, black 30%, transparent 100%)',
+                mask: 'radial-gradient(ellipse 70% 75% at 50% 50%, black 30%, transparent 100%)',
+                zIndex: 0,
+              }}
+            />
             <div className="relative z-[1] flex flex-col gap-6 md:gap-8 md:items-center">
               {/* Brand heading — desktop only */}
               <div className="login-anim delay-50 hidden md:flex flex-col items-start gap-2 self-start">
